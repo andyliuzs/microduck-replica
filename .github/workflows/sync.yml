@@ -19,7 +19,7 @@
             with:
               upstream_sync_repo: 'fanhao375/microduck-replica'
               upstream_sync_branch: 'master'
-              target_sync_branch: 'mastr'
+              target_sync_branch: 'master'
               git_push_args: --force
               git_pull_args: --ff-only
     
