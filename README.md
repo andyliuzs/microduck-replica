@@ -48,12 +48,12 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 
 有人在做同样的事，凑了个微信群一起讨论复刻进度、踩过的坑、元件采购。
 
-下面是**鸭子复刻群 9**的二维码（微信群满 200 人后无法扫码加入）。
+下面是**鸭子复刻群 10**的二维码（微信群满 200 人后无法扫码加入）。
 
 <div align="center">
-  <img src="assets/wechat-group-9.png" alt="鸭子复刻群 9 微信二维码" width="280">
+  <img src="assets/wechat-group-10.png" alt="鸭子复刻群 10 微信二维码" width="280">
   <br>
-  <sub><b>鸭子复刻群 9 · 二维码有效期到 2026-10-01</b>（微信群码 7 天自动失效）<br>
+  <sub><b>鸭子复刻群 10 · 二维码有效期到 2026-10-08</b>（微信群码 7 天自动失效）<br>
   过期了请开个 <a href="https://github.com/fanhao375/microduck-replica/issues">issue</a> 说一声，我会换上新的</sub>
 </div>
 
@@ -132,11 +132,15 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 </td>
 <td width="50%" valign="top">
 
-### 🧠 算法 · 接入公开的 1910 M6 参数
+### 🧠 算法 · 舵机参数与训练流程
 
 采用 **[LuwuDynamics/xgoduck_rl](https://github.com/LuwuDynamics/xgoduck_rl) 公开的 1910 BAM M6 动力学参数**，
 作为飞特版的仿真训练基线。感谢 LuwuDynamics 的分享；这份参数不是我们自行辨识的结果。
 出处、固定版本、原文件校验值和 Apache-2.0 许可见[参数来源说明](docs/HD-1910-M6参数来源.md)。
+
+**具体训练流程推荐参考 [kissqy / Microduck-kissqy](https://github.com/kissqy/Microduck-kissqy)**，感谢 [@kissqy](https://github.com/kissqy) 的分享！
+项目提供 HD1910 的训练中控与使用说明，涵盖训练环境准备、训练任务管理和 ONNX 模型导出，
+并配套机器人中控、固件及演示视频。
 
 完整训练工程已放入本仓库 **[`software/training/`](software/training/)**，一次克隆即可取得
 代码、参数和仿真模型；[运行说明与初始化修复解释](software/training/docs/hd1910-baseline.md)给出具体命令。
@@ -180,6 +184,7 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 |---|---|---|
 | [microduck-color-studio](https://github.com/LathamZ/microduck-color-studio)（[在线试用](https://lathamz.github.io/microduck-color-studio/)） | [@LathamZ](https://github.com/LathamZ) | **鸭子的 3D 配色工作室，打印前先在网页里把颜色定好。** 70 个零件逐件上色，选材质（PLA / 哑光 / PETG / 金属 / 碳纤 / TPU）和灯光看效果；填上自己手里有哪些耗材，它按库存推荐配色（只用已有 / 补一色 / 丙烯点缀）。还能导入自己的 3MF（比如飞特版），导出**带颜色的多盘 3MF** 和按件拆好的 STL，拓竹 P1S / A1 mini / H2D 有预设。中英文界面，手机上也能看 |
 | [MICDUCK_FTHD1901_REBUILD](https://github.com/fengj4780-sudo/MICDUCK_FTHD1901_REBUILD) | [@fengj4780-sudo](https://github.com/fengj4780-sudo) | **飞特版结构改进 + 可选 CNC 加强件。** 在我们的[可编辑 SolidWorks 图纸](https://github.com/fanhao375/microduck-replica-cad)基础上接着改：适配飞特舵机（他仓库里写作 HD1901，零件文件用的是 HD-1910-C001），加强了薄弱件，修了装配干涉和几个破损的模型。腿部 **5 个零件可以换成 CNC 件**让受力更合理（还在打样测试，他估算 5 件含运费约 45 元）；不做 CNC 直接打印也行，强度也比原版好。附一键打印的 3MF（拓竹 H2D、0.4 mm、5 盘）和改好的 SolidWorks 图纸 |
+| [Microduck-kissqy](https://github.com/kissqy/Microduck-kissqy) | [@kissqy](https://github.com/kissqy) | **飞特 HD1910 的训练流程与控制实现参考。** 提供训练中控、训练环境准备与任务管理说明、ONNX 模型导出，以及机器人中控、固件和演示视频；算法部分的具体训练流程推荐参考这个项目 |
 
 做了跟鸭子有关的项目（工具、教程、改装、策略……），开 issue 贴个链接，我们加进来。
 

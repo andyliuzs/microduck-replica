@@ -64,12 +64,12 @@ The selection argument is in [Actuator Selection](docs/actuator-selection.en.md)
 
 A WeChat group for people working on the same thing — build progress, pitfalls, sourcing.
 
-The code below is for **Duck Replica Group 9** (WeChat disables QR joins once a group reaches 200 members).
+The code below is for **Duck Replica Group 10** (WeChat disables QR joins once a group reaches 200 members).
 
 <div align="center">
-  <img src="assets/wechat-group-9.png" alt="Duck Replica Group 9 WeChat QR code" width="280">
+  <img src="assets/wechat-group-10.png" alt="Duck Replica Group 10 WeChat QR code" width="280">
   <br>
-  <sub><b>Duck Replica Group 9 · expires 2026-10-01</b> — WeChat group codes are valid for 7 days<br>
+  <sub><b>Duck Replica Group 10 · expires 2026-10-08</b> — WeChat group codes are valid for 7 days<br>
   If it has expired, open an <a href="https://github.com/fanhao375/microduck-replica/issues">issue</a> and I will post a fresh one</sub>
 </div>
 
@@ -149,13 +149,17 @@ waiting on the zero calibration before it goes on the board.
 </td>
 <td width="50%" valign="top">
 
-### 🧠 Algorithms · public 1910 M6 parameter integration
+### 🧠 Algorithms · servo parameters and training workflow
 
 The Feetech simulation baseline adopts the **1910 BAM M6 actuator parameters published by
 [LuwuDynamics/xgoduck_rl](https://github.com/LuwuDynamics/xgoduck_rl)**. Thank you to LuwuDynamics
 for sharing them. These parameters were not independently identified by this replica project.
 The [provenance record](docs/HD-1910-M6参数来源.md) includes the pinned source revision,
 original-file checksum and Apache-2.0 license.
+
+**For the training workflow, we recommend [kissqy / Microduck-kissqy](https://github.com/kissqy/Microduck-kissqy)**. Thanks to [@kissqy](https://github.com/kissqy) for sharing!
+The project provides an HD1910 training console and guides covering environment setup, training job management
+and ONNX export, alongside a robot control console, firmware and demo videos.
 
 The complete training project is included in **[`software/training/`](software/training/)**:
 one clone includes the source, actuator parameters and simulation models. See the
@@ -201,6 +205,7 @@ Some people build duck-related things in their own repos. The good ones get a sh
 |---|---|---|
 | [microduck-color-studio](https://github.com/LathamZ/microduck-color-studio) ([live demo](https://lathamz.github.io/microduck-color-studio/)) | [@LathamZ](https://github.com/LathamZ) | **A 3D color studio for the duck: settle the colors in your browser before you print.** Color each of the 70 parts, pick a material (PLA / matte / PETG / metallic / carbon fiber / TPU) and lighting to preview. Enter the filaments you already own and it recommends palettes from your stock (use what you have / add one color / acrylic accents). You can also import your own 3MF (e.g. the Feetech version) and export a **colored multi-plate 3MF** plus per-part STLs, with presets for Bambu P1S / A1 mini / H2D. Chinese and English UI, works on mobile |
 | [MICDUCK_FTHD1901_REBUILD](https://github.com/fengj4780-sudo/MICDUCK_FTHD1901_REBUILD) | [@fengj4780-sudo](https://github.com/fengj4780-sudo) | **Feetech-build structural rework with optional CNC reinforcement.** Builds on our [editable SolidWorks drawings](https://github.com/fanhao375/microduck-replica-cad): adapted to the Feetech servo (written as HD1901 in that repo; the part files are HD-1910-C001), weak parts reinforced, assembly interferences fixed and some broken models repaired. **Five leg parts can be made as CNC parts** for better load paths (still being prototyped; the author estimates about ¥45 for all five including shipping); printing them instead also works and is stronger than the original. Includes a one-click 3MF (Bambu H2D, 0.4 mm, 5 plates) and the reworked SolidWorks drawings (Chinese) |
+| [Microduck-kissqy](https://github.com/kissqy/Microduck-kissqy) | [@kissqy](https://github.com/kissqy) | **A reference for Feetech HD1910 training workflows and robot control.** Includes a training console, environment setup and job management guides, ONNX model export, a robot control console, firmware and demo videos. Recommended in the algorithms section for the practical training workflow |
 
 Built something for the duck (a tool, tutorial, mod, policy…)? Open an issue with the link and we'll add it.
 
