@@ -15,13 +15,13 @@ jobs:
       - name: Checkout your fork
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 获取完整历史，避免合并冲突
+          fetch-depth: 0 # 获取完整历史，merge 时才能找到共同祖先
 
       - name: Sync fork
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
-        with:
-          upstream_sync_repo: 'fanhao375/microduck-replica'
-          upstream_sync_branch: 'master'
-          target_sync_branch: 'master'
-          target_branch_push_args: --force
-          upstream_pull_args: --ff-only
+        run: |
+          git remote add upstream https://github.com/fanhao375/microduck-replica.git
+          git fetch upstream master
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge upstream/master --no-edit
+          git push origin master
