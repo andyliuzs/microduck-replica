@@ -4,6 +4,8 @@
 
 > **模型与打印文件统一入口：[microduck-replica-cad](https://github.com/fanhao375/microduck-replica-cad)。** 飞特 / XL330 请选对应版本；本仓旧打印 STL 已移除，避免误打。
 
+> **装配视频教程：[B 站合集《MicroDuck 从零安装教程》](https://space.bilibili.com/312747174/lists/9279084?type=season)**，图纸作者「机械行者Robo」一集装一个部件，共 8 集，已更新 6 集 → [分集目录](#-装配视频教程)
+
 > 对 [Pollen Robotics Microduck](https://pollen-robotics.com/microduck/) 的第三方复刻研究。
 > 从官方公开的 MJCF 仿真模型反推出**装配图、爆炸图和可直接导入 CAD 的装配体**。
 
@@ -44,6 +46,29 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 
 ---
 
+## 📺 装配视频教程
+
+**[B 站合集《MicroDuck 从零安装教程》](https://space.bilibili.com/312747174/lists/9279084?type=season)** —— CAD 图纸和装配 BOM 的作者 **机械行者Robo** 录的，从零件清单讲起，一集装一个部件。共 8 集，截至 2026-10-12 已更新 6 集：
+
+| 集 | 内容 | 时长 |
+|---|---|---|
+| [第 1 集](https://www.bilibili.com/video/BV1RoHX68EFV/) | 零件清单：头部、颈部、左右腿、脚掌各组件和舵机配件 | 1:32 |
+| [第 2 集](https://www.bilibili.com/video/BV1Xppb6tECr/) | 小腿安装 | 2:21 |
+| [第 3 集](https://www.bilibili.com/video/BV1ycpb6yEwB/) | 大腿安装 | 5:13 |
+| [第 4 集](https://www.bilibili.com/video/BV1Kwpg6wE9G/) | 躯干组件安装 | 2:29 |
+| [第 5 集](https://www.bilibili.com/video/BV1EEpg6nEkD/) | 颈部安装 | 0:40 |
+| [第 6 集](https://www.bilibili.com/video/BV1aKpE6hEzj/) | 头部安装 | 5:50 |
+
+打印件和外购件按 [CAD 仓库](https://github.com/fanhao375/microduck-replica-cad)里的装配 BOM 备齐再开装。后面几集也会更新在下面这几个账号上：
+
+<table align="center">
+<tr>
+<td align="center"><a href="https://space.bilibili.com/312747174"><img src="assets/social/bilibili-qr.jpg" alt="B 站：机械行者Robo" height="280"></a><br><sub><b>B 站</b> · 机械行者Robo<br>UID 312747174</sub></td>
+<td align="center"><a href="https://www.xiaohongshu.com/user/profile/5ad950114eacab046016f038"><img src="assets/social/xiaohongshu-qr.jpg" alt="小红书：机械行者" height="280"></a><br><sub><b>小红书</b> · 机械行者<br>小红书号 270594280</sub></td>
+<td align="center"><a href="https://www.douyin.com/user/MS4wLjABAAAArLa_6yE3GE-AoRURoQnIHdbbI7yM-GHhzlgLZ-XbeYE"><img src="assets/social/douyin-qr.jpg" alt="抖音：机械行者Robo" height="280"></a><br><sub><b>抖音</b> · 机械行者Robo<br>抖音号 1852366168</sub></td>
+</tr>
+</table>
+
 ## 交流群
 
 有人在做同样的事，凑了个微信群一起讨论复刻进度、踩过的坑、元件采购。
@@ -58,6 +83,12 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 </div>
 
 ## 最近更新
+
+**2026-10-12 夜 · IMU 校准后站稳、开始迈步**：模型一接管就往后猛冲的根因找到了，是 **IMU 模块装歪了约 8.5°**。模型训练时站 HOME 机身是水平的，IMU 却一直说「前倾 8.5°」，模型就拼命往后救。用仿真按真机关节角算出「应有倾斜」，把偏差补进 IMU 安装参数后，模型接管 70 秒没倒、机身倾斜平均 0.2°，推摇杆两腿开始交替迈步（往前走了多少还没量）。顺带查清了网页手柄按了没反应的四层原因，改用蓝牙手柄直连。[完整记录与 IMU 零点校准方法](docs/HD1910-20261012-夜-IMU校准与首次迈步.md) · [分析脚本](tools/radxa/onboard-analysis/) · [踩坑记录](踩坑记录.md)。
+
+**2026-10-12 · 主控配置勘误**：此前建议买 Radxa Zero 3W「2G / 16G eMMC」，**没必要，让大家多花了钱**。官方资料只写了 1 GB 内存、32 GB 存储；我们第一台就是 2G、无 eMMC、插 microSD 卡，跑 kissqy 整套实测只用了 175 MB 内存、3.3 GB 存储。复刻买 **1G 或 2G 的无 eMMC 版 + 32 GB microSD 卡**即可，只走官方渠道（安联新创淘宝店、瑞莎官方淘宝 / 京东店），别去小店多花几倍的钱。已经买了 2G/16G 的照样能用。[买哪个配置、去哪买](docs/电控采购清单.md#该买哪个配置)。
+
+**2026-10-12 · 装配视频教程**：机械行者Robo 在 B 站更新《MicroDuck 从零安装教程》，已出零件清单、小腿、大腿、躯干、颈部、头部 6 集（共 8 集），小红书、抖音也能找到。[分集目录与关注方式](#-装配视频教程)。
 
 **2026-09-29 · 镜像登录勘误**：旧公开镜像第一次用 **`root / 1234`** 登录；完成 Armbian 向导后才创建 `duck / duck1234` 并更换 root 密码，请随即修改默认密码。旧卡仍需补 `wlan0` DHCP。[使用说明](tools/radxa/镜像使用说明.md)已更正；新的 [DHCP 修复候选镜像](https://github.com/fanhao375/microduck-replica/releases/tag/radxa-zero3w-armbian-20260929)经过离线校验，**尚未对这份新产物烧卡实测**。基础镜像不含机器人运行时或网页调试台。
 
@@ -101,6 +132,9 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 可编辑的 SolidWorks 图纸也出了飞特版（`-FT` 后缀），改了什么、为什么，
 在图纸仓里写清楚了。
 
+**从零装一只的视频教程**也在出：[B 站合集](https://space.bilibili.com/312747174/lists/9279084?type=season)，已更新到第 6 集（头部）。
+
+**[装配视频教程](#-装配视频教程)**　·
 **[构建日志](构建日志.md)**　·
 **[飞特版 SolidWorks 图纸](https://github.com/fanhao375/microduck-replica-cad)**　·
 **[模型与打印文件](https://github.com/fanhao375/microduck-replica-cad)**　·
@@ -254,7 +288,7 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 
 本仓旧 `print/` 单件和 `cad/` 装配 STL 来自上游仿真模型，未同步实物改件，现已移除；这两个目录保留下载指引。**不要把飞特和 XL330 配合件混用，也不要把本仓训练/网页网格用于打印。**
 
-CAD 仓库的 09-15 旧 3MF 尚未包含 v2.1 合体轮胎；请核对具体附件版本，详见 [打印说明](print/README.md)。图纸与说明书由 **机械行者Robo** 建模整理，来源与许可见 CAD 仓库。
+CAD 仓库的 09-15 旧 3MF 尚未包含 v2.1 合体轮胎；请核对具体附件版本，详见 [打印说明](print/README.md)。图纸与说明书由 **机械行者Robo** 建模整理，来源与许可见 CAD 仓库。装配过程可以对照[视频教程](#-装配视频教程)。
 
 ---
 
@@ -287,7 +321,7 @@ CAD 仓库的 09-15 旧 3MF 尚未包含 v2.1 合体轮胎；请核对具体附�
 | | |
 |---|---|
 | **主控** | **Radxa Zero 3W** —— 市售模块，**不是定制载板** |
-| SoC | RK3566，四核 Cortex-A55，Mali-G52，0.8 TOPS NPU。官方公布 1 GB / 32 GB eMMC；复刻建议 2G/16G，见 [电控采购清单](docs/电控采购清单.md) |
+| SoC | RK3566，四核 Cortex-A55，Mali-G52，0.8 TOPS NPU。官方公布 1 GB 内存 / 32 GB 存储；复刻买 1G 或 2G 的**无 eMMC** 版 + 32 GB microSD 卡即可，只走官方渠道，见 [电控采购清单](docs/电控采购清单.md#该买哪个配置) |
 | **舵机总线** | **单线半双工 TTL** —— **不是** RS-232，**也不是** RS-485。Dynamixel Protocol V2 @ 1 Mbps，走 `/dev/ttyS2` |
 | **自制板 1** | **`imu_to_dxl` v2** —— 一颗会说 Dynamixel 的 LSM6DSV16X：总线 ID 200、寄存器 124，12 字节块在**同一次** `sync_read` 里和舵机一起读回 |
 | **自制板 2** | **RPI Robot HAT** —— TLV320AIC3104 @ 0x18、一颗休眠的 BMI088、接 ToF 的 Stemma 座。**官方已开源**（[`elec_RPI_Robot_HAT`](https://github.com/pollen-robotics/elec_RPI_Robot_HAT)） |
