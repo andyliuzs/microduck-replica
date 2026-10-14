@@ -84,6 +84,8 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 
 ## 最近更新
 
+**2026-10-14 晚 · kissqy 整套也能用 IMU 模块了（fork）**：kissqy 的一键整套只认舵机总线上的 IMU 小板，手上是现成 IMU 模块的用不了。我们给他的 robotd 加了「IMU 模块直接接主板 I²C」（BNO085 / LSM6DSV16X），公开在我们自己的 fork [fanhao375/Microduck-kissqy](https://github.com/fanhao375/Microduck-kissqy)（分支 `hd1910-v167-trunk-imu-i2c`，基于他 10-14 发的 V167）。**这不是 kissqy 的官方版本**，出了问题到本仓库反馈。BNO085 在我们第一台上跑过（V164 上）；合到 V167 以后只过了单元测试，**还没上真机**，LSM6DSV16X 也没上过真机，我们今晚在第一台上实测，结果会更新到这里。怎么接线、编译、用安装脚本装、确认 IMU 方向，见 [IMU-MODULE.md](https://github.com/fanhao375/Microduck-kissqy/blob/hd1910-v167-trunk-imu-i2c/IMU-MODULE.md)。顺带：kissqy 的 V167「修复鸭身抖动」是每次上力把舵机 D 写成 0、转矩限制写成 1000，跟我们 10-13 的结论一致；用 IMU 模块的鸭子**别直接点他中控的「安装 / 升级固件」**，会把 IMU 支持冲掉。
+
 **2026-10-14 · 飞特官方 HD-1910 BAM 舵机模型**：飞特 9 月底在 Gitee 公开了 [ftservo/ftservo-bam](https://gitee.com/ftservo/ftservo-bam)（Apache-2.0，Rhoban/BAM 的派生），有 HD-1910 在 7.4 V 下辨识的 m1～m6 参数和专门的 HD-1910 控制模型。之前大家训练用的是陆吾（LuwuDynamics）公开的 1910 M6，现在多了一份厂家参数，可以对比着选。两份差别不小（电机电阻：飞特 2.97 Ω、陆吾 4.91 Ω；推算堵转力矩：飞特 1.37、陆吾 0.91 N·m），**我们还没在真机上验证哪份更准**。飞特的录数据脚本只设 P、不设 D，舵机多半是出厂 D=40，用它训的模型上机前先确认 D。加载、换算系数等接入细节见[两份参数对比与接入说明](docs/HD-1910-M6参数来源.md#飞特官方-hd-1910-bam)。
 
 **2026-10-13 夜 · 掉电、舵机 D 与蹭地**：新旧卡都会在走路时整机掉电，是供电撑不住，不是软件。走路发颤跟舵机的 D（硬件阻尼）有关：训练用的舵机模型里没有 D，D 改成 0 后高频颤从 51% 降到 4～8%，我们现在用 P3 / D0 / 转矩限制 700。蹭地是两只脚都只抬了仿真的一半，D=0 后左脚还会脚尖朝下，下一步试 D=5～10。另外，kissqy 一键镜像（V164）不写 D 和转矩限制，中控里改了没效果。[完整记录](docs/HD1910-20261013-夜-掉电-舵机D与蹭地.md) · [软件从哪来、我们改了什么](docs/软件来源与我们的改动.md) · [步态分析脚本](tools/gait-analysis/)。
@@ -150,7 +152,20 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 <tr>
 <td width="50%" valign="top">
 
-### 💻 软件 · 网页调试台，串口直连 15 颗舵机
+### 💻 软件 · 我们的 fork：IMU 模块直接上
+
+**不用做总线 IMU 小板，也不用刷固件**：买一块 BNO085（或 LSM6DSV16X）模块，4 根线接到主板 I²C，装上我们的 fork，鸭子就能站、能走。
+
+- **IMU 模块直连主板**：BNO085 / LSM6DSV16X，`robotd.toml` 里一行切换；
+- **一键安装脚本**：先检查、再备份，中途任何一步失败自动撤回；
+- **中文说明**：接线、编译、安装、确认 IMU 方向，一步一步写清楚；
+- **跟着上游最新版走**，在我们自己的鸭子上实测，踩过的坑都记在本仓库。
+
+👉 **[进入我们的 fork：fanhao375/Microduck-kissqy](https://github.com/fanhao375/Microduck-kissqy)**　·　[使用说明](https://github.com/fanhao375/Microduck-kissqy/blob/hd1910-v167-trunk-imu-i2c/IMU-MODULE.md)
+
+状态：BNO085 已在我们第一台鸭子上跑过；当前版本今晚上真机实测，结果更新在上面的「最近更新」。基于 [kissqy/Microduck-kissqy](https://github.com/kissqy/Microduck-kissqy) 的 V167（robotd 等为 Apache-2.0），不是 kissqy 的官方版本，有问题请到本仓库反馈。
+
+#### 网页调试台：串口直连 15 颗舵机
 
 <p align="center"><a href="tools/servo-web/"><img src="assets/servo-web.png" alt="网页调试台：滑块、3D 鸭子、重心投影" width="420"></a></p>
 
@@ -160,11 +175,9 @@ MJCF 里包含了完整的运动学树：每个零件挂在谁身上、相对位
 后端不依赖飞特 SDK，[`feetech.py`](tools/servo-web/feetech.py) 按 2026 版协议手册直接收发包，一百多行。
 配套一个**协议级舵机模拟器**，不接硬件就能把校准、改 ID、写寄存器跑一遍自检。
 
-接官方运行时的 `FeetechIo`（`RobotIo` 接缝，rustypot 协议 v1）已经写完、跟上了官方 0.14.1，等零位校准做完上板 —— 代码在 fork 的 **[`feetech` 分支](https://github.com/fanhao375/microduck/tree/feetech)**。
-
+**[我们的 fork](https://github.com/fanhao375/Microduck-kissqy)**　·
 **[网页调试台](tools/servo-web/)**　·
 **[飞特适配架构](software/飞特适配架构.md)**　·
-**[FeetechIo 代码](https://github.com/fanhao375/microduck/tree/feetech)**　·　
 [飞特官方资料](docs/飞特资料/)（协议、内存表）
 
 </td>

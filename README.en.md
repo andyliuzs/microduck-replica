@@ -100,6 +100,8 @@ The code below is for **Duck Replica Group 10** (WeChat disables QR joins once a
 
 ## Latest
 
+**2026-10-14 evening — IMU modules for kissqy's full stack (fork):** kissqy's one-click stack only reads the IMU board on the servo bus, so a duck with a ready-made IMU module cannot use it. We added "IMU module on the board's own I²C" (BNO085 / LSM6DSV16X) to his robotd and published it in our fork [fanhao375/Microduck-kissqy](https://github.com/fanhao375/Microduck-kissqy) (branch `hd1910-v167-trunk-imu-i2c`, on top of his 10-14 V167). **It is not an official kissqy release** — report problems here. BNO085 has run on our first robot (on V164); the V167 merge has only passed unit tests and **has not run on a robot yet**, nor has LSM6DSV16X. We test it on our robot tonight and will update this note. Wiring, build, the installer and confirming the IMU mount: [IMU-MODULE.md](https://github.com/fanhao375/Microduck-kissqy/blob/hd1910-v167-trunk-imu-i2c/IMU-MODULE.md). Also: kissqy's V167 "body jitter fix" writes servo D=0 and torque limit 1000 on every arm, matching our 10-13 finding; a duck with an IMU module **must not use "install/upgrade firmware" in his console**, which would remove the module support.
+
 **2026-10-14 — Feetech's official HD-1910 BAM actuator model:** At the end of September Feetech published [ftservo/ftservo-bam](https://gitee.com/ftservo/ftservo-bam) on Gitee (Apache-2.0, a fork of Rhoban/BAM), with m1–m6 parameters for the HD-1910 identified at 7.4 V and a dedicated HD-1910 controller model. Until now everyone has trained with the 1910 M6 parameters published by LuwuDynamics; the manufacturer's own set is now available to compare. The two differ substantially (motor resistance: Feetech 2.97 Ω, LuwuDynamics 4.91 Ω; computed stall torque: Feetech 1.37, LuwuDynamics 0.91 N·m), and **we have not yet verified on hardware which one matches the real servo better**. Feetech's recording script sets P but not D, so the servos were most likely at the factory D=40 — confirm D before deploying a policy trained on it. Loading and gain-conversion details: [comparison and integration notes](docs/HD-1910-M6参数来源.md#飞特官方-hd-1910-bam) (Chinese).
 
 **2026-10-13 night — Brownouts, servo D and foot scraping:** Both cards brown out while walking; the supply cannot hold the current spikes — it is not software. The walking jitter is linked to the servos' hardware D (damping): the actuator model used in training has no D term, and setting D=0 cut the high-frequency share of torso motion from 51% to 4–8%; we now run P3 / D0 / torque limit 700. The feet scrape because both lift only half as high as in simulation, and with D=0 the left toe also points down; next we try D=5–10. kissqy's one-click image (V164) does not write D or the torque limit, so changing them in the console has no effect. [Full record](docs/HD1910-20261013-夜-掉电-舵机D与蹭地.md) (Chinese) · [Where our software comes from and what we changed](docs/软件来源与我们的改动.md) (Chinese) · [Gait analysis scripts](tools/gait-analysis/).
@@ -164,7 +166,20 @@ horns were remodelled and reprinted. The editable SolidWorks drawings have an FT
 <tr>
 <td width="50%" valign="top">
 
-### 💻 Software · web console driving 15 servos over the serial bus
+### 💻 Software · our fork: plug in an off-the-shelf IMU module
+
+**No bus IMU board to build, no firmware to flash:** wire a BNO085 (or LSM6DSV16X) module to the board's I²C with four wires, install our fork, and the duck stands and walks.
+
+- **IMU module straight on the board**: BNO085 / LSM6DSV16X, one line in `robotd.toml`;
+- **One-command installer**: checks first, backs up, and rolls back by itself if any step fails;
+- **Step-by-step instructions**: wiring, build, install, confirming the IMU mount;
+- **Tracks the latest upstream release**, tested on our own duck, every pitfall written up in this repository.
+
+👉 **[Open our fork: fanhao375/Microduck-kissqy](https://github.com/fanhao375/Microduck-kissqy)**　·　[Instructions](https://github.com/fanhao375/Microduck-kissqy/blob/hd1910-v167-trunk-imu-i2c/IMU-MODULE.md)
+
+Status: BNO085 has run on our first duck; the current build goes on the robot tonight, results in "Latest" above. Based on [kissqy/Microduck-kissqy](https://github.com/kissqy/Microduck-kissqy) V167 (robotd and friends are Apache-2.0); not an official kissqy release — please report problems here.
+
+#### Web console: 15 servos over the serial bus
 
 <p align="center"><a href="tools/servo-web/"><img src="assets/servo-web.png" alt="Web console: sliders, 3D duck, CoM projection" width="420"></a></p>
 
@@ -177,9 +192,7 @@ The backend does not use the Feetech SDK: [`feetech.py`](tools/servo-web/feetech
 2026 protocol manual directly in about a hundred lines. It ships with a **packet-level servo
 simulator**, so calibration, ID changes and register writes are self-tested with no hardware attached.
 
-`FeetechIo` for the official runtime (the `RobotIo` seam, rustypot protocol v1) is written and
-waiting on the zero calibration before it goes on the board.
-
+**[Our fork](https://github.com/fanhao375/Microduck-kissqy)**　·　
 **[Web console](tools/servo-web/)**　·　
 **[Feetech port architecture](software/飞特适配架构.md)**　(Chinese)　·　
 [Feetech official docs](docs/飞特资料/)
