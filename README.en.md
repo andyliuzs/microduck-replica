@@ -100,6 +100,8 @@ The code below is for **Duck Replica Group 10** (WeChat disables QR joins once a
 
 ## Latest
 
+**2026-10-15 evening — the cause of "falls after two or three steps" found; the duck now walks steadily:** the BNO085's own fused orientation jumps 20–60° within 20 ms while walking (mostly around foot strikes), while its gyro says the trunk turned 1–2°; the policy believes it is falling and its correction makes it fall. robotd can now carry the attitude with the chip's own gyro and only follows the chip slowly when the two agree. On the robot: in the old mode, 9 s of pushing the stick gave 2 falls; in the new mode, 60 s of pushing gave none, and 10+ minutes in walk mode (60 s of it pushing the stick) only one fall, while the chip still jumped 745 times — none of them reached the policy. No interleaved A/B was run (the user saw it on site and kept the new mode); turning is still weak and the board still reboots now and then. Code on the fork branch [`hd1910-v167-gyro-fusion`](https://github.com/fanhao375/Microduck-kissqy/tree/hd1910-v167-gyro-fusion) (the default is still the old mode; switching: [IMU-MODULE.md 4.4](https://github.com/fanhao375/Microduck-kissqy/blob/hd1910-v167-gyro-fusion/IMU-MODULE.md), Chinese). [Full record: symptom, strategy, analysis, fix, on-robot data](docs/HD1910-20261015-IMU乱跳根因与陀螺融合上机.md) (Chinese).
+
 **2026-10-14 evening — IMU modules for kissqy's full stack (fork):** kissqy's one-click stack only reads the IMU board on the servo bus, so a duck with a ready-made IMU module cannot use it. We added "IMU module on the board's own I²C" (BNO085 / LSM6DSV16X) to his robotd and published it in our fork [fanhao375/Microduck-kissqy](https://github.com/fanhao375/Microduck-kissqy) (branch `hd1910-v167-trunk-imu-i2c`, on top of his 10-14 V167). **It is not an official kissqy release** — report problems here. BNO085 has run on our first robot (on V164); the V167 merge has only passed unit tests and **has not run on a robot yet**, nor has LSM6DSV16X. We test it on our robot tonight and will update this note. Wiring, build, the installer and confirming the IMU mount: [IMU-MODULE.md](https://github.com/fanhao375/Microduck-kissqy/blob/hd1910-v167-trunk-imu-i2c/IMU-MODULE.md). Also: kissqy's V167 "body jitter fix" writes servo D=0 and torque limit 1000 on every arm, matching our 10-13 finding; a duck with an IMU module **must not use "install/upgrade firmware" in his console**, which would remove the module support.
 
 **2026-10-14 — Feetech's official HD-1910 BAM actuator model:** At the end of September Feetech published [ftservo/ftservo-bam](https://gitee.com/ftservo/ftservo-bam) on Gitee (Apache-2.0, a fork of Rhoban/BAM), with m1–m6 parameters for the HD-1910 identified at 7.4 V and a dedicated HD-1910 controller model. Until now everyone has trained with the 1910 M6 parameters published by LuwuDynamics; the manufacturer's own set is now available to compare. The two differ substantially (motor resistance: Feetech 2.97 Ω, LuwuDynamics 4.91 Ω; computed stall torque: Feetech 1.37, LuwuDynamics 0.91 N·m), and **we have not yet verified on hardware which one matches the real servo better**. Feetech's recording script sets P but not D, so the servos were most likely at the factory D=40 — confirm D before deploying a policy trained on it. Loading and gain-conversion details: [comparison and integration notes](docs/HD-1910-M6参数来源.md#飞特官方-hd-1910-bam) (Chinese).
@@ -122,13 +124,17 @@ The code below is for **Duck Replica Group 10** (WeChat disables QR joins once a
 <tr>
 <td width="50%" valign="top">
 
-### 🔌 Electronics · all 15 servos powered up in the assembled duck, and it stands (2026-09-18)
+### 🔌 Electronics · IMU fixed, it walks (2026-10-15)
 
-<p align="center"><a href="assets/首次上电-2026-09-18.mp4"><img src="assets/首次上电-站起来.gif" alt="First power-on: standing up from the tucked pose (click for the 30 s video)" width="220"></a></p>
+<p align="center"><a href="assets/走路-2026-10-15.mp4"><img src="assets/走路-2026-10-15.gif" alt="2026-10-15: walking on a wooden floor after the IMU fix (click for the 5 s video)" width="220"></a></p>
+
+It used to fall after two or three steps of pushing the stick; the cause was the BNO085's own fused orientation jumping while walking. With robotd carrying the attitude on the chip's own gyro, 60 s of pushing the stick gave no fall (kissqy V167 + our fork, default servo gains, silicone feet). Turning is still weak; we are on it. **[How it was found and fixed](docs/HD1910-20261015-IMU乱跳根因与陀螺融合上机.md)** (Chinese).
+
+**Earlier: first power-on, 09-18** ([30 s video](assets/首次上电-2026-09-18.mp4))
 
 First time the assembled duck was on the bus: URT-2 over USB, 7.4 V into V1, **all 15 HD-1910 online, 0 timeouts, 0 checksum errors**, one sync_read of 15 servos in 4.8 ms.
 Driven from the new [web servo console](tools/servo-web/) in this repo: sliders, saved poses, sequences, a 3D model that follows the real robot and a live centre-of-mass marker against the foot support.
-Above, it stands up from the tucked pose **by itself**, then sits back down. **First step of the Feetech software path works**; the hardware plan holds.
+In the video it stands up from the tucked pose **by itself**, then sits back down. **First step of the Feetech software path works**; the hardware plan holds.
 
 The above is the 09-18 test. Earlier on 09-28, the failed ID 21 servo was replaced with the former mouth servo (ID 34), with centre calibration confirmed at 2048. The operator later assigned the mouth ID 29, whose firmware/model fields were detected during a scan. This test covers 14 joints; mouth ID 29 is excluded at the operator's request and remains unverified. The old “all 15 online” result is not the current acceptance result. Feetech-protocol [`imu_to_dxl` firmware 0.2.0](hardware/imu_to_dxl/firmware/) is available; physical bus testing is still pending.
 
