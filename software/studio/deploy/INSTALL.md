@@ -9,7 +9,9 @@ Studio 的舵机页要自己打开舵机总线 `/dev/ttyS2`，所以主程序 ro
 
 - 停、起 robotd 要 root，Studio 不是 root。
 - 所以只给 Studio 一把「只能开这一扇门的钥匙」：sudoers 只放行 `/usr/local/sbin/microduck-helper` 这一个文件。
-- 它只认九个动词，参数逐个校验，robotd 是什么状态它自己去读，不信网页传来的（0.5.0 起：新增 `calib-read`，`calib-commit` 按 fork 的真实启动方式认标定 / 运动模式）。
+- 它只认十一个动词，参数逐个校验，robotd 是什么状态它自己去读，不信网页传来的（0.5.0 起：新增 `calib-read`，`calib-commit` 按 fork 的真实启动方式认标定 / 运动模式；0.5.2：`bus-give-back` 把标定模式的实时快照也算成「主程序起来了」；0.6.0：新增 `ssh-status` / `ssh-password`，「更多」页的 SSH 开关）。
+
+**标定模式的 busStatus**（fork `robotd/src/main.rs` 的 `robot.busStatus`、`feetech_commissioning.rs` 的 `Status`）：robotd 一起来先写一份启动报告 `{"build","mode":"commissioning","phase":"configuring_bus","port"}`，phase 还是启动阶段就一直回它；第一次读成功以后才回实时快照（phase `ready` / `moving` / `read_error` / `stop_unconfirmed` / `power_pending`，带 `last_sample`）。旧版 fork 从来不清启动报告——从舵机页交还时小助手会等满 30 秒判 `soft_failed`（`detail.still_starting = true`，话写「一直报启动中」，不说成「起不来」）。要新版 fork（20261020 之后的镜像）。
 
 **出厂镜像跑标定模式**：镜像放 `/etc/systemd/system/robotd.service.d/zzzz-zz-microduck-commissioning.conf`，`ExecStart` 带 `--commissioning`（fork `main.rs:1300-1315`：busStatus 的 mode 只看启动参数，跟标定文件里写了什么无关）。标定模式下 `calibration-status` 马上能读，busStatus 带 `last_sample`（15 颗舵机 + `imu`），`verify-imu` 会把方向写进标定文件；运动模式下标定不合格 / 舵机总线打不开会停在 `waiting_for_bus`，`calibration-status` 回 `calibration not available yet`。第 3 步写成功时小助手删掉这个文件、`daemon-reload`、重启 robotd，主程序回到运动模式。如果 `ExecStart` 里有 `--commissioning` 但文件不在，小助手拒绝自动切（`foreign_commissioning`），让人去日志页导出诊断包。
 
@@ -28,8 +30,8 @@ Studio 的舵机页要自己打开舵机总线 `/dev/ttyS2`，所以主程序 ro
 | 动词 | stdin（一个 JSON 对象） | 做什么 |
 |---|---|---|
 | `bus-take` | `{"by": "谁·哪台电脑", "allow_seated": false}` | 接管，**不卸力**：先停手柄服务 → 隔 200 ms 读两次主程序状态（策略在跑就拒绝；坐姿只有 `allow_seated` 并且不动才放行；正在回站姿最多等 3 秒）→ 立旗 → `systemctl stop --no-block robotd`，10 秒没停就 KILL → 确认串口没人占 |
-| `bus-give-back` | `{"by": …, "soft": true}` | 软交还：Studio 已经在总线上全卸了。撤旗 → 起 robotd → 等启动 4 步都 success → 拉回手柄服务 → 放锁 |
-| | `{"by": …, "marker": {…}}` | 不卸力交还：写交接标记 → 撤旗（**锁不放**）→ 起 robotd → 等 robotd 接手（接手保持、不开模型）。没接手就把总线拿回来，交给 Studio 接着保持 |
+| `bus-give-back` | `{"by": …, "soft": true}` | 软交还：Studio 已经在总线上全卸了。撤旗 → 起 robotd → 等启动 4 步都 success、而且主程序起来了（运动模式 `phase=control`，或者标定模式的实时快照 `ready` / `moving` / `read_error` / `stop_unconfirmed` / `power_pending`；`read_error` 照样算成，原话写进 reason）→ 拉回手柄服务 → 放锁。30 秒还一直报启动阶段：`soft_failed`、`detail.still_starting = true` |
+| | `{"by": …, "marker": {…}}` | 不卸力交还：写交接标记 → 撤旗（**锁不放**）→ 起 robotd → 等 robotd 接手（接手保持、不开模型）。没接手就把总线拿回来，交给 Studio 接着保持。标定模式不认标记（开总线先全部卸力）：实时快照一来就回 `limp`，不等 15 秒再拿回总线 |
 | `bus-abort` | `{"by": …}` | 中止交接（交接倒数期间按了网页卸力）：立旗 → KILL robotd → 删标记 → 确认串口空出来。目标 1 秒以内，之后 Studio 自己开串口卸力。**没有会话时拒绝（退出 3）**：旗、管理锁、交接标记都不在就什么都不碰 |
 | `pad-pair` | `{"by": …, "mac": 可选, "timeout": 10–120（默认 60）}` | 以 root 跑官方 `/usr/local/bin/robotctl pad pair --json --timeout N [MAC]`。MAC 先转大写再校验。子进程总超时 = `timeout + 30` 秒（超时就杀掉）。robotctl 在 `/var/lib/robot/weird-ble` 板上会先停 btd、给适配器断电再开，最后把 btd 起回来。**不碰**总线旗子、hold 单元、robotd，也不拿服务管理锁；只拿 `helper.lock`，一次只跑一个配对 |
 | `pad-forget` | `{"by": …, "mac": …}` | 以 root 跑官方 `/usr/local/bin/robotctl pad forget MAC`（MAC 必填，校验同上）。同样不碰总线、hold 单元、robotd |
@@ -37,6 +39,8 @@ Studio 的舵机页要自己打开舵机总线 `/dev/ttyS2`，所以主程序 ro
 | `wifi-hotspot-up` | `{"by": …}` | `nmcli connection up Microduck-Hotspot`。本来就开着算成功；从 up 开始最多等 30 秒，等 wlan0 真的挂上这个连接。开起来以后删掉 `/run/microduck/studio-connecting.json`（文件本来不在不算错）。同样不碰舵机总线，用 `wifi.lock` |
 | `calib-read` | `{"by": …}`（可省） | 只读当前标定文件：回解析后的 `calibration`、现在是哪种模式（`commissioning` / `motion` / `foreign`）、commissioning drop-in 在不在、`ExecStart` 里有没有 `--commissioning`。**不拿 `helper.lock`、不写任何文件**，给 Studio 在运动模式卡 `waiting_for_bus`、读不到 `calibration-status` 时兜底。 |
 | `calib-commit` | `{"by": …, "joints": [{"id", "direction"} × 15], "imu": {"source": "bus\|bno08x\|lsm6dsv16x", "quat": [w,x,y,z]}, "dry_run": false}` | 把舵机零位（2048）、方向、IMU 安装方向写进 robotd 的 `hd1910-calibration.toml`。顺序：**先拿 `helper.lock`，再查 bus-held 旗**；标定模式跳过着势门槛，运动模式隔 200 ms 读两次 busStatus（策略在跑 / 站着就拒绝，退出 3）；认模式：镜像的 `zzzz-zz-microduck-commissioning.conf` 在 = 标定模式（写完删掉、`daemon-reload` 切运动模式），不在且 `ExecStart` 没有 `--commissioning` = 运动模式（只换标定），`ExecStart` 有但文件不在 = `foreign_commissioning`（不敢自动切，退出 3）。读现在的文件、按标准限位组新内容、逐条校验（跟 fork 的 `Calibration::validate` 一样）。每次写一组 `calib-backups/<4 位序号>-<UTC>/`（主文件、`.saved.toml`、commissioning 文件、`manifest.json`，序号取已有最大值 +1，保留 10 组）；`.previous`、`.toml`、`.saved.toml` 都先写临时文件、fsync、rename，保留原属主和权限；写完读回来逐项校验。从第一次写开始，任何异常都先回滚再报错。重启 robotd 后最多等 40 秒 hello；再每 0.5 秒读一次 `robot.busStatus`、最多 30 秒：**成功 = `mode=="motion"` 且 `phase=="control"`，并且 `calibration-status` 读回的 15 颗（name / id / zero_raw / direction / calibrated / min_rad / max_rad）、`motion_enabled`、总线小板 `imu_mount_quat` / `imu_mount_verified`、`imu_mounts` 每一格的 quat / verified 跟写进去的一致（浮点 1e-9）**。失败按原因回 `calib_rejected`（标定没通过主程序的检查）或 `bus_unavailable`（主程序打不开舵机总线，先看舵机电源），并回滚。非 dry_run 的整段用 `systemd-run` 跑在独立单元里，结果写 `last-result.json`；`dry_run: true` 到校验完就停，只在 `detail.toml` 回全文，不写文件、不重启。 |
+| `ssh-status` | `{"by": …}`（可省） | 只读：SSH 密码登录开没开（看 `05-microduck-ssh-password.conf` 在不在）、`ssh` 服务在不在跑、radxa 的 `authorized_keys` 登记了几把钥匙。不拿锁、不写任何文件（也不覆盖 `last-result.json`）。 |
+| `ssh-password` | `{"by": …, "on": true, "password": "…"}` / `{"by": …, "on": false}` | 打开：密码 8–64 个可见字符、不能是 `microduck` 这类大家都猜得到的（不合格回 `bad_password`，退出 2）；拿 `ssh.lock`，`chpasswd` 从 stdin 设 radxa 的密码，写 `/etc/ssh/sshd_config.d/05-microduck-ssh-password.conf`（`PasswordAuthentication yes`），`sshd -t` 过了、`sshd -T` 读回 `passwordauthentication yes` 才 `systemctl reload-or-restart ssh`；哪一步不对就删掉这个文件退回去（`sshd_config_bad` / `not_effective` / `reload_failed`）。关掉：删文件、reload，radxa 的密码不动（sudo 还用它）。**密码只在 stdin 里，不进命令行、journal、`last-result.json`、oplog。** |
 
 **输出**：一行一个 JSON：`{"step", "level", "ms", "msg", "detail"}`，最后一行 `step="done"`，`detail` 里有 `exit` 和 `result`。同一份结果写进 `/run/microduck-helper/last-result.json`（0644），Studio 重启以后读它。
 
@@ -56,7 +60,7 @@ Studio 的舵机页要自己打开舵机总线 `/dev/ttyS2`，所以主程序 ro
 `result` 的取值：
 
 - bus-take：`taken`、`refused`、`no_guard`、`busy`、`stop_failed`、`port_busy`
-- bus-give-back：`adopted`、`retake`、`retake_failed`、`limp`、`aborted`、`soft`、`soft_failed`、`refused`、`no_session`、`detach_failed`
+- bus-give-back：`adopted`、`retake`、`retake_failed`、`limp`（运动模式没认标记，或者标定模式）、`aborted`、`soft`、`soft_failed`（主程序一直报启动阶段时 `detail.still_starting = true`、`detail.msg` 是整句）、`refused`、`no_session`、`detach_failed`
 - bus-abort：`aborted`、`abort_incomplete`、`no_session`（没有会话时拒绝，退出 3）
 - pad-pair：`paired`、`pair_failed`（退出 5，`detail.reason` 是官方原因）、`timeout`、`no_robotctl`、`bad_output`
 - pad-forget：`forgotten`、`forget_failed`、`timeout`、`no_robotctl`

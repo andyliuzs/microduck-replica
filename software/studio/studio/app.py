@@ -125,6 +125,9 @@ def _bus_give_back(by, servo=None):
     if servo is not None:
         servo.helper_available = True
     ok, result, detail = helper.bus_give_back(by, soft=True, timeout=60)
+    if servo is not None:
+        # 主程序其实在回话、只是一直报启动阶段（旧 fork 的标定模式）：交还后的提示不能叫人手动起 robotd
+        servo.giveback_stuck = bool(isinstance(detail, dict) and detail.get("still_starting"))
     if ok:
         return True, None
     return False, helper.friendly(result, detail, "bus-give-back")
@@ -133,6 +136,8 @@ def _bus_give_back(by, servo=None):
 def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev_autologin=False, servo=None, imu=None, pad=None,
               onboard=None, battery=None, tune=None, net=None, commit=None):
     guard = OriginGuard(names=names)
+    if imu is not None and commit is not None:
+        imu.commit = commit                          # 标定模式「站姿使能」：跟写进主程序同一套方向
     if onboard is not None:
         # 上手清单的两条记录从这两处来：测急停过了（pad.py 测急停线程）、IMU 页站着核过（imu.py）
         if pad is not None:
@@ -141,6 +146,7 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
             imu.on_check = onboard.note_imu_check
         if commit is not None:
             onboard.commit_service = commit          # 第 3 步「写进主程序」的准备情况 / 完成判定
+            commit.onboard = onboard                 # 第 1 / 2 步用户标了「已完成」「跳过」：准备情况那两项要知道
     web_dir = Path(web_dir)
     clients = {}           # websocket -> {"visible": bool, "by": str, "hb_at": monotonic}
     login_gate = asyncio.Semaphore(1)
@@ -255,6 +261,67 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
                 resp.set_cookie(COOKIE, new_token, httponly=True, samesite="lax", path="/")
         log.info(f"管理员密码已{'设置' if not had_password else '修改'}（{_client_desc(request)}）", cat="连接")
         return resp
+
+    ssh_gate = asyncio.Lock()
+
+    def ssh_view(detail):
+        d = detail if isinstance(detail, dict) else {}
+        return {"password_login": d.get("password_login") is True, "ssh_active": d.get("ssh_active"),
+                "keys": d.get("keys"), "user": d.get("user") or "radxa"}
+
+    async def api_ssh(request):
+        """「更多」页的 SSH 开关：status / on（用户自己定的密码）/ off。镜像出厂只认钥匙、不带任何人的钥匙，
+        也没有人人都知道的默认密码。打开要先设网页登录密码：不然连上热点（密码公开）的人都能打开网页、
+        顺手打开 SSH 拿到 root。密码只交给小助手的 stdin，不进日志。"""
+        _, sess = session_of(request)
+        if not origin_ok(request):
+            return JSONResponse({"ok": False, "error": "请求来源不对"}, status_code=403)
+        if not sess:
+            return JSONResponse({"ok": False, "error": "先登录"}, status_code=401)
+        if request.headers.get("x-csrf") != sess["csrf"]:
+            return JSONResponse({"ok": False, "error": "请求校验失败，刷新页面再试"}, status_code=403)
+        try:
+            body = await request.json()
+        except ValueError:
+            body = {}
+        if not isinstance(body, dict):
+            body = {}
+        action = body.get("action", "status")
+        if action not in ("status", "on", "off"):
+            return JSONResponse({"ok": False, "error": "不认识的操作"}, status_code=400)
+        if action == "on":
+            if not auth.has_password():
+                return JSONResponse({"ok": False, "error": "先在上面设网页登录密码，再打开 SSH：不然连上热点的人都能打开网页、"
+                                                         "顺手把 SSH 打开"}, status_code=403)
+            pw, confirm = body.get("password"), body.get("confirm")
+            if not isinstance(pw, str) or not 8 <= len(pw) <= 64:
+                return JSONResponse({"ok": False, "error": "SSH 密码要 8–64 位"}, status_code=400)
+            if pw != confirm:
+                return JSONResponse({"ok": False, "error": "两次输入不一样"}, status_code=400)
+        if not await asyncio.to_thread(helper.available):
+            return JSONResponse({"ok": False, "error": "这只鸭子没装 root 小助手，网页里开不了 SSH"}, status_code=503)
+        by = _client_desc(request)
+        async with ssh_gate:
+            if action == "status":
+                ok, result, detail = await asyncio.to_thread(helper.ssh_status)
+                if not ok:
+                    return JSONResponse({"ok": False, "error": helper.friendly(result, detail, "ssh-status")},
+                                        status_code=502)
+                return JSONResponse({"ok": True, "ssh": ssh_view(detail)})
+            if action == "on":
+                ok, result, detail = await asyncio.to_thread(helper.ssh_password, by, True, body["password"])
+            else:
+                ok, result, detail = await asyncio.to_thread(helper.ssh_password, by, False)
+            word = "打开" if action == "on" else "关掉"
+            if not ok:
+                why = helper.friendly(result, detail, "ssh-password")
+                log.warn(f"SSH 密码登录没{word}：{why}", cat="系统", step=f"ssh-password {action}",
+                         hint="照提示改；还不行就导出诊断包")
+                return JSONResponse({"ok": False, "error": why},
+                                    status_code=400 if result in ("bad_password", "bad_args") else 502)
+            log.info(f"SSH 密码登录{word}了（{by}）", cat="系统")
+            ok2, _, d2 = await asyncio.to_thread(helper.ssh_status)
+        return JSONResponse({"ok": True, "ssh": ssh_view(d2) if ok2 else ssh_view(detail)})
 
     async def api_logs(request):
         _, sess = session_of(request)
@@ -678,23 +745,27 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
 
         async def onboard_op(cid, args):
             """上手清单上的按钮（只记一笔，不碰鸭子）：
-                confirm_servo        舵机零位「已经校过，核对一下」（审查 O4）
-                skip {step}          跳过这一步（用户 10-18：「应该允许跳过、允许重新做」）；后端按现在的情况再判一遍，
-                                     主程序明说不行的（比如 IMU 方向没确认）、读不到的拒，不能只靠页面把按钮灰掉
-                unskip {step}        取消跳过"""
+                confirm_servo              舵机零位「已经校过，核对一下」（审查 O4；页面现在用「已完成」，老接口留着）
+                done {step, confirmed}     「已完成」：我以前做过（用户 10-20：「去做、已完成、跳过，有三个也行」）
+                skip {step, confirmed}     「跳过」：先不做（用户 10-18：「应该允许跳过、允许重新做」）
+                undone / unskip {step, confirmed}   取消
+            每一行任何时候都能点；有后果的（主程序明说没做完、读不到、测出了问题、测急停、调舵机时）要点两次，
+            页面第二下才带 confirmed: true，后端按现在的情况再判一遍，没带就拒（不能只靠页面）"""
             op = args.get("op")
             if onboard is None:
                 return {"t": "result", "id": cid, "ok": False, "reason": "这只鸭子没开上手清单"}
-            what = {"confirm_servo": "「已经校过，核对一下」", "skip": "跳过", "unskip": "取消跳过"}.get(op)
+            what = {"confirm_servo": "「已经校过，核对一下」", "done": "「已完成」", "skip": "跳过", "unskip": "取消跳过",
+                    "undone": "取消「已完成」"}.get(op)
             if what is None:
                 return {"t": "result", "id": cid, "ok": False, "reason": f"不认识的指令：{op}"}
             step = str(args.get("step") or "")
+            confirmed = args.get("confirmed") is True
             if op == "confirm_servo":
                 ok, why = onboard.confirm_servo(robotd, by)
-            elif op == "skip":
-                ok, why = onboard.skip(step, robotd, pad, servo, by)
+            elif op in ("done", "skip"):
+                ok, why = onboard.mark(step, op, robotd, pad, servo, by, confirmed)
             else:
-                ok, why = onboard.unskip(step, by, servo)
+                ok, why = onboard.unmark(step, "skip" if op == "unskip" else "done", by, servo, confirmed)
             if ok:
                 onboard.tick(robotd, pad, servo)               # 马上重判一次，页面不用等下一拍
                 await asyncio.to_thread(onboard.save)
@@ -987,6 +1058,9 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
             if flag:
                 servo.giveback_hint = ("旗还在：手动 start robotd 会被挡住。再进一次舵机页、再点交还；"
                                        "或者重启鸭子（旗在 /run，重启就没了）")
+            elif getattr(servo, "giveback_stuck", False):
+                servo.giveback_hint = "主程序在回话，只是一直报启动阶段：多半是旧版主程序的毛病，去日志页看它最后说了什么"
+                await asyncio.to_thread(marker_drop)
             else:
                 servo.giveback_hint = "手动 sudo systemctl start robotd，或者再进一次舵机页再交还"
                 await asyncio.to_thread(marker_drop)
@@ -1209,6 +1283,7 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
         Route("/api/login", api_login, methods=["POST"]),
         Route("/api/logout", api_logout, methods=["POST"]),
         Route("/api/password", api_password, methods=["POST"]),
+        Route("/api/ssh", api_ssh, methods=["POST"]),
         Route("/api/logs", api_logs),
         Route("/api/diag", api_diag),
         Route("/api/profile", api_profile),

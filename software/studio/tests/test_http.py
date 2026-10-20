@@ -105,6 +105,7 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         log = Log(Path(self.tmp.name) / "logs", echo=False, background=False)
+        self.log = log
         self.auth = Auth(Path(self.tmp.name) / "state", log)
         self.auth.set_password(PW)
         self.fake = FakeRobotd(FIXTURE)
@@ -164,6 +165,21 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(st, 421)
         st, _, _ = await self.call("GET", "/healthz", headers={"Host": f"microduck-2:{self.port}"})
         self.assertEqual(st, 200)
+
+    async def test_probe_svg_for_finding_the_duck(self):
+        """任务 17：连 WiFi 以后页面用 new Image() 加载 http://duck-xxxx:8000/probe.svg 找鸭子的新地址：
+        设了密码也不用登录；duck-xxxx、duck-xxxx.local 这两种 Host 都给；是 SVG 图片；不缓存（每次都真的问到鸭子）。"""
+        import socket
+        hn = socket.gethostname().lower()
+        for host in (f"{hn}:{self.port}", f"{hn}.local:{self.port}", f"127.0.0.1:{self.port}"):
+            st, h, body = await self.call("GET", "/probe.svg?t=1790000000000", headers={"Host": host})
+            self.assertEqual(st, 200, host)
+            self.assertTrue(h["content-type"].startswith("image/svg+xml"), h)
+            self.assertEqual(h["cache-control"], "no-cache")
+            self.assertIn(b"<svg", body)
+            self.assertLess(len(body), 1024)                     # 很小：每 2 秒探一次也不费事
+        st, _, _ = await self.call("GET", "/probe.svg", headers={"Host": "evil.example.com"})
+        self.assertEqual(st, 421)                                 # Host 校验照旧
 
     async def test_login_origin_matrix_and_cookie(self):
         bad = [None, "http://evil.example.com", f"http://127.0.0.1:{self.port + 1}", "null"]
@@ -252,6 +268,76 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(st, 200)
         self.assertFalse(self.auth.has_password())
         self.assertFalse(self.auth.pw_path.exists())
+
+    # ---- 「更多」页的 SSH 开关（用户 10-21：出了问题自己 SSH 修，不用重烧卡；密码用户自己定） ----
+
+    async def ssh_post(self, payload):
+        token, _ = await self.login()
+        ck = {"Cookie": f"{COOKIE}={token}", "Origin": self.origin}
+        _, _, body = await self.call("GET", "/api/session", headers=ck)
+        csrf = json.loads(body)["csrf"]
+        st, _, body = await self.call("POST", "/api/ssh", payload, dict(ck, **{"X-CSRF": csrf}))
+        return st, json.loads(body or "{}")
+
+    def ssh_patches(self, pw_result=("ssh_password_on", True)):
+        result, on = pw_result
+        view = {"password_login": on, "ssh_active": True, "keys": 0, "user": "radxa", "exit": 0, "result": "ssh_status"}
+        return (unittest.mock.patch("studio.helper.available", return_value=True),
+                unittest.mock.patch("studio.helper.ssh_password",
+                                    return_value=(True, result, {"exit": 0, "result": result, "password_login": on})),
+                unittest.mock.patch("studio.helper.ssh_status", return_value=(True, "ssh_status", view)))
+
+    async def test_ssh_needs_login(self):
+        st, _, _ = await self.call("POST", "/api/ssh", {"action": "status"}, {"Origin": self.origin})
+        self.assertEqual(st, 401)
+
+    async def test_ssh_on_needs_web_password_first(self):
+        os.remove(self.auth.pw_path)
+        _, _, body = await self.call("GET", "/api/session")
+        csrf = json.loads(body)["csrf"]
+        a, b, c = self.ssh_patches()
+        with a, b as sp, c:
+            st, _, body = await self.call("POST", "/api/ssh",
+                                          {"action": "on", "password": "duck-secret-42", "confirm": "duck-secret-42"},
+                                          {"Origin": self.origin, "X-CSRF": csrf})
+        self.assertEqual(st, 403)
+        self.assertIn("先在上面设网页登录密码", json.loads(body)["error"])
+        sp.assert_not_called()
+
+    async def test_ssh_on_goes_to_helper_and_password_is_never_logged(self):
+        pw = "duck-secret-42"
+        a, b, c = self.ssh_patches()
+        with a, b as sp, c:
+            st, data = await self.ssh_post({"action": "on", "password": pw, "confirm": pw})
+        self.assertEqual(st, 200, data)
+        self.assertTrue(data["ssh"]["password_login"])
+        self.assertEqual(sp.call_args.args[1:], (True, pw))
+        recent = json.dumps(self.log.recent(limit=500), ensure_ascii=False)
+        self.assertIn("SSH 密码登录打开了", recent)
+        self.assertNotIn(pw, recent)
+        for f in (Path(self.tmp.name) / "logs").rglob("*"):
+            if f.is_file():
+                self.assertNotIn(pw, f.read_text(encoding="utf-8", errors="replace"), f)
+
+    async def test_ssh_password_rules_checked_before_the_helper(self):
+        a, b, c = self.ssh_patches()
+        with a, b as sp, c:
+            for payload in ({"action": "on", "password": "short77", "confirm": "short77"},
+                            {"action": "on", "password": "duck-secret-42", "confirm": "duck-secret-43"},
+                            {"action": "nope"}):
+                st, _ = await self.ssh_post(payload)
+                self.assertEqual(st, 400, payload)
+        sp.assert_not_called()
+
+    async def test_ssh_off_and_status(self):
+        a, b, c = self.ssh_patches(("ssh_password_off", False))
+        with a, b as sp, c:
+            st, data = await self.ssh_post({"action": "off"})
+            self.assertEqual(st, 200, data)
+            self.assertEqual(sp.call_args.args[1], False)
+            st, data = await self.ssh_post({"action": "status"})
+        self.assertEqual(st, 200, data)
+        self.assertEqual(data["ssh"], {"password_login": False, "ssh_active": True, "keys": 0, "user": "radxa"})
 
     async def test_ws_without_login_tells_page_to_login(self):
         c = WsClient(self.port, origin=self.origin)
@@ -429,7 +515,8 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
         c.close()
 
     async def test_onboard_skip_and_unskip_via_ws(self):
-        """上手清单的「跳过」「取消跳过」走 onboard.op；IMU 方向主程序明说没确认时后端拒（不能只靠页面把按钮灰掉）。"""
+        """上手清单的「已完成」「跳过」「取消」走 onboard.op；IMU 方向主程序明说没确认时要点两次：
+        没带 confirmed 后端拒（不能只靠页面的两步确认），带了就记（用户 10-20：每一步都能跳）。"""
         token, _ = await self.login()
         c = WsClient(self.port, origin=self.origin, cookie=token)
         await c.open()
@@ -449,11 +536,18 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await imu_state(), "skip")
         self.assertTrue((await op("s2", {"op": "unskip", "step": "imu"}))["ok"])
         self.assertEqual(await imu_state(), "todo")
+        self.assertTrue((await op("d1", {"op": "done", "step": "imu"}))["ok"])
+        self.assertEqual(await imu_state(), "ok")
+        self.assertTrue((await op("d2", {"op": "undone", "step": "imu"}))["ok"])
+        self.assertEqual(await imu_state(), "todo")
         self.fake.bus["native"]["imu_mount_verified"] = False
         await asyncio.sleep(1.3)                                   # 等 busStatus 轮询到
         r = await op("s3", {"op": "skip", "step": "imu"})
         self.assertFalse(r["ok"])
-        self.assertIn("先去 IMU 页", r["reason"])
+        self.assertIn("要点两次确认：确定跳过？主程序没确认 IMU 方向", r["reason"])
+        r = await op("s3b", {"op": "skip", "step": "imu", "confirmed": True})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(await imu_state(), "skip")
         self.assertFalse((await op("s4", {"op": "skip", "step": "bogus"}))["ok"])
         c.close()
 
