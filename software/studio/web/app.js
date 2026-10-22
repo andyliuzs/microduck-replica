@@ -14,6 +14,8 @@ import { BatterySettings } from './settings-battery.js';
 import { TuneSection, ModelSettings } from './tune.js';
 import { WifiCard, WifiSettings, DuckAddresses } from './wifi.js';
 import { TwoStep } from './confirm.js';
+import { ModelsPage } from './models.js';
+import { CameraPage, TofPage, SensorBandCells } from './sensors.js';
 
 const STALE_GRAY_MS = 1000;   // 超过 1 秒没新数据：数值变灰
 const STALE_ALARM_MS = 3000;  // 超过 3 秒：横幅；卸力按钮仍可按（只要跟 Studio 的连接在）
@@ -30,6 +32,7 @@ class Link {
     this.lastAt = 0;
     this.backoff = 1000;
     this._hb = null;
+    this.padCapture = false;
     document.addEventListener('visibilitychange', () => this.heartbeat());
   }
 
@@ -99,8 +102,11 @@ class Link {
   // #/pad 现在是总览上的锚点，地址是它不代表看得到（往上滑回舞台，地址栏还是 #/pad）
   heartbeat() {
     this.send({ t: 'hb', seq: ++this.seq, visible: document.visibilityState === 'visible', route: location.hash.replace(/^#/, '') || '/',
-      pad_visible: padActivity.active });
+      pad_visible: padActivity.active || this.padCapture });
   }
+
+  // 模型改键只读旁路：请求快照，不改变 padActivity，也不接管网页遥控。
+  setPadCapture(active) { this.padCapture = Boolean(active); this.heartbeat(); }
 
   cmd(name, args = {}, timeoutMs = 15000) {
     const id = `c${++this.seq}`;
@@ -118,15 +124,20 @@ const link = new Link();
 padActivity.bind(link);                  // 手柄区进出的那一刻马上发一次心跳
 
 let csrf = '';   // /api/session 给的；改动类 POST 要带上（X-CSRF），配合后端的 Origin 校验
-async function api(path, body, timeoutMs = 10000) {
+async function api(path, body, timeoutMs = 10000, signal) {
   const opt = body === undefined ? { credentials: 'same-origin' }
     : { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF': csrf }, body: JSON.stringify(body) };
   const ctl = new AbortController();
+  const abort = () => ctl.abort();
+  if (signal?.aborted) ctl.abort();
+  signal?.addEventListener('abort', abort, { once: true });
   const timer = setTimeout(() => ctl.abort(), timeoutMs);   // 手机 WiFi 抖的时候请求可能挂几十秒
   let r;
-  try { r = await fetch(path, { ...opt, signal: ctl.signal }); } finally { clearTimeout(timer); }
   let data = {};
-  try { data = await r.json(); } catch { /* 不是 JSON */ }
+  try {
+    r = await fetch(path, { ...opt, signal: ctl.signal });
+    try { data = await r.json(); } catch (error) { if (ctl.signal.aborted) throw error; }
+  } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   return { status: r.status, ...data };
 }
 
@@ -405,7 +416,7 @@ function useStickyHeight(name) {
   }, [name]);
 }
 
-function Band({ st, pd, gray, onSame }) {
+function Band({ st, pd, gray, onSame, sensorsActive }) {
   const bandRef = useStickyHeight('--band-h');
   const b = st?.battery || {}, s = st?.servos || {}, imu = st?.imu || {};
   const imuWord = { ok: '正常', unverified: '方向没确认', frozen: '读数冻住了', missing: '没读到' }[imu.status] || '—';
@@ -425,6 +436,7 @@ function Band({ st, pd, gray, onSame }) {
       <span class="word">${imuKind ? html`<${Badge} kind=${imuKind} />` : null}${imuWord}</span>
       <span class="small">${{ unverified: '先只站着', ok: '方向已确认' }[imu.status] || '去校准'}</span>
     </a>
+    <${SensorBandCells} api=${api} active=${sensorsActive} />
     <a href="#/pad" onClick=${(e) => onSame(e, '#/pad')}>
       <span class="label">手柄</span>
       <span class="word">${pad.word}</span>
@@ -662,7 +674,7 @@ function Todo({ st, live }) {
 }
 
 // 总览：（开着热点时最上面是「连 WiFi」）→ 舞台 → 仪表带（5 格）→ 上手清单 → 待办 → 往下一刷就是手柄（总览重排 §1）
-function Overview({ st, live, age, duck, pd, onSame, tune }) {
+function Overview({ st, live, age, duck, pd, onSame, tune, sensorsActive }) {
   // 主机名这类英文名后面空一格再接中文：「duck-c51b 站好了」
   const short = duck?.short || '鸭子';
   const name = /[A-Za-z0-9]$/.test(short) ? short + ' ' : short;
@@ -670,7 +682,7 @@ function Overview({ st, live, age, duck, pd, onSame, tune }) {
     ${st?.net?.known && st.net.mode === 'hotspot'
       ? html`<${WifiCard} net=${st.net} link=${link} secure=${st?.auth?.has_password} />` : null}
     <${Stage} st=${st} live=${live} age=${age} name=${name} />
-    <${Band} st=${st} pd=${pd} gray=${age > STALE_GRAY_MS} onSame=${onSame} />
+    <${Band} st=${st} pd=${pd} gray=${age > STALE_GRAY_MS} onSame=${onSame} sensorsActive=${sensorsActive} />
     <${Onboard} st=${st} live=${live} />
     <${Todo} st=${st} live=${live} />
     <${PadPage} st=${st} pad=${pd} link=${link} live=${live} />
@@ -948,20 +960,23 @@ function Nav({ route, padInView, onSame }) {
     <div class="nav-logo"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#1D1D1F"></rect><path d="M6 14.5a7 6 0 0 1 14 0z" fill="#FFFFFF"></path><rect x="6" y="14.5" width="14" height="2.6" rx="1.3" fill="#F5B400"></rect><circle cx="16.2" cy="11.4" r="1.3" fill="#1D1D1F"></circle></svg>Studio</div>
     ${a('#/', '/', '总览')}
     ${a('#/pad', '/pad', '手柄')}
+    ${a('#/camera', '/camera', '摄像头')}
+    ${a('#/tof', '/tof', 'ToF')}
     ${a('#/servos', '/servos', '舵机')}
     ${a('#/imu', '/imu', 'IMU')}
+    ${a('#/models', '/models', '模型')}
     ${a('#/logs', '/logs', '日志')}
     <span class="spacer"></span>
     ${a('#/settings', '/settings', '设置')}
   </nav>`;
 }
 
-// 底栏留 5 个（手柄最常用，一点就到：方案 §1.2）；顺序跟侧栏一样：总览、手柄、舵机、IMU（用户 10-19）
+// 模型管理在手机底栏也能直接打开；顺序跟侧栏一致。
 function TabBar({ route, padInView, onSame }) {
   const cur = navCur(route, padInView);
   const a = (href, r, text) => html`<a href=${href} aria-current=${cur(r)} onClick=${(e) => onSame(e, href)}>${text}</a>`;
   return html`<nav class="tabbar" aria-label="主导航">
-    ${a('#/', '/', '总览')}${a('#/pad', '/pad', '手柄')}${a('#/servos', '/servos', '舵机')}${a('#/imu', '/imu', 'IMU')}${a('#/settings', '/settings', '更多')}
+    ${a('#/', '/', '总览')}${a('#/pad', '/pad', '手柄')}${a('#/camera', '/camera', '摄像头')}${a('#/tof', '/tof', 'ToF')}${a('#/servos', '/servos', '舵机')}${a('#/imu', '/imu', 'IMU')}${a('#/models', '/models', '模型')}${a('#/settings', '/settings', '更多')}
   </nav>`;
 }
 
@@ -1064,12 +1079,15 @@ function Main({ duck }) {
   // 总览一直挂着、只是藏起来：3D 鸭子不随切页面销毁重建（three.js 每建一次留一份内部对象，
   // 浏览器能同时开的 WebGL 上下文也有限）。手柄那一块也在总览里（#/pad 是它的锚点），一直挂着：
   // 「在不在手柄区」看 padActivity，不看挂没挂上（审查 O1）
-  const overview = html`<div hidden=${!OVERVIEW(route)}><${Overview} st=${st} live=${live} age=${age} duck=${duck} pd=${pd} onSame=${onSame} tune=${tune} /></div>`;
+  const overview = html`<div hidden=${!OVERVIEW(route)}><${Overview} st=${st} live=${live} age=${age} duck=${duck} pd=${pd} onSame=${onSame} tune=${tune} sensorsActive=${OVERVIEW(route)} /></div>`;
   let page = null;
   if (OVERVIEW(route)) page = null;
   else if (route === '/logs') page = html`<${LogsPage} />`;
+  else if (route === '/camera') page = html`<${CameraPage} api=${api} />`;
+  else if (route === '/tof') page = html`<${TofPage} api=${api} />`;
   else if (route === '/servos') page = html`<${ServoPage} sv=${sv} link=${link} leaveGuards=${leaveGuards} />`;
   else if (route === '/settings') page = html`<${Settings} st=${st} tune=${tune} />`;
+  else if (route === '/models') page = html`<${ModelsPage} api=${api} csrf=${csrf} link=${link} live=${live} />`;
   else if (route === '/imu') page = html`<${ImuPage} st=${st} imu=${imu} link=${link} live=${live} age=${age} pd=${pd} />`;
   else page = html`<${Later} what="这一页" />`;
 

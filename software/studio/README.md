@@ -26,6 +26,9 @@ studio/
   robotd.py         连接：轮询 / 实时状态流 / 命令 / configd 各一条常驻；卸力每次新开一条（robotd 重启后不会撞上死连接）
   estop.py          卸力状态机：ready → pending → confirmed / unavailable；只认「卸力回执之后才发出的」回读
   state.py          把原始数据汇总成推给页面的状态（姿势、电量、舵机、IMU、手柄、待办、配网）
+  models.py         模型库、默认恢复、实际切换回读、手柄改键
+  model_package.py  模型部署包解析与 robotd 无硬件预检
+  sensors.py        摄像头来源配置与 ToF 按需快照（独立于运动控制）
   net.py            配网：读 netcheck 的 net.json、configd 的 net.status / scan / connect / forget、开关热点
   app.py            网页服务：静态文件、登录、日志、诊断包、WebSocket
 web/                页面（Preact + htm，three.js 画 3D 鸭子；全部本地文件，不走 CDN；wifi.js 是连 WiFi 卡片和设置；
@@ -55,6 +58,23 @@ py -3.13 -I run.py --listen 127.0.0.1:18080 --robotd tcp:127.0.0.1:17001 --confi
 
 Windows 的 Python 没有 Unix socket，所以地址写成 `tcp:主机:端口`；鸭子上是 `unix:/run/robotd.sock`（默认）。
 
+## 摄像头和 ToF
+
+左侧「手柄」之后是「摄像头」「ToF」两个独立页面，手机底栏也有入口。
+
+总览／手柄页的状态栏依次显示电池、舵机、IMU、摄像头、ToF、手柄、主板。摄像头仅通过本机 mediad socket 的只读 `hello` 判断“服务在线”，不把配置文件或测试画面当作真实摄像头已连接；点开页面才能查看实际视频。ToF 根据新帧显示在线，fake/sim 明确标为模拟数据。状态栏每10秒检查一次，切页或后台取消，过期状态清空；检查不会请求视频帧、建立 WebRTC 或启动系统服务。
+
+当前镜像尚无“开机自动识别摄像头／ToF 硬件，再按检测结果启停服务”的统一策略。firstboot 的自动识别针对 IMU；镜像默认 `media.source="test"` 避免缺摄像头反复崩溃，但媒体服务仍可能运行。网页未连接可能是网络或服务问题，不能直接据此认定没装硬件并关闭服务。
+
+- **摄像头**：接现有 mediad 的局域网 WebRTC 视频（默认信令端口 8443），可以开始、停止和重新连接。页面等实际画面开始更新才显示播放；切走或进入后台会释放连接。只读取视频及画面元数据，不打开电脑/手机摄像头，不发送运动指令。画面按运行端报告的安装角度显示。
+- **来源标记**：镜像的 `[media] source="test"` 表示测试图案，能播放也不能代表真实摄像头接好了。配置为 camera 时也只显示「配置：摄像头」，配置文件不能证明当前运行状态；视频服务标为模拟设备时另行注明。当前版本会忽略旧的 `media.camera` 开关，Studio 不据此猜测真实来源。
+- **ToF**：通过 `/run/tofd/tof.sock` 的 `tof.stream` 获取 8×8 距离分区，显示有效格数、最近/最远有效毫米值及逐格原始状态。5/9 且距离为正才计入统计；无目标（255）和测量失败分别显示。服务未连接、未接传感器、等待首帧、格式错误和过期数据均有独立说明。fake/sim 数据会标注「模拟数据」。
+- 传感器读取独立于 robotd 的运动连接，只在相关页面可见时进行；没有自动避障、导航或后台录像功能，不更改系统服务和配置。
+
+高级安装可通过 `--tof unix:/run/tofd/tof.sock`、`--camera-socket unix:/run/mediad/media.sock` 和 `--camera-signaling-port 8443` 指定本机服务；`--tof none` 或 `--camera-socket none` 明确关闭对应的只读探测。开发测试可将 socket 指向受控的 `tcp:127.0.0.1:端口`。网页不接受任意 socket 或视频服务器地址。摄像头信令使用打开 Studio 的主机名，远程仅转发 8000 端口的 SSH 隧道不会自动转发视频链路。
+
+本地 `tests/test_sensors_e2e.py` 使用明确标记的假 ToF 和浏览器 RTC 测试实现，验证真实网页播放、导航、错误及资源释放；这些软件测试不代替摄像头、编码器和 ToF 硬件验收。
+
 ## 台架模式：主控没烧，用飞特调试板在电脑上调舵机
 
 把飞特调试板（或 USB 转 TTL）插到电脑上，接好舵机和电源，然后：
@@ -70,7 +90,7 @@ py -3.13 -I run.py --bench
 
 1. 拷贝：把 `software/studio` 整个目录拷到鸭子的 `/home/radxa/studio-dev`（`scp -r`、U 盘解压包都行）。
 2. 自检：在鸭子上运行 `python3 -I run.py --selfcheck`（只读：打印版本，对 robotd / configd / padd 各问一次）。
-3. 装 root 小助手：`cd deploy && sudo sh install.sh radxa`。0.6.0 的小助手负责舵机总线交接、手柄配对、热点开关、`calib-read` / `calib-commit`（把标定写进主程序、切运动模式），以及 `ssh-status` / `ssh-password`（「更多」页的 SSH 开关）；关热点前会写 `/run/microduck/studio-connecting.json`，让 netcheck 在连接期间别插手。从舵机页交还时，标定模式的实时快照也算主程序起来了（0.5.1 只认运动模式的 `control`，标定模式下每次都等满 30 秒判「起不来」）。步骤、卸载和上机核对见 `deploy/INSTALL.md`。
+3. 装 root 小助手：`cd deploy && sudo sh install.sh radxa`。0.7.0 的小助手负责舵机总线交接、手柄配对、热点开关、`calib-read` / `calib-commit`（把标定写进主程序、切运动模式）、`ssh-status` / `ssh-password`（「更多」页的 SSH 开关），以及 `imu-recalibrate`（重新校验已保存的 IMU 安装方向）；关热点前会写 `/run/microduck/studio-connecting.json`，让 netcheck 在连接期间别插手。从舵机页交还时，标定模式的实时快照也算主程序起来了（0.5.1 只认运动模式的 `control`，标定模式下每次都等满 30 秒判「起不来」）。步骤、卸载和上机核对见 `deploy/INSTALL.md`。
 4. 开机服务：照 `deploy/microduck-studio.service` 文件头的命令装：
 
    ```bash
@@ -88,6 +108,10 @@ py -3.13 -I run.py --bench
 手柄配对的主路是 root 小助手调官方 `/usr/local/bin/robotctl pad pair --json`：`/var/lib/robot/weird-ble` 板上它会先停 `btd`、给蓝牙适配器断电再开，配完把 `btd` 起回来。没装或旧版小助手时退回 configd → bluetoothctl；这块板这样可能配不上，向导会提示重装小助手，或者在鸭子上运行 `sudo robotctl pad pair`。
 
 出厂镜像让 robotd 跑标定模式：`/etc/systemd/system/robotd.service.d/zzzz-zz-microduck-commissioning.conf` 里 `ExecStart` 带 `--commissioning`。这样 `calibration-status` 和 `busStatus.last_sample` 马上能读，IMU 页粗校、舵机页中位都能做。上手清单第 3 步写成功后，小助手删掉这个文件、`daemon-reload`、重启 robotd，主程序回到运动模式。`systemctl show robotd -p ExecStart` 里有 `--commissioning`、但那个文件不在时，小助手拒绝自动切（`foreign_commissioning`），去日志页导出诊断包。
+
+IMU 页的「IMU 安装方向」始终保留入口：已经保存并验证过的安装四元数，也能点「重新标定方向」。先扶住鸭子并卸力，二次确认后，运动模式通过新版 root 小助手暂时回到标定模式；已经在标定模式的直接重新采集。沿用原来的静止 3 秒、整个躯干前倾 15–30° 采 3 秒、计算方向和主程序验证。**点击「交给主程序验证」前，先把实物回正并停住**，再按提示前倾。粗校阶段保持卸力，站着精校流程不变。
+
+重标定会话保留原始标定和启动配置，刷新网页或重启 Studio 后可继续，也可「取消并恢复原参数」。验证通过后逐项读回当前芯片和新方向，只恢复原来的运动许可及运行模式，舵机零位（包括非 2048 的零位）、方向、限位、其他 IMU 和未知配置均保留；恢复成功仍保持卸力。失败会保留恢复入口，不会把未读回的方向报成完成。此流程需要同时更新 Studio、root 小助手和 sudoers；不会调用上手清单第 3 步来重写舵机标定。
 
 **标定模式的状态要新版 fork**：fork robotd 一起来先写一份启动报告（`{"mode":"commissioning","phase":"configuring_bus",...}`），`robot.busStatus` 只要它的 phase 还是启动阶段就一直回它；第一次读成功以后才回标定模式的实时快照（phase 是 `ready` / `moving` / `read_error` / `stop_unconfirmed` / `power_pending`，带 `last_sample`）。旧版 fork 的标定模式从来不清启动报告，Studio 会永远看到「启动中」、拿不到 `last_sample`（10-20 真机验收就是这样）；fork 已经改成第一次读成功以后清掉，用 20261020 之后的镜像（或重装那份 robotd）。Studio 这边：实时快照的这几个 phase 都算「主程序起来了」（`read_error` 是起来了、只是读舵机出错，照原样写主程序的原话）；连续报启动阶段超过 30 秒（从这次连上算），总览头图改成「主程序一直报『启动中』」、给「去日志页」，顶栏、待办、上手清单头上也不再说「通常 10 秒」。
 
@@ -228,7 +252,7 @@ python3 -I run_tests.py                # 鸭子
 - **写进主程序**：上手清单第 3 步把舵机零位、方向、IMU 方向一次写进 robotd 的标定。出厂镜像是标定模式；写成功后小助手删掉 commissioning drop-in、重启主程序切运动模式。成功不只看重启：还要 `mode=motion`、`phase=control`，并且 `calibration-status` 读回逐项一致；不成就把文件和模式换回去。Studio 重启后会读 `last-result.json` 把上次结果放回第 3 步卡片。
 - **手柄**：配对（走官方 `robotctl pad pair`）、网页手柄、测急停。
 - **遥控**：站起来 / 开始走 / 坐下、技能、动作和组合动作。
-- **调手感、模型**：只看。
+- **调手感**：只看。**模型管理**：导入部署包、改名、选择模型、恢复内置、设置动作键和删除导入模型；具体格式见 [模型导入说明](MODEL_IMPORT.md)。
 - **日志**：日志页和诊断包；手机底栏从「更多」也能进日志、导出诊断包。
 - **连 WiFi**：鸭子开热点时用手机选家里的 WiFi、填密码；切过去以后页面自己找鸭子的新地址、找到就跳过去；设置里能看当前网络、换网、忘掉已保存的网络。
 - **登录密码**：在「更多 → 登录密码」设置、修改或清掉；热点模式又没密码时，总览的连 WiFi 卡片会提示先设密码。
