@@ -2,13 +2,15 @@
 
 **English** · [简体中文](README.md)
 
-A third-party replica project based on [Pollen Robotics' Microduck](https://pollen-robotics.com/microduck/), with resources for sourcing parts, printing, assembly, calibration, control, and training.
+A third-party full-robot replica project based on [Pollen Robotics' Microduck](https://pollen-robotics.com/microduck/), with resources for sourcing parts, printing, assembly, calibration, control, and training.
 
-Our main build uses **15 Feetech HD-1910 servos**. We provide a **ready-to-flash system image** and the **Microduck Studio web console** for Wi-Fi setup, calibration, and remote control from a phone or computer browser.
+**The Feetech HD-1910 build has passed real hardware validation: standing, walking, a forward roll and standing back up.** Our main build uses **15 Feetech HD-1910 servos**. We provide a **ready-to-flash system image** and the **Microduck Studio web console** for Wi-Fi setup, calibration, and remote control from a phone or computer browser.
+
+**The first-use workflow has also been completed on real hardware:** flash the image → hotspot and Wi-Fi setup → servo and IMU calibration → gamepad pairing and e-stop test → stand and walk. [Real hardware validation records](docs/update-history.en.md#latest)
 
 ## The ducks in action
 
-**2026-10-24 · Real hardware demos**: two short clips from the latest builds, showing a forward roll followed by standing back up, and walking on a tabletop.
+**2026-10-24 · Motion validated on real hardware**: the two recordings below show a forward roll followed by standing back up, and walking on a tabletop.
 
 <table>
 <tr>
@@ -96,7 +98,7 @@ Mating parts from the two servo versions are not interchangeable. File versions 
 
 ## Where things stand
 
-As of **2026-10-25**. Current progress is grouped below by software, mechanics, electronics, actuator modelling, the training workbench and tools. See [update history](docs/update-history.en.md) for the history.
+As of **2026-10-25**, **the Feetech replica, first-use workflow and robot motion have been validated on real hardware**. The sections below cover the completed work and further extensions. See [update history](docs/update-history.en.md) for the test scope and development history.
 
 ---
 
@@ -127,33 +129,43 @@ The image is free for personal non-commercial builds; see the release for compon
 
 ---
 
-## 🔌 Electronics · three circuit boards
+## 🔌 Electronics · five circuit boards
 
-EasyEDA Pro projects and whole-board STEP models are available for the bus IMU board, servo bus hub and battery terminal board. See each project's notes for fabrication, wiring and physical verification status.
+This repository provides projects for the bus IMU board, servo bus hub and battery terminal board. The main board is a **Radxa ZERO 3W**, paired with Pollen Robotics' open-source **RPI Robot HAT**.
 
 <table>
-<tr><th>Bus IMU board</th><th>Servo bus hub</th><th>Battery terminal board</th></tr>
 <tr>
-<td align="center" valign="middle" width="280"><a href="assets/hw/imu-to-dxl-1v0a-3d.png"><img src="assets/hw/imu-to-dxl-1v0a-3d.png" alt="Bus IMU board 3D design preview" width="260"></a></td>
-<td align="center" valign="middle" width="280"><a href="assets/hw/wire-hub-1v0a-3d.png"><img src="assets/hw/wire-hub-1v0a-3d.png" alt="Servo bus hub 3D design preview" width="260"></a></td>
-<td align="center" valign="middle" width="280"><a href="assets/hw/pogo-pin-1v0a-3d.png"><img src="assets/hw/pogo-pin-1v0a-3d.png" alt="Battery terminal board 3D design preview" width="260"></a></td>
+<th>Bus IMU board</th>
+<th>Servo bus hub</th>
+<th>Battery terminal board</th>
+<th>Main board<br>Radxa ZERO 3W</th>
+<th>Official HAT<br>RPI Robot HAT</th>
 </tr>
 <tr>
-<td align="center"><a href="assets/hw/imu-to-dxl-1v0a-pcb.png">PCB preview</a> · <a href="hardware/新版/imu_to_dxl_1V0A/">Project files</a></td>
-<td align="center"><a href="assets/hw/wire-hub-1v0a-pcb.png">PCB preview</a> · <a href="hardware/新版/wire_hub_1V0A/">Project files</a></td>
-<td align="center"><a href="assets/hw/pogo-pin-1v0a-pcb.png">PCB preview</a> · <a href="hardware/新版/POGO_PIN_1V0A/">Project files</a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/imu-to-dxl-1v0a-3d.png"><img src="assets/hw/imu-to-dxl-1v0a-3d.png" alt="Bus IMU board 3D design preview" width="160"></a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/wire-hub-1v0a-3d.png"><img src="assets/hw/wire-hub-1v0a-3d.png" alt="Servo bus hub 3D design preview" width="160"></a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/pogo-pin-1v0a-3d.png"><img src="assets/hw/pogo-pin-1v0a-3d.png" alt="Battery terminal board 3D design preview" width="160"></a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/radxa-zero3w-official.webp"><img src="assets/hw/radxa-zero3w-official.webp" alt="Official Radxa ZERO 3W board overview" width="160"></a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/rpi-robot-hat-official.png"><img src="assets/hw/rpi-robot-hat-official.png" alt="Official Pollen Robotics RPI Robot HAT rendering" width="160"></a></td>
+</tr>
+<tr>
+<td align="center" valign="top"><a href="assets/hw/imu-to-dxl-1v0a-pcb.png">PCB preview</a><br><a href="hardware/新版/imu_to_dxl_1V0A/">Project files</a></td>
+<td align="center" valign="top"><a href="assets/hw/wire-hub-1v0a-pcb.png">PCB preview</a><br><a href="hardware/新版/wire_hub_1V0A/">Project files</a></td>
+<td align="center" valign="top"><a href="assets/hw/pogo-pin-1v0a-pcb.png">PCB preview</a><br><a href="hardware/新版/POGO_PIN_1V0A/">Project files</a></td>
+<td align="center" valign="top"><a href="https://item.taobao.com/item.htm?id=763812025816">Buy on Taobao</a><br><a href="https://docs.radxa.com/en/zero/zero3">Documentation</a> · <a href="https://docs.radxa.com/en/zero/zero3/download#hardware-design">Design files</a></td>
+<td align="center" valign="top"><a href="https://github.com/pollen-robotics/elec_RPI_Robot_HAT">KiCad sources</a><br><a href="https://github.com/pollen-robotics/elec_RPI_Robot_HAT/tree/main/production">Production files</a></td>
 </tr>
 </table>
 
-3D design previews; click an image to view the original.
+The first three images are custom-board design previews; the Radxa and HAT images come from official resources. Click an image for full size; see [image credits](assets/hw/official-board-images.md). Radxa provides schematics, 2D dimensions and 3D models. See the custom projects for EasyEDA Pro files, STEP models and physical validation status.
 
 [All hardware projects](hardware/README.md) · [Three-board notes](hardware/新版/README.md) · [Bus IMU firmware](hardware/imu_to_dxl/README.md)
 
 ---
 
-## 🧠 Actuator modelling · BAM for Feetech HD-1910
+## 🧠 Actuator modelling · Feetech's official BAM
 
-The training project already uses a **BAM actuator model for Feetech HD-1910**. The current baseline uses **LuwuDynamics' public 1910 M6 parameters**; see the [parameter notes](docs/HD-1910-M6参数来源.md) for provenance and a comparison with the manufacturer's parameter set.
+[**Feetech's official HD-1910 BAM**](https://gitee.com/ftservo/ftservo-bam) provides actuator models and identified parameters as a reference for simulation training. This repository includes an open-source [training project](software/training/README.md) and [web training workbench](software/training-studio/README.md); see the [parameter notes](docs/HD-1910-M6参数来源.md) for the model configuration and parameter sources used here.
 
 ---
 
@@ -223,7 +235,7 @@ Paths are relative to this repository's root. Mechanical CAD is maintained in a 
 | Electronics and firmware | [hardware/](hardware/README.md) | [Board projects](hardware/README.md) · [IMU firmware](hardware/imu_to_dxl/README.md) |
 | Debug and analysis tools | [tools/](tools/README.en.md) | [Tool index](tools/README.en.md) · Flashing, serial debugging, Feetech references and analysis |
 | Documentation and records | [docs/](docs/README.en.md) | [All documentation](docs/README.en.md) · [Pitfalls](踩坑记录.md) · [Debug log](调试记录.md) · [Build log](BUILD-LOG.en.md) |
-| History and community | [docs/](docs/README.en.md#research-and-archives) | [Update history](docs/update-history.en.md) · [Community contributions](docs/community-contributions.en.md) |
+| History and community | [docs/](docs/README.en.md#research-and-archives) | [Upstream updates (Chinese)](docs/官方更新跟踪.md) · [Update history](docs/update-history.en.md) · [Community contributions](docs/community-contributions.en.md) |
 
 ---
 

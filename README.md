@@ -2,13 +2,15 @@
 
 **简体中文** · [English](README.en.md)
 
-基于 [Pollen Robotics Microduck](https://pollen-robotics.com/microduck/) 的第三方复刻项目，整理从采购、打印、装配到标定、控制和训练的资料。
+基于 [Pollen Robotics Microduck](https://pollen-robotics.com/microduck/) 的第三方整机复刻项目，提供从采购、打印、装配到标定、控制和训练的资料。
 
-目前主线使用 **15 颗飞特 HD-1910 舵机**，提供可烧录的**复刻镜像**和 **Microduck Studio 网页中控**，通过手机或电脑浏览器完成配网、标定和遥控。
+**飞特 HD-1910 版本已完成整机实机验证：站立、行走、前滚翻后起身均已跑通。** 主线使用 **15 颗飞特 HD-1910 舵机**，提供可烧录的**复刻镜像**和 **Microduck Studio 网页中控**，通过手机或电脑浏览器完成配网、标定和遥控。
+
+**首次上手流程已在实机跑通：** 烧录镜像 → 热点配网 → 舵机与 IMU 标定 → 配手柄、测试急停 → 站立行走。[查看实机验证记录](docs/历史更新.md#最近更新)
 
 ## 鸭子现在的样子
 
-**2026-10-24 · 实机演示**：这次组装后的两段短片，分别展示前滚翻后起身和桌面行走。
+**2026-10-24 · 实机运动验证通过**：下方两段实拍视频分别展示前滚翻后起身和桌面行走。
 
 <table>
 <tr>
@@ -96,7 +98,7 @@
 
 ## 现在做到哪了
 
-截至 **2026-10-25**。下面按软件、机械、电气、算法、训练平台和工具介绍当前进展，历史过程见[更新记录](docs/历史更新.md)。
+截至 **2026-10-25**，**飞特版整机复刻、首次上手与实机运动链路已跑通**。下面介绍各部分成果与后续拓展项目，具体测试范围及历史过程见[更新记录](docs/历史更新.md)。
 
 ---
 
@@ -127,33 +129,43 @@
 
 ---
 
-## 🔌 电气 · 三块电路板
+## 🔌 电气 · 五块电路板
 
-总线 IMU 板、舵机总线 HUB 和电池接口板的嘉立创 EDA 专业版工程与整板 STEP 已提供。打样、接线和实测进度见各工程说明。
+本仓提供总线 IMU 板、舵机总线 HUB 和电池接口板的工程资料；主控采用瑞莎 **Radxa ZERO 3W**，扩展板使用 Pollen Robotics 官方开源的 **RPI Robot HAT**。
 
 <table>
-<tr><th>总线 IMU 板</th><th>舵机总线 HUB</th><th>电池接口板</th></tr>
 <tr>
-<td align="center" valign="middle" width="280"><a href="assets/hw/imu-to-dxl-1v0a-3d.png"><img src="assets/hw/imu-to-dxl-1v0a-3d.png" alt="总线 IMU 板 3D 设计预览" width="260"></a></td>
-<td align="center" valign="middle" width="280"><a href="assets/hw/wire-hub-1v0a-3d.png"><img src="assets/hw/wire-hub-1v0a-3d.png" alt="舵机总线 HUB 3D 设计预览" width="260"></a></td>
-<td align="center" valign="middle" width="280"><a href="assets/hw/pogo-pin-1v0a-3d.png"><img src="assets/hw/pogo-pin-1v0a-3d.png" alt="电池接口板 3D 设计预览" width="260"></a></td>
+<th>总线 IMU 板</th>
+<th>舵机总线 HUB</th>
+<th>电池接口板</th>
+<th>瑞莎主控<br>Radxa ZERO 3W</th>
+<th>官方 HAT<br>RPI Robot HAT</th>
 </tr>
 <tr>
-<td align="center"><a href="assets/hw/imu-to-dxl-1v0a-pcb.png">PCB 预览</a> · <a href="hardware/新版/imu_to_dxl_1V0A/">工程文件</a></td>
-<td align="center"><a href="assets/hw/wire-hub-1v0a-pcb.png">PCB 预览</a> · <a href="hardware/新版/wire_hub_1V0A/">工程文件</a></td>
-<td align="center"><a href="assets/hw/pogo-pin-1v0a-pcb.png">PCB 预览</a> · <a href="hardware/新版/POGO_PIN_1V0A/">工程文件</a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/imu-to-dxl-1v0a-3d.png"><img src="assets/hw/imu-to-dxl-1v0a-3d.png" alt="总线 IMU 板 3D 设计预览" width="160"></a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/wire-hub-1v0a-3d.png"><img src="assets/hw/wire-hub-1v0a-3d.png" alt="舵机总线 HUB 3D 设计预览" width="160"></a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/pogo-pin-1v0a-3d.png"><img src="assets/hw/pogo-pin-1v0a-3d.png" alt="电池接口板 3D 设计预览" width="160"></a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/radxa-zero3w-official.webp"><img src="assets/hw/radxa-zero3w-official.webp" alt="瑞莎官方 ZERO 3W 板卡图" width="160"></a></td>
+<td align="center" valign="middle" width="170"><a href="assets/hw/rpi-robot-hat-official.png"><img src="assets/hw/rpi-robot-hat-official.png" alt="Pollen Robotics 官方 RPI Robot HAT 设计图" width="160"></a></td>
+</tr>
+<tr>
+<td align="center" valign="top"><a href="assets/hw/imu-to-dxl-1v0a-pcb.png">PCB 预览</a><br><a href="hardware/新版/imu_to_dxl_1V0A/">工程文件</a></td>
+<td align="center" valign="top"><a href="assets/hw/wire-hub-1v0a-pcb.png">PCB 预览</a><br><a href="hardware/新版/wire_hub_1V0A/">工程文件</a></td>
+<td align="center" valign="top"><a href="assets/hw/pogo-pin-1v0a-pcb.png">PCB 预览</a><br><a href="hardware/新版/POGO_PIN_1V0A/">工程文件</a></td>
+<td align="center" valign="top"><a href="https://item.taobao.com/item.htm?id=763812025816">购买（淘宝）</a><br><a href="https://docs.radxa.com/en/zero/zero3">官方资料</a> · <a href="https://docs.radxa.com/en/zero/zero3/download#hardware-design">设计文件</a></td>
+<td align="center" valign="top"><a href="https://github.com/pollen-robotics/elec_RPI_Robot_HAT">KiCad 工程</a><br><a href="https://github.com/pollen-robotics/elec_RPI_Robot_HAT/tree/main/production">生产打样文件</a></td>
 </tr>
 </table>
 
-3D 设计预览，点击图片可查看原图。
+前三张为自制板的 3D 设计预览，后两张瑞莎与 HAT 配图来自官方资料。点击图片可查看原图，[图片来源](assets/hw/official-board-images.md)。瑞莎设计资料含原理图、2D 尺寸与 3D 模型；三块自制板的嘉立创 EDA 工程、STEP 和实测进度见各工程说明。
 
 [全部硬件工程](hardware/README.md) · [三块板的说明](hardware/新版/README.md) · [总线 IMU 固件](hardware/imu_to_dxl/README.md)
 
 ---
 
-## 🧠 算法 · 飞特 HD-1910 BAM 模型
+## 🧠 算法 · 飞特官方 BAM
 
-训练工程已采用 **飞特 HD-1910 的 BAM 舵机动力学模型**，用于仿真训练。当前基线使用 **LuwuDynamics 公开的 1910 M6 参数**，来源及飞特厂家参数的对比见[参数说明](docs/HD-1910-M6参数来源.md)。
+[**飞特官方 HD-1910 BAM**](https://gitee.com/ftservo/ftservo-bam) 提供舵机动力学模型与辨识参数，供仿真训练参考。本仓提供开源[训练工程](software/training/README.md)与[网页训练工作台](software/training-studio/README.md)，具体模型配置与参数来源见[参数说明](docs/HD-1910-M6参数来源.md)。
 
 ---
 
@@ -223,7 +235,7 @@
 | 电气与固件 | [hardware/](hardware/README.md) | [电路板工程](hardware/README.md) · [IMU 固件](hardware/imu_to_dxl/README.md) |
 | 调试与分析工具 | [tools/](tools/README.md) | [工具导航](tools/README.md) · 烧卡、串口调试、飞特资料和分析脚本 |
 | 文档与记录 | [docs/](docs/README.md) | [完整文档导航](docs/README.md) · [踩坑](踩坑记录.md) · [调试](调试记录.md) · [构建](构建日志.md) |
-| 历史与社区 | [docs/](docs/README.md#深入研究与归档) | [历史更新](docs/历史更新.md) · [社区贡献](docs/社区贡献.md) |
+| 历史与社区 | [docs/](docs/README.md#深入研究与归档) | [官方更新跟踪](docs/官方更新跟踪.md) · [历史更新](docs/历史更新.md) · [社区贡献](docs/社区贡献.md) |
 
 ---
 
