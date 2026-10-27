@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "recorded_on": "2026-10-26",
+  "recorded_on": "2026-10-27",
   "display_timezone": "Asia/Tokyo",
   "scope": "Upstream documentation tracking; this snapshot does not certify integration into the replica image.",
   "repositories": {
@@ -84,6 +84,59 @@
         }
       ],
       "pending_pull_requests": [
+        {
+          "number": 472,
+          "url": "https://github.com/pollen-robotics/microduck/pull/472",
+          "title": "fix(nfc): decode UTF-16 NDEF text records",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-27T06:18:08Z",
+          "updated_at": "2026-10-27T06:18:08Z",
+          "head_sha": "98777d776addf6351e1b0918401c58d3f469b7e3",
+          "base_sha": "96b89d8613f06722c1d64ce75ab0d7124fed9d8f",
+          "base_branch": "main",
+          "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/96b89d8613f06722c1d64ce75ab0d7124fed9d8f...98777d776addf6351e1b0918401c58d3f469b7e3",
+          "scope_note": "Only nfc/src/ndef.rs changes. NDEF Text status bit selects UTF-8 or UTF-16; UTF-16 honors LE/BE BOM, defaults to BE without BOM, rejects odd byte counts, and decodes units lossily so a valid Bluetooth MAC survives text decoding. Two new pure parser tests cover three endian/BOM forms, non-BMP text and incomplete code units. No Bluetooth transport, ordinary Studio pairing, key input, motor or sensor implementation change.",
+          "priority": "conditional_when_using_nfc_tag_triggered_bluetooth_pairing; lower_for_current_non_nfc_workflows",
+          "replica_integration": "not_integrated_by_this_tracker; no official release or documented replica migration/image integration of this pending PR",
+          "submitter_validation": {
+            "standalone_ndef_module_tests_passed": 7,
+            "new_regression_tests": 2,
+            "reported_pairing_regression_failed_before_fix": true,
+            "host": "Windows; standalone rustc --edition=2021 --test module",
+            "full_workspace_run": false,
+            "physical_pairing_tested": false,
+            "verified_by_this_tracker": false
+          },
+          "this_review": "Read-only fixed diff and test inspection; no downloaded source/test execution, NFC/Bluetooth access or robot connection."
+        },
+        {
+          "number": 471,
+          "url": "https://github.com/pollen-robotics/microduck/pull/471",
+          "title": "console: stop joystick commands when the window loses focus",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-27T01:50:52Z",
+          "updated_at": "2026-10-27T02:23:18Z",
+          "head_sha": "db22c24dde3658a0023c33b00c5c723d2179b34e",
+          "base_sha": "96b89d8613f06722c1d64ce75ab0d7124fed9d8f",
+          "base_branch": "main",
+          "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/96b89d8613f06722c1d64ce75ab0d7124fed9d8f...db22c24dde3658a0023c33b00c5c723d2179b34e",
+          "scope_note": "Official console wirePad releases joystick pointer ownership on window blur or lostpointercapture, centres each knob and zeros its intent, and ignores unrelated contacts until a fresh pointerdown. Its 10 Hz intent refresh previously kept the daemon deadman alive after focus loss. Studio is a separate client and already has blur/visibilitychange releaseAll handling in existing source; applicability must be checked independently.",
+          "priority": "higher_before_official_console_drive_acceptance",
+          "replica_integration": "not_integrated_or_executed; not included in official 0.17.9, published replica image, or documented local migration checkpoint",
+          "submitter_validation": {
+            "node_tests_passed": 5,
+            "original_page_failures": 3,
+            "reported_full_page_edge_blur_check": true,
+            "rust_workspace_run": false,
+            "physical_robot_tested": false,
+            "verified_by_this_tracker": false
+          },
+          "this_review": "Read-only fixed diff and source-context inspection; no downloaded source/test execution or hardware validation."
+        },
         {
           "number": 469,
           "url": "https://github.com/pollen-robotics/microduck/pull/469",
@@ -517,6 +570,62 @@
       },
       "pending_pull_requests": [
         {
+          "number": 85,
+          "url": "https://github.com/pollen-robotics/microduck_rl/pull/85",
+          "title": "The head camera looks forward in the MJCF, not in a load-time patch",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-27T05:11:36Z",
+          "updated_at": "2026-10-27T05:11:36Z",
+          "head_sha": "94abc5a6d7a3647c58705e0827b62eb7b7b1f2ab",
+          "base_sha": "b02fdea4902c2b93b7d34a83a6f05da4ececb7d3",
+          "base_branch": "develop",
+          "fixed_diff_url": "https://github.com/pollen-robotics/microduck_rl/compare/b02fdea4902c2b93b7d34a83a6f05da4ececb7d3...94abc5a6d7a3647c58705e0827b62eb7b7b1f2ab",
+          "scope_note": "Moves the head_camera orientation fix from sim/camera.py into eight generated MJCF camera elements and seven generation configurations: quat 0 0 -1 0 to 0 0 0 1; removes the load-time 180-degree turn. Keeps the raw sideways image and existing quarter-turn display convention. No lens FoV, exposure, physics, policy weights or real-camera parameters changed.",
+          "priority": "medium_for_vision_simulation_and_training_studio_integration",
+          "adoption_requirement": "Pair updated MJCF and generation configs with removal of the old load-time camera quaternion overwrite; otherwise a second turn can point backwards. Review any additional consumer overrides separately and retain Feetech dynamics/models.",
+          "replica_integration": "not_integrated_or_executed; existing replica training MJCF/config source still contains the old camera quaternion; published image and documented local runtime checkpoint unchanged",
+          "submitter_validation": {
+            "camera_regression_cases_passed": 24,
+            "old_models_reported_failures": 15,
+            "random_head_posture_equivalence_cases": 6,
+            "rendered_image_size": "640x360",
+            "reported_differing_pixels": 0,
+            "full_pytest_suite_run": false,
+            "duck_sim_with_mediad_run": false,
+            "onshape_to_robot_regenerated": false,
+            "verified_by_this_tracker": false
+          },
+          "this_review": "Read-only inspection of all 17 changed files and existing replica training camera/config text. No downloaded source/test execution, MuJoCo rendering, CAD regeneration, model replacement or robot connection."
+        },
+        {
+          "number": 84,
+          "url": "https://github.com/pollen-robotics/microduck_rl/pull/84",
+          "title": "gui: skip joystick sliders for near-zero velocity command ranges (Roulade, fixes #79)",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-26T16:25:32Z",
+          "updated_at": "2026-10-26T16:25:32Z",
+          "head_sha": "721bb0e3dbf2db4cb7b1fe9233b94770c6055ff8",
+          "base_sha": "b02fdea4902c2b93b7d34a83a6f05da4ececb7d3",
+          "base_branch": "develop",
+          "fixed_diff_url": "https://github.com/pollen-robotics/microduck_rl/compare/b02fdea4902c2b93b7d34a83a6f05da4ececb7d3...721bb0e3dbf2db4cb7b1fe9233b94770c6055ff8",
+          "scope_note": "VelocityCommandCommandOnly.create_gui skips the complete joystick GUI when any velocity upper bound is below 0.1, otherwise delegates to the inherited implementation. Avoids Viser slider min=0.1 assertions for Roulade: x/y ranges +/-0.01, yaw +/-0.05 in the actual config. Viewer/UI change only; no reward, dynamics, training run, checkpoint download or new policy weights.",
+          "priority": "medium_when_using_roulade_viser_viewer",
+          "replica_integration": "not_integrated_or_executed; not included in official 0.17.9, published replica image, or documented local migration checkpoint",
+          "submitter_validation": {
+            "new_regression_tests_passed": 3,
+            "reported_full_suite_passed": 266,
+            "reported_full_suite_skipped": 1,
+            "training_run": false,
+            "checkpoint_downloads": false,
+            "verified_by_this_tracker": false
+          },
+          "this_review": "Read-only fixed diff and source-context inspection; no downloaded source/test execution or hardware validation."
+        },
+        {
           "number": 83,
           "url": "https://github.com/pollen-robotics/microduck_rl/pull/83",
           "title": "body_server: read-only `objects` op for viewers that mirror the world",
@@ -651,23 +760,27 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-26T14:13:26.759531Z",
+  "checked_at_utc": "2026-10-27T06:47:37.030496Z",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
     "stable_release_tag": "daemon-v0.17.9",
     "stable_release_actual_sha": "96b89d8613f06722c1d64ce75ab0d7124fed9d8f",
     "previous_tracked_prs_merged": false,
-    "new_pull_requests": {},
+    "new_pull_requests": {
+      "pollen-robotics/microduck": [
+        472
+      ]
+    },
     "new_development_releases": [],
     "changed_pull_request_heads": {},
     "official_blog_new_articles": false,
     "runtime_code_changed_by_heartbeat": false,
-    "human_authorized_local_integration_recorded": true,
+    "human_authorized_local_integration_recorded": false,
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "25 read-only GitHub queries found no new upstream state since the previous baseline. Official Microduck blog still lists three articles, latest October23. This documentation update records the separately human-authorized local 0.17.9 integration and software checks, without publishing runtime branches or updating the image/online services."
+    "notes": "New open runtime PR472 fixes NDEF Text UTF-16 decoding for NFC-triggered Bluetooth pairing addresses. Conditional relevance if NFC hardware/workflow is adopted; it does not repair ordinary Studio pairing or key reads. Four official default heads, stable/development tag SHAs, prior PR states and blog remain unchanged. Submitter-only standalone parser test report; no tracker execution or deployment. Existing user-published replica changes were preserved before this documentation-only update."
   },
   "replica_migration": {
     "recorded_on": "2026-10-26",
