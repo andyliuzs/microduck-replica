@@ -55,16 +55,20 @@ const STEP = {
 const DIRV = { fwd: [1, 0, 0], back: [-1, 0, 0], left: [0, 1, 0], right: [0, -1, 0] };   // 机身系（= 3D 场景的世界系）
 
 const CHIP_CN = { bus: '总线小板（ID 200）', bno08x: 'BNO085（I²C）', lsm6dsv16x: 'LSM6DSV16X（I²C）' };
-const BUS_BOARD_CN = { ft6: 'FT6', imu_to_dxl: 'IMU-to-DXL', sflp_124_12: 'SFLP 124/12' };
+const BUS_BOARD_CN = { ft6: 'FT6', imu_to_dxl: 'IMU-to-DXL', sflp_124_12: 'SFLP 124/12', qinmo: 'Qinmo（已配置）' };
 const BUS_PROTOCOL_CN = { feetech: 'Feetech', dxl2: 'Dynamixel 2.0' };
+const unsupportedProfile = info => info && info.profile !== undefined && !['legacy', 'qinmo'].includes(info.profile);
+const unsupportedTransport = info => info && (!['feetech', 'dxl2'].includes(info.protocol) || unsupportedProfile(info));
 function chipLabel(imu) {
   if (imu?.source !== 'bus') return CHIP_CN[imu?.source] || imu?.source || '—';
   const info = imu.imu_bus;
+  if (imu?.profile_error || unsupportedTransport(info)) return 'IMU 协议 / 类型待确认';
   return info ? `${BUS_BOARD_CN[info.board] || info.board || '总线小板'} · ${BUS_PROTOCOL_CN[info.protocol] || info.protocol}（ID 200）`
     : CHIP_CN.bus;
 }
 function imuContext(mode, imu) {
   return JSON.stringify([mode, imu?.source, imu?.source === 'bus' ? imu.imu_bus || null : null,
+    imu?.configured_imu_profile ?? null, imu?.metadata_error ?? null, imu?.profile_error ?? null,
     imu?.redo?.session_id || null, !!imu?.redo?.active]);
 }
 
@@ -494,8 +498,9 @@ function DirPad({ W }) {
 function statusOf(st, imu, live) {
   const s = st?.imu?.status;
   const v = imu?.mount?.verified;
+  if (imu?.profile_error) return { word: 'IMU 类型无法确认', kind: 'bad', hint: imu.profile_error };
   if (imu?.mount_protocol_mismatch) return { word: '方向需重新标定', kind: 'warn',
-    hint: '当前总线协议与已存的安装方向不匹配：在下面重新标定，并交给主程序验证' };
+    hint: '当前总线协议 / 类型与已存的安装方向不匹配：在下面重新标定，并交给主程序验证' };
   if (v === false) {
     return { word: '方向没确认', kind: 'warn',
       hint: st?.posture === 'starting' ? '主程序不让进运动模式（站不起来）：先粗校一次' : '装歪了走路会往前冲：先校准' };
@@ -530,6 +535,14 @@ function StatusCard({ st, imu, live, age }) {
       <span>方向</span><b class=${'imu-word ' + (S.kind || '')}>${S.kind === 'warn' || S.kind === 'bad' ? html`<span class=${'badge ' + S.kind}>${S.kind === 'bad' ? '×' : '!'}</span>` : S.kind === 'ok' ? '✓ ' : ''}${S.word}</b>
       <span></span><span class="sv-small">${S.hint}</span>
       <span>芯片</span><b>${chipLabel(imu)}</b>
+      ${src === 'bus' ? html`<span>配置类型</span><b>${imu?.configured_imu_profile === 'qinmo' ? 'Qinmo（已配置）'
+        : imu?.configured_imu_profile === 'legacy' ? '现有板卡自动识别'
+        : imu?.metadata_error || unsupportedTransport(imu?.imu_bus) ? '待确认（诊断数据不受支持）'
+        : imu?.configured_imu_profile != null ? '不支持的类型（需确认）' : '现有板卡（旧版主程序）'}</b>
+        <span>实际连接</span><b>${imu?.imu_bus ? chipLabel(imu) : '尚未连接'}</b>
+        <span>角速度单位</span><b class="num">${imu?.profile_error || unsupportedTransport(imu?.imu_bus) ? '待确认（诊断数据不受支持）'
+          : imu?.imu_bus?.profile === 'qinmo' ? '原始值 ÷ 16.4 °/s'
+          : imu?.imu_bus ? '原始值 × 0.0175 °/s' : '连接后显示'}</b>` : null}
       <span>倾角</span><b class="num">${fmt(st?.tilt_deg)}°<small> 跟竖直比；主程序 ${guard?.tilt_tolerance_deg ?? 10}° 以内才让走</small></b>
       <span>站姿</span><b class="num">${st?.hold ? html`离 HOME 最多差 ${fmt(st.hold.max_error_deg)}°<small> 标定模式站姿使能${st.hold.stage === 'holding' ? '：站住了' : '：正在站起来'}</small>`
         : guard?.max_joint_error_deg != null ? html`离 HOME 最多差 ${fmt(guard.max_joint_error_deg)}°<small> ${guard.joint_tolerance_deg ?? 5}° 以内算站好</small>` : '—'}</b>
@@ -542,10 +555,38 @@ function StatusCard({ st, imu, live, age }) {
   </section>`;
 }
 
-function ChipCard({ imu }) {
+function ChipCard({ imu, link, live }) {
+  const [profile, setProfile] = useState(imu?.configured_imu_profile || 'legacy');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState(null);
+  useEffect(() => { setProfile(imu?.configured_imu_profile || 'legacy'); }, [imu?.configured_imu_profile]);
+  const selection = imu?.profile_selection;
+  const reason = live === false || link.status !== 'open' ? '连不上鸭子：等它回来'
+    : imu?.metadata_error || unsupportedTransport(imu?.imu_bus) ? imu?.metadata_error || imu?.profile_error || '主程序报告了不支持的 IMU 类型'
+    : !selection?.can_start ? selection?.reason || '主程序尚不支持网页选择类型：请先由维护者更新主程序' : null;
+  const select = async () => {
+    setBusy(true); setMessage(null);
+    try {
+      const reply = await link.cmd('imu.op', { op: 'profile-select', profile, confirmed: true }, 180000);
+      setMessage(reply.ok ? '类型已保存，正在重连标定模式。双手扶稳并保持卸力，完成上面的安装方向采集与主程序验证。'
+        : reply.reason || reply.error || '类型选择未完成：查看会话状态，可取消并恢复原参数');
+    } finally { setBusy(false); }
+  };
   return html`<section class="board imu-card">
     <h3>芯片 <span class="sv-small">正在用：${chipLabel(imu)}</span></h3>
-    <p class="sv-small">舵机总线 ID 200 的小板由主程序启动时自动识别：支持 FT6、IMU-to-DXL（Feetech）；SFLP 124/12（Dynamixel 2.0）。换板或装法改变后，重新标定安装方向。</p>
+    <p class="sv-small">现有自动识别支持 FT6、IMU-to-DXL（Feetech）；SFLP 124/12（Dynamixel 2.0）。FT6 和自家小板按已知身份识别；通用 DXL2 只确认兼容布局。</p>
+    <p class="sv-small">Qinmo 没有文档可验证的唯一身份，需在这里选择一次。保存后以后开机会沿用此类型与单位；页面显示「已配置」，不会把兼容布局当成厂商认证。换板或装法改变后，必须重新验证安装方向。</p>
+    ${imu?.source === 'bus' || imu?.source == null ? html`<label class="sv-small">总线 IMU 类型
+      <select aria-label="总线 IMU 类型" value=${profile} disabled=${busy || !!imu?.redo?.active}
+        onChange=${e => { setProfile(e.target.value); setMessage(null); }}>
+        <option value="legacy">自动识别（现有板卡）</option><option value="qinmo">Qinmo · Feetech · 原始值 ÷ 16.4 °/s</option>
+      </select></label>
+      <div class="imu-actions"><${TwoStep} key=${profile} label="保存类型并重新连接"
+        ask="已扶稳，确认重连并重新标定" onConfirm=${select} disabled=${busy || !!reason}
+        title=${reason} busyLabel="正在保存类型并重连…" /></div>
+      <p class="sv-small">先扶稳并卸力。保存后主程序会重启进入标定模式，旧安装方向失效；验证通过后才完成。取消可恢复原参数；启动失败恢复时会停留标定模式。</p>
+      ${reason ? html`<p class="sv-warn">${reason}</p>` : null}
+      ${message ? html`<p role="status" class="sv-small">${message}</p>` : null}` : null}
     <p class="sv-small">I²C 模块要在第一次开机前接好。之后才接的，用 SSH 在鸭子上运行</p>
     <p><code class="num">sudo microduck-firstboot --detect-imu-only --force</code></p>
     <p class="sv-small">它会重新检测 IMU 并补上启动配置；跑完重启一次主程序。</p>
@@ -555,6 +596,7 @@ function ChipCard({ imu }) {
 function blockReason(st, imu, live) {
   if (!st) return '还没连上鸭子';
   if (live === false) return '连不上鸭子：等它回来';
+  if (imu?.profile_error) return imu.profile_error;
   if (imu?.redo?.active) return '正在重新标定安装方向：先完成主程序验证，或取消并恢复原参数';
   if (st.posture === 'servo_session') return '舵机页还占着总线（有舵机保持着时不会自动交还）：点顶上的「交还主程序」';
   if (st.posture === 'absent') return '鸭子主程序没在跑';
@@ -779,9 +821,9 @@ function CoarseCard({ st, imu, link, live }) {
   const commissioning = mode === 'commissioning';
   const verified = imu?.mount?.verified === true;
   const working = !!(imu?.job && !imu.job.done && !imu.job.failed);
-  const canCollect = commissioning && (!redo.active || ['commissioning', 'finish_failed'].includes(redo.phase));
+  const canCollect = commissioning && !imu?.profile_error && (!redo.active || ['commissioning', 'finish_failed'].includes(redo.phase));
   const showSteps = canCollect && (!verified || opened || redo.active);
-  const startWhy = !open ? '连不上鸭子：等它回来' : working ? '上一项操作还没结束'
+  const startWhy = !open ? '连不上鸭子：等它回来' : imu?.profile_error ? imu.profile_error : working ? '上一项操作还没结束'
     : commissioning ? null : !redo.can_start ? redo.reason || '暂时不能返回标定模式：先卸力并等待读数更新' : null;
   const run = async (op) => {
     setBusy(true); setMsg(null);
@@ -1016,7 +1058,7 @@ export function ImuPage({ st, imu, link, live, age, pd }) {
         <${StanceCard} st=${st} imu=${imu} pd=${pd} link=${link} live=${live} />
         <${CollectCard} st=${st} imu=${imu} live=${live} W=${w} act=${act} muted=${muted} setMuted=${setMuted} />
         <${ResultCard} res=${w.phase === 'done' ? res || w.result : null} imu=${imu} link=${link} onRedo=${onRedo} />
-        <${ChipCard} imu=${imu} />
+        <${ChipCard} imu=${imu} link=${link} live=${live} />
       </div>
     </div>
   </div>`;
