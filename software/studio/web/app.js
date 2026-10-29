@@ -18,6 +18,7 @@ import { WifiCard, WifiSettings, DuckAddresses } from './wifi.js';
 import { TwoStep } from './confirm.js';
 import { ModelsPage } from './models.js';
 import { CameraPage, TofPage, SensorBandCells } from './sensors.js';
+import { imuDiagnosticCopy, startupStageCopy } from './startup-status.js';
 
 const STALE_GRAY_MS = 1000;   // 超过 1 秒没新数据：数值变灰
 const STALE_ALARM_MS = 3000;  // 超过 3 秒：横幅；卸力按钮仍可按（只要跟 Studio 的连接在）
@@ -228,7 +229,7 @@ function EStop({ st, live, open }) {
 function TopBar({ duck, st, live, age, open, hideEStop }) {
   // 顶栏先说现在是什么模式（出厂标定模式 / 写完切运动模式），再带姿势；标定模式没有策略，别写成「调试中」。
   // 连续报启动阶段超过 30 秒（Studio 从这次连上算）：写「一直报启动中」（10-20 真机：旧 fork 的标定模式永远报 configuring_bus）
-  const postureText = st ? ({ starting: st.starting_long ? '一直报启动中' : '启动中', absent: '主程序没在跑', homing: '在站起来',
+  const postureText = st ? ({ starting: st.start_wait?.text || (st.starting_long ? '一直报启动中' : '启动中'), absent: '主程序没在跑', homing: '在站起来',
     servo_session: '调舵机中' }[st.posture] || WAS[st.posture] || '状态不明') : null;
   const modeText = !st ? '连接中'
     : st.mode === 'commissioning' ? (st.posture === 'commissioning' ? '标定模式' : `标定模式 · ${postureText}`)
@@ -303,6 +304,7 @@ function stageCopy(st, live, name, age) {
   switch (st.posture) {
     case 'absent': return { h: '鸭子主程序没在跑', sub: '可能正在重启（约 2 秒）。注意：主程序停了不会卸力，舵机可能还顶着。', stale: true };
     case 'starting':
+      if (startupStageCopy(st)) return startupStageCopy(st);
       // 连续报启动阶段超过 30 秒：不再说「通常 10 秒内完成」，给「去日志页」（10-20 真机：旧 fork 的标定模式永远报 configuring_bus）
       if (st.starting_long) {
         return { h: '主程序一直报「启动中」', act: { href: '#/logs', label: '去日志页' },
@@ -418,11 +420,13 @@ function useStickyHeight(name) {
   }, [name]);
 }
 
-function Band({ st, pd, gray, onSame, sensorsActive }) {
+function Band({ st, pd, gray, live, diagnosticElapsed = 0, onSame, sensorsActive }) {
   const bandRef = useStickyHeight('--band-h');
   const b = st?.battery || {}, s = st?.servos || {}, imu = st?.imu || {};
-  const imuWord = { ok: '正常', unverified: '方向没确认', frozen: '读数冻住了', missing: '没读到' }[imu.status] || '—';
-  const imuKind = { unverified: 'warn', frozen: 'bad', missing: 'bad' }[imu.status];
+  const diagnostic = st?.posture === 'starting' && (imu.source == null || imu.source === 'bus')
+    ? imuDiagnosticCopy(imu.diagnostic, live, diagnosticElapsed) : null;
+  const imuWord = diagnostic?.word || { ok: '正常', unverified: '方向没确认', frozen: '读数冻住了', missing: '没读到' }[imu.status] || '—';
+  const imuKind = diagnostic ? diagnostic.kind : { unverified: 'warn', frozen: 'bad', missing: 'bad' }[imu.status];
   const pct = typeof b.pct === 'number' ? Math.round(b.pct) : null;
   const cpu = boardCell(st?.cpu);
   const pad = padCell(st, pd);
@@ -436,7 +440,7 @@ function Band({ st, pd, gray, onSame, sensorsActive }) {
     <a href="#/imu">
       <span class="label">IMU</span>
       <span class="word">${imuKind ? html`<${Badge} kind=${imuKind} />` : null}${imuWord}</span>
-      <span class="small">${{ unverified: '先只站着', ok: '方向已确认' }[imu.status] || '去校准'}</span>
+      <span class="small">${diagnostic ? diagnostic.board || 'ID 200 · 只读诊断' : { unverified: '先只站着', ok: '方向已确认' }[imu.status] || '去校准'}</span>
     </a>
     <${SensorBandCells} api=${api} active=${sensorsActive} />
     <a href="#/pad" onClick=${(e) => onSame(e, '#/pad')}>
@@ -676,7 +680,7 @@ function Todo({ st, live }) {
 }
 
 // 总览：（开着热点时最上面是「连 WiFi」）→ 舞台 → 仪表带（5 格）→ 上手清单 → 待办 → 往下一刷就是手柄（总览重排 §1）
-function Overview({ st, live, age, duck, pd, onSame, tune, sensorsActive }) {
+function Overview({ st, live, age, diagnosticElapsed, duck, pd, onSame, tune, sensorsActive }) {
   // 主机名这类英文名后面空一格再接中文：「duck-c51b 站好了」
   const short = duck?.short || '鸭子';
   const name = /[A-Za-z0-9]$/.test(short) ? short + ' ' : short;
@@ -684,7 +688,7 @@ function Overview({ st, live, age, duck, pd, onSame, tune, sensorsActive }) {
     ${st?.net?.known && st.net.mode === 'hotspot'
       ? html`<${WifiCard} net=${st.net} link=${link} secure=${st?.auth?.has_password} />` : null}
     <${Stage} st=${st} live=${live} age=${age} name=${name} />
-    <${Band} st=${st} pd=${pd} gray=${age > STALE_GRAY_MS} onSame=${onSame} sensorsActive=${sensorsActive} />
+    <${Band} st=${st} pd=${pd} live=${live} diagnosticElapsed=${diagnosticElapsed} gray=${age > STALE_GRAY_MS} onSame=${onSame} sensorsActive=${sensorsActive} />
     <${Onboard} st=${st} live=${live} />
     <${Todo} st=${st} live=${live} />
     <${PadPage} st=${st} pad=${pd} link=${link} api=${api} previewActive=${sensorsActive} live=${live} />
@@ -1026,6 +1030,8 @@ function Main({ duck }) {
   const [tune, setTune] = useState(null);
   const [pd, setPd] = useState(null);
   const [stAt, setStAt] = useState(0);
+  const [imuAt, setImuAt] = useState(0);
+  const imuContext = useRef(null);
   const [status, setStatus] = useState(link.status);
   const [padInView, setPadInView] = useState(padActivity.inView);
   const [navTick, setNavTick] = useState(0);
@@ -1035,14 +1041,21 @@ function Main({ duck }) {
 
   useEffect(() => {
     const off = link.on((m) => {
-      if (m.t === '_status') setStatus(m.status);
+      if (m.t === '_status') {
+        setStatus(m.status);
+        if (m.status !== 'open') { setImu(null); setImuAt(0); }
+      }
       else if (m.t === 'state') {
+        const context = JSON.stringify([m.mode, m.build, m.imu?.source, m.imu?.configured_imu_profile,
+          m.posture === 'starting', m.imu?.context_current, m.imu?.generation]);
+        if (imuContext.current !== null && imuContext.current !== context) { setImu(null); setImuAt(0); }
+        imuContext.current = context;
         // 上手清单没变时后端不每帧带（onboarding_same，代码审查 C5）：沿用上一份
         setSt((prev) => (m.onboarding_same && prev ? { ...m, onboarding: prev.onboarding } : m));
         setStAt(performance.now());
       }
       else if (m.t === 'servo') setSv(m);
-      else if (m.t === 'imu') setImu(m);
+      else if (m.t === 'imu') { setImu(m); setImuAt(performance.now()); }
       else if (m.t === 'tune') setTune(m);
       else if (m.t === 'pad') {
         // 长列表（动作、组合动作、技能、声音）没变时后端不再每帧推（审查 O12）：缺了就沿用上一份
@@ -1083,7 +1096,7 @@ function Main({ duck }) {
   // 总览一直挂着、只是藏起来：3D 鸭子不随切页面销毁重建（three.js 每建一次留一份内部对象，
   // 浏览器能同时开的 WebGL 上下文也有限）。手柄那一块也在总览里（#/pad 是它的锚点），一直挂着：
   // 「在不在手柄区」看 padActivity，不看挂没挂上（审查 O1）
-  const overview = html`<div hidden=${!OVERVIEW(route)}><${Overview} st=${st} live=${live} age=${age} duck=${duck} pd=${pd} onSame=${onSame} tune=${tune} sensorsActive=${OVERVIEW(route)} /></div>`;
+  const overview = html`<div hidden=${!OVERVIEW(route)}><${Overview} st=${st} live=${live} age=${age} diagnosticElapsed=${now - stAt} duck=${duck} pd=${pd} onSame=${onSame} tune=${tune} sensorsActive=${OVERVIEW(route)} /></div>`;
   let page = null;
   if (OVERVIEW(route)) page = null;
   else if (route === '/logs') page = html`<${LogsPage} />`;
@@ -1092,7 +1105,9 @@ function Main({ duck }) {
   else if (route === '/servos') page = html`<${ServoPage} sv=${sv} link=${link} leaveGuards=${leaveGuards} />`;
   else if (route === '/settings') page = html`<${Settings} st=${st} tune=${tune} />`;
   else if (route === '/models') page = html`<${ModelsPage} api=${api} csrf=${csrf} link=${link} live=${live} />`;
-  else if (route === '/imu') page = html`<${ImuPage} st=${st} imu=${imu} link=${link} live=${live} age=${age} pd=${pd} />`;
+  else if (route === '/imu') page = html`<${ImuPage} st=${st}
+    imu=${imu && st?.imu?.diagnostic ? { ...imu, diagnostic: st.imu.diagnostic } : imu}
+    link=${link} live=${live} age=${age} diagnosticElapsed=${now - (st?.imu?.diagnostic ? stAt : imuAt)} pd=${pd} />`;
   else page = html`<${Later} what="这一页" />`;
 
   document.title = `${duck?.label || '鸭子'} · Microduck Studio`;
