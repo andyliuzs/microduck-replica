@@ -1,5 +1,10 @@
 # Controller companion updater: local implementation verification
 
+The later Linux/real-systemd and original-27 direct rollback results are recorded
+in [2026-10-31-controller-linux.md](2026-10-31-controller-linux.md). The historical
+Windows review checkpoint below predates the final native pins and signed local
+candidate. No production behavior changed during the later validation.
+
 This record covers the coordinated updater implementation prepared on
 `release/software-features-20261030`. It is a review candidate, not a published,
 signed or installable release. New padd ARM pins remain `None`; validation fails
