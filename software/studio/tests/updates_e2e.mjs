@@ -92,6 +92,13 @@ try{
   await send('Page.reload');await wait(`document.querySelector('[data-native-phase="recovery_required"]')`,'persisted recovery after reconnect');
   await acknowledge();await clear();await click('native_recover');await nativeSettled('rolled_back');
   report.native_recovery=await js(`document.querySelector('[data-native-updates]').textContent.includes('已恢复并核验旧主程序')`);
+  await nativeFixture({failure:false,bundle_schema:'microduck-controller-payload/1',bundle_current:false,
+    restorable:false,installed_sha256:'f'.repeat(64),phase:'idle',components:{robotd:{installed_sha256:'f'.repeat(64)},padd:{installed_sha256:'a'.repeat(64)}}});
+  await send('Page.reload');await wait(`document.querySelector('[data-native-updates]')?.textContent.includes('配套驱动待安装')`,'bundle pending despite robotd current');
+  await acknowledge();await click('native_install');await nativeSettled('completed');
+  report.bundle_complete=await js(`document.querySelector('[data-native-updates]').textContent.includes('映射接口和服务权限已核验')&&document.querySelector('[data-update="rollback"]').disabled`);
+  await acknowledge();await click('native_restore');await nativeSettled('restored');
+  report.bundle_restore=await js(`document.querySelector('[data-native-updates]').textContent.includes('旧配套驱动与原服务配置已恢复')`);
   for(const width of [1440,390,320]){
     await send('Emulation.setDeviceMetricsOverride',{width,height:1100,deviceScaleFactor:1,mobile:width<500});
     await js(`document.querySelector('[data-native-updates]').scrollIntoView();document.querySelector('[data-native-updates]').getBoundingClientRect().width`);

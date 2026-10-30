@@ -12,6 +12,7 @@ import shutil
 import socket
 import stat
 import tomllib
+import types
 import uuid
 
 SCHEMA = 'microduck-native-update/1'
@@ -681,6 +682,18 @@ class Transaction:
 
 
 def handle(helper, op, args, release):
+    # The helper injects this dependency only after compiling suite-hash-bound
+    # bytes. Never import a managed module through sys.path in a root process.
+    dependency=globals().get('CONTROLLER_BUNDLE')
+    members=('padd','controller-manifest.json')
+    bundle=any(os.path.lexists(op.ctx.p(release+'/studio/deploy/native/'+name)) for name in members)
+    journal=any(os.path.lexists(op.ctx.p('/var/lib/microduck-helper/controller-update/'+name)) for name in ('journal.json','prepared.json'))
+    # A pending v1 transaction always retains its exact original recover path.
+    previous=Transaction(helper,op,release).load()
+    legacy_pending=bool(previous and (previous['active'] or previous.get('restore_pending') or previous.get('cleanup_pending')))
+    if (bundle or journal) and not legacy_pending:
+        if dependency is None:raise helper.Stop(helper.EXIT_STATE,'native_untrusted_release','伴随升级依赖未经签名软件校验')
+        return dependency.handle(helper,op,args,release,types.SimpleNamespace(**globals()))
     if (set(args)-{'by','action','confirmed'} or args.get('by')!='Studio' or args.get('action') not in ('status','install','recover')
             or (args.get('action')!='status' and args.get('confirmed') is not True)
             or ('confirmed' in args and type(args['confirmed']) is not bool)):

@@ -12,7 +12,7 @@ MAX_ARTIFACT = 128 * 1024 * 1024
 MAX_METADATA = 1024 * 1024
 _VERSION = re.compile(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\Z')
 VOICE = {'duck_echo.py','audio_control.py','continuous_audio.py','music_feel.py',
-         'music_interaction.py','speech_control.py','voice_commands.py','duck-echo.service','install.py'}
+         'music_interaction.py','speech_control.py','voice_commands.py','pad_mapping.py','duck-echo.service','install.py'}
 
 class PackageError(ValueError): pass
 
@@ -28,7 +28,7 @@ def runtime_path(name):
         rel=name[len('software/studio/'):]
         allowed=(rel=='run.py' or rel.startswith(('studio/','web/','deps/','deploy/')))
         if allowed and not rel.endswith(('.pyc','.pyo','.key','.pem','.log')): return 'studio/'+rel
-    if name.startswith('software/duck-echo/') and name.rsplit('/',1)[-1] in VOICE:
+    if name.startswith('software/duck-echo/') and len(parts)==3 and parts[-1] in VOICE:
         return 'duck-echo/'+name.rsplit('/',1)[-1]
     return None
 

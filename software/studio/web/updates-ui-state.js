@@ -21,7 +21,8 @@ export function updateActions(data,pending=false){
   const idle=!!data?.available&&!data.busy&&!pending;
   const nativeBusy=data?.native?.active===true||data?.native?.submitting===true;
   return {check:idle,upload:idle,download:idle&&!!data.candidate&&data.source_state==='available',
-    validate:idle&&!!data.staged,install:idle&&!nativeBusy&&data.ready===true,rollback:idle&&!nativeBusy&&data.can_rollback===true};
+    validate:idle&&!!data.staged,install:idle&&!nativeBusy&&data.ready===true,
+    rollback:idle&&!nativeBusy&&!data?.native?.restorable&&data.can_rollback===true};
 }
 
 export const NATIVE_PHASES={prepared:'已备份，准备保护控制服务',guarding:'正在建立持久保护',guarded:'控制服务已隔离，核对卸力',
@@ -35,16 +36,18 @@ export function nativeMessage(native){
   if(native.active)return (NATIVE_PHASES[native.phase]||'主程序更新保护仍在，请核对或恢复')+(native.reason?`。${native.reason}`:'');
   if(native.submitting)return '正在向独立小助手提交请求；请等待实际运行状态，刷新页面可继续查看。';
   if(!native.service_available)return native.reason||'当前小助手未提供主程序更新服务，请先更新网页 / 语音。';
+  if(native.bundle_schema&&native.current)return '目标配套驱动的实际运行身份、映射接口和服务权限已核验。退回旧网页 / 语音前，请先恢复旧配套驱动。';
+  if(native.bundle_schema&&native.phase==='restored')return '旧配套驱动与原服务配置已恢复并核验，可以退回旧网页 / 语音。手柄映射配置已保留。';
   if(native.current)return '目标主程序实际运行身份已核验。'+(native.mode==='commissioning'?'请继续 IMU 选择和方向验证。':'秦墨实物仍待验收，使用前完成 IMU 方向验证。');
   if(!native.available)return '本软件包没有可安装的主程序更新。';
   if(!native.supported)return native.reason||'当前主程序实际运行身份未核验，不能自动安装，请联系维护者核对版本。';
   if(native.phase==='rolled_back')return '安装失败，已恢复并核验旧主程序。'+(native.reason||'');
-  return '主程序更新待安装；网页 / 语音版本不代表主程序已更新。';
+  return native.bundle_schema?'配套驱动待安装；完成后启用手柄映射所需接口与服务权限。网页 / 语音版本不代表驱动已更新。':'主程序更新待安装；网页 / 语音版本不代表主程序已更新。';
 }
 
 export function nativeActions(data,pending=false,confirmed=false){
   const native=data?.native;
   const idle=!!native?.service_available&&!data?.busy&&!native.submitting&&!pending&&confirmed===true;
   return {install:idle&&native.available===true&&native.supported===true&&!native.current&&!native.active,
-    recover:idle&&native.active===true};
+    recover:idle&&native.active===true,restore:idle&&native.restorable===true&&native.current===true&&!native.active};
 }

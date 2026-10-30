@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Click R3 to toggle continuous speech; --trigger-mode hold retains hold/release."""
+PADD_MAPPING_CONTRACT = 1
+
 import argparse
 import array
 import glob
@@ -314,14 +316,14 @@ def right_pressed(fd):
     return bool(bits[BUTTON // 8] & (1 << (BUTTON % 8)))
 
 
-def devices():
+def devices(node=None):
     result = []
     for path in sorted(glob.glob('/dev/input/event*')):
         try:
             fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
             try:
                 bits = key_bitmap(fd)
-                if bits[BUTTON // 8] & (1 << (BUTTON % 8)):
+                if (node is not None and path==node) or (node is None and bits[BUTTON // 8] & (1 << (BUTTON % 8))):
                     name_path = '/sys/class/input/' + os.path.basename(path) + '/device/name'
                     with open(name_path, encoding='utf-8') as source:
                         name = source.read().strip()
@@ -340,10 +342,57 @@ def make_button(audio, initially_down=False, trigger_mode='toggle'):
     return ToggleButton(audio, initially_down=initially_down)
 
 
+def binding_pressed(fd,binding):
+    if binding['kind']=='key':
+        bits=key_bitmap(fd,current=True);code=binding['code']
+        return code<len(bits)*8 and bool(bits[code//8]&(1<<(code%8)))
+    import fcntl
+    # struct input_absinfo: value, minimum, maximum, fuzz, flat, resolution.
+    values=bytearray(24)
+    request=(2<<30)|(len(values)<<16)|(ord('E')<<8)|(0x40+binding['code'])
+    fcntl.ioctl(fd,request,values,True)
+    return struct.unpack('iiiiii',values)[0]==binding['value']
+
+
+class MappedVoiceInput:
+    """Rebase raw bindings and held edges whenever native ownership changes."""
+    def __init__(self,audio,current,trigger_mode='toggle'):
+        self.audio,self.current,self.trigger_mode=audio,current,trigger_mode
+        self.state=None;self.button=None;self.select_down=False
+
+    def cancel(self):
+        if self.button:self.button.cancel()
+        self.audio.cancel_processing();self.audio.stop(play=False);self.audio.stop_playback()
+
+    def update(self,state,force=False):
+        if self.state==state and not force:return
+        self.cancel();self.state=state
+        bindings=state['bindings'];r3=bindings.get('r3');select_binding=bindings.get('select')
+        self.button=make_button(self.audio,initially_down=self.current(r3) if r3 else True,
+                                trigger_mode=self.trigger_mode)
+        self.select_down=self.current(select_binding) if select_binding else False
+
+    def event(self,kind,code,value):
+        if not self.state or self.state['blocked']:return
+        from pad_mapping import binding_event
+        bindings=self.state['bindings']
+        pressed=binding_event(bindings.get('select'),kind,code,value)
+        if pressed is not None:
+            if pressed and not self.select_down:self.cancel()
+            self.select_down=pressed
+        pressed=binding_event(bindings.get('r3'),kind,code,value)
+        if pressed is not None:self.button.event(int(pressed))
+
+    def tick(self):
+        if self.state and not self.state['blocked']:self.button.tick()
+
+
 def daemon(audio, stopped, selected=None, trigger_mode='toggle'):
+    from pad_mapping import PAD_MAPPING
     announced = False
     while not stopped.is_set():
-        available = devices()
+        mapping=PAD_MAPPING.read()
+        available = devices(mapping['node']) if mapping.get('node') or mapping.get('legacy') else []
         if selected:
             available = [item for item in available if item['path'] == selected]
         if not available:
@@ -358,10 +407,14 @@ def daemon(audio, stopped, selected=None, trigger_mode='toggle'):
         button = None
         try:
             fd = os.open(item['path'], os.O_RDONLY | os.O_NONBLOCK)
-            button = make_button(audio, initially_down=right_pressed(fd), trigger_mode=trigger_mode)
-            LOG.info('listening without grab: %s (%s), R3=%s', item['name'], item['path'], BUTTON)
+            button = MappedVoiceInput(audio,lambda binding:binding_pressed(fd,binding),trigger_mode)
+            button.update(mapping)
+            LOG.info('listening without grab: %s (%s)', item['name'], item['path'])
             resync = False
             while not stopped.is_set():
+                current_mapping=PAD_MAPPING.read()
+                if not current_mapping.get('legacy') and current_mapping.get('node')!=item['path']:break
+                button.update(current_mapping)
                 readable, _, _ = select.select([fd], [], [], 0.1)
                 if readable:
                     raw = os.read(fd, INPUT_EVENT.size * 64)
@@ -373,15 +426,11 @@ def daemon(audio, stopped, selected=None, trigger_mode='toggle'):
                             resync = True
                         elif resync:
                             if kind == 0 and code == 0:
-                                button = make_button(audio, initially_down=right_pressed(fd),
-                                                     trigger_mode=trigger_mode)
+                                button.update(PAD_MAPPING.read(),force=True)
                                 resync = False
-                        elif kind == 1 and code == BUTTON:
-                            button.event(value)
-                        elif kind == 1 and code == 314 and value == 1:  # Select cancels pending voice actions
-                            button.cancel()
-                            audio.cancel_processing()
-                button.tick()
+                        else:
+                            button.event(kind,code,value)
+                if not resync:button.tick()
         except (OSError, ValueError, RuntimeError):
             LOG.exception('input/audio unavailable; retrying')
         finally:

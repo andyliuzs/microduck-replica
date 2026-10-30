@@ -41,6 +41,8 @@ LAST_RESULT = "/run/microduck-helper/last-result.json"
 IMU_REDO_MANIFEST = "/var/lib/microduck-helper/imu-recalibrate/manifest.json"
 NATIVE_UPDATE_JOURNAL = "/var/lib/microduck-helper/native-update/journal.json"
 NATIVE_UPDATE_ACTIVE = "/var/lib/microduck-helper/native-update/active"
+CONTROLLER_UPDATE_JOURNAL = "/var/lib/microduck-helper/controller-update/journal.json"
+CONTROLLER_UPDATE_PREPARED = "/var/lib/microduck-helper/controller-update/prepared.json"
 NATIVE_UPDATE_EXCLUSIONS = (NATIVE_UPDATE_ACTIVE, "/run/microduck-helper/native-update-restore",
     "/etc/systemd/system/robotd.service.d/zzzzzzz-microduck-native-update.conf", *(
         "/etc/systemd/system/"+unit+".service.d/zzzzzzz-microduck-native-update.conf"
@@ -267,12 +269,22 @@ def robotd_update(by, action, *, confirmed=None, timeout=180):
 
 
 def native_update_state(*, root="/"):
+    legacy=_native_update_state(root=root,journal=NATIVE_UPDATE_JOURNAL)
+    path=CONTROLLER_UPDATE_PREPARED
+    if not os.path.lexists(os.path.join(root,path.lstrip('/'))):path=CONTROLLER_UPDATE_JOURNAL
+    if not os.path.lexists(os.path.join(root,path.lstrip('/'))):return legacy
+    bundle=_native_update_state(root=root,journal=path)
+    if legacy.get('active'):bundle['active']=True
+    return bundle
+
+
+def _native_update_state(*,root,journal):
     """Bounded persistent motion guard. Malformed/unreadable state fails closed."""
     empty = {"active": False, "phase": "idle", "running_verified": False}
-    path = os.path.join(root, NATIVE_UPDATE_JOURNAL.lstrip("/"))
+    path = os.path.join(root, journal.lstrip("/"))
     exclusions = any(os.path.lexists(os.path.join(root,p.lstrip('/'))) for p in NATIVE_UPDATE_EXCLUSIONS)
     try:
-        parts = NATIVE_UPDATE_JOURNAL.strip("/").split("/")
+        parts = journal.strip("/").split("/")
         for index in range(1, len(parts)+1):
             target = os.path.join(root, *parts[:index])
             st = os.lstat(target)
@@ -284,17 +296,19 @@ def native_update_state(*, root="/"):
             raise ValueError("更新记录超出大小限制")
         with open(path, encoding="utf-8") as stream:
             value = json.load(stream)
-        if (not isinstance(value, dict) or value.get("schema") != "microduck-native-update/1"
+        bundle=journal in (CONTROLLER_UPDATE_JOURNAL,CONTROLLER_UPDATE_PREPARED)
+        phases=("prepared","guarding","replacing","verifying","restoring","completed","restored","recovery_required") if bundle else (
+            "prepared","guarding","guarded","replacing","replaced","verified_commissioning","restoring_normal","verified_motion",
+            "factory_handoff_pending","completed","rolled_back","recovering","old_restored","recovery_required")
+        if (not isinstance(value, dict) or value.get("schema") != ("microduck-controller-update/1" if bundle else "microduck-native-update/1")
                 or type(value.get("active")) is not bool
                 or type(value.get("restore_pending", False)) is not bool
                 or type(value.get("cleanup_pending", False)) is not bool
                 or not re.fullmatch(r"[0-9a-f]{32}", value.get("transaction_id", ""))
-                or value.get("phase") not in ("prepared","guarding","guarded","replacing","replaced","verified_commissioning",
-                    "restoring_normal","verified_motion","factory_handoff_pending","completed","rolled_back",
-                    "recovering","old_restored","recovery_required")
+                or value.get("phase") not in phases
                 or (value.get("reason") is not None and (not isinstance(value["reason"], str) or len(value["reason"]) > 300))):
             raise ValueError("更新记录格式不正确")
-        public = ("active", "phase", "transaction_id", "available", "installed_sha256", "target_sha256", "running_verified", "mode", "reason")
+        public = ("active", "phase", "transaction_id", "available", "installed_sha256", "target_sha256", "running_verified", "mode", "reason","bundle_schema")
         result = {key:value.get(key) for key in public if key in value}
         result['active'] = result['active'] or value.get('restore_pending') is True or value.get('cleanup_pending') is True or exclusions
         return result

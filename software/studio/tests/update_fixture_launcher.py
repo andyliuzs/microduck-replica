@@ -42,9 +42,16 @@ def native_save(**values):
     with native_lock:
         native.update(values)
         if native.get('transaction_id'):
-            value={'schema':'microduck-native-update/1',**native}
-            temporary=native_path.with_suffix('.tmp')
-            temporary.write_text(json.dumps(value),encoding='utf-8');temporary.replace(native_path)
+            bundle=bool(native.get('bundle_schema'))
+            path=native_root/(helper.CONTROLLER_UPDATE_JOURNAL if bundle else helper.NATIVE_UPDATE_JOURNAL).lstrip('/')
+            if bundle and native.get('phase')=='idle':
+                path.unlink(missing_ok=True)
+                return
+            path.parent.mkdir(parents=True,exist_ok=True)
+            value={**native,'schema':'microduck-controller-update/1' if bundle else 'microduck-native-update/1',
+                   'restore_pending':False,'cleanup_pending':False}
+            temporary=path.with_suffix('.tmp')
+            temporary.write_text(json.dumps(value),encoding='utf-8');temporary.replace(path)
 
 def native_call(by,action,**kwargs):
     with native_lock,(output/'native.jsonl').open('a',encoding='utf-8') as stream:
@@ -57,13 +64,18 @@ def native_call(by,action,**kwargs):
         return True,'native_status',value
     if by!='Studio' or kwargs!={'confirmed':True}:return False,'bad_args',None
     if action=='install' and (not native['available'] or not native['running_verified']):return False,'native_unsupported',{'reason':'本机主程序不受支持'}
-    native_save(active=True,phase='replacing' if action=='install' else 'recovering',transaction_id='a'*32,reason=None)
+    native_save(active=True,phase='replacing' if action=='install' else 'restoring' if action=='restore' else 'recovering',transaction_id='a'*32,reason=None)
     time.sleep(2.5)
     if action=='install' and native_failure:
         native_save(active=True,phase='recovery_required',running_verified=False,reason='模拟启动核验失败；请恢复')
     else:
         native_save(active=False,phase='completed' if action=='install' else 'rolled_back',running_verified=True,
                     installed_sha256='f'*64 if action=='install' else 'e'*64,reason=None)
+        if native.get('bundle_schema'):
+            native_save(phase='completed' if action=='install' else 'restored',bundle_current=action=='install',
+                restorable=action=='install',installed_sha256='f'*64,
+                components={'robotd':{'installed_sha256':'f'*64,'target_sha256':'f'*64},
+                            'padd':{'installed_sha256':('b' if action=='install' else 'a')*64,'target_sha256':'b'*64}})
     return True,'native_complete',dict(native)
 
 base_handler=server.RequestHandlerClass

@@ -5,7 +5,7 @@ After=sound.target aic3104-init.service alsa-restore.service
 [Service]
 Type=simple
 User=radxa
-SupplementaryGroups=audio input
+SupplementaryGroups=audio input robot
 Environment=PYTHONUNBUFFERED=1
 Environment=ECHO_CAPTURE=plughw:CARD=aic3104,DEV=0
 Environment=ECHO_PLAYBACK=plughw:CARD=aic3104,DEV=0

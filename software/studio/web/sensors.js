@@ -228,7 +228,7 @@ function CameraScreen({ connection, video, compact = false }) {
   const height = connection.height || connection.metadata?.height || 480;
   const sideways = rotate === 90 || rotate === 270;
   return html`<div ref=${screen} class="camera-screen" data-playing=${connection.state === 'playing'}
-    style=${compact ? null : { aspectRatio: sideways ? `${height} / ${width}` : `${width} / ${height}`,
+    style=${compact ? { '--camera-display-aspect': String(sideways ? height / width : width / height) } : { aspectRatio: sideways ? `${height} / ${width}` : `${width} / ${height}`,
       maxWidth: `min(100%, ${72 * (sideways ? height / width : width / height)}vh)` }}>
     <video class=${compact ? 'inline-camera-video' : 'camera-video'} ref=${video} muted playsInline autoPlay aria-label="鸭子摄像头画面"
       style=${{ width: sideways ? `${100 / ratio}%` : '100%', height: sideways ? `${100 * ratio}%` : '100%', transform: `translate(-50%, -50%) rotate(${rotate}deg)` }}></video>
@@ -239,6 +239,7 @@ function CameraScreen({ connection, video, compact = false }) {
 export function InlineCamera({ api, active = false }) {
   const card = useRef(null), video = useRef(null);
   const [inView, setInView] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     const observer = new IntersectionObserver(entries => setInView(entries.some(entry => entry.isIntersecting)), { threshold: 0 });
     observer.observe(card.current);
@@ -246,13 +247,15 @@ export function InlineCamera({ api, active = false }) {
   }, []);
   const { config, connection, reconnect } = useCameraSession({ api, video, active: active && inView, inline: true });
   const source = cameraSource(config, connection.producer);
-  return html`<section ref=${card} class="board pd-card inline-camera" aria-labelledby="inline-camera-title">
+  return html`<section ref=${card} class="board pd-card inline-camera" data-expanded=${expanded} aria-labelledby="inline-camera-title">
     <div class="inline-camera-head"><h3 id="inline-camera-title">摄像头</h3>
       <span class="sensor-pill inline-camera-status" role="status" data-state=${connection.state}>${CAMERA_STATES[connection.state] || '等待画面'}</span>
-      <button class="btn-light inline-camera-retry" type="button" onClick=${reconnect} disabled=${['loading', 'connecting', 'signaling', 'negotiating', 'receiving'].includes(connection.state)}>重新检测</button>
+      <div class="inline-camera-actions"><button class="inline-camera-expand" type="button" aria-pressed=${expanded}
+        disabled=${!expanded && connection.state !== 'playing'} onClick=${() => setExpanded(value => !value)}>${expanded ? '还原' : '放大'}</button>
+        <button class="btn-light inline-camera-retry" type="button" onClick=${reconnect} disabled=${['loading', 'connecting', 'signaling', 'negotiating', 'receiving'].includes(connection.state)}>重新检测</button></div>
     </div>
     <${CameraScreen} connection=${connection} video=${video} compact />
-    <div class="inline-camera-meta"><span class="inline-camera-source">${config ? source.label : '鸭子前方的画面'}</span><a href="#/camera">打开摄像头页 ›</a></div>
+    <div class="inline-camera-meta"><span class="inline-camera-source">${config ? source.label : '鸭子前方的画面'}</span></div>
   </section>`;
 }
 

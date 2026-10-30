@@ -75,7 +75,7 @@ journalctl -u duck-echo -n 30 --no-pager
 
 `probe` 的 3 秒内在麦克风旁说话，输出包含 peak、rms、dbfs；静音/过短/采集失败时退出码为 2。`record` 命令在 4 秒内录音，然后播放；播放进程退出成功才会输出 `playback_ok: true`。进程成功仍需耳朵确认实际音质和喇叭响度。
 
-安装需要 sudo；服务以 radxa 用户运行，并加入 audio/input 附加组。依赖系统 Python 3、alsa-utils 和 systemd，无需下载 Python 包。
+安装需要 sudo；服务以 radxa 用户运行，并加入 audio/input/robot 附加组。依赖系统 Python 3、alsa-utils 和 systemd，无需下载 Python 包。
 
 ## 原声与设备设置
 
@@ -90,7 +90,8 @@ sudo systemctl restart duck-echo
 
 ## 诊断与撤回
 
-- 没有手柄时服务等待，连接后自动找到支持 R3 的 evdev 设备；启动时 R3 已按下需先松开再试。多个手柄会监听第一个。日志写出实际设备名及 event 路径。
+- 配套新版 padd 存在时，服务读取 `/run/padd/mapping-state.json`，选择 padd 的实际 evdev 节点，即使该手柄没有 Linux 默认 BTN_THUMBR（318）也支持。自定义 R3／Select 按原始按钮或帽轴绑定处理；自定义配置省略 R3 时不回退 318。旧安装从未提供该状态文件时，才沿用第一个支持默认 R3 的手柄。
+- 校准暂停会取消现有监听、识别、待执行动作和回放，期间按键只更新基线；配置、设备、进程或暂停状态变化都会重新建立按键基线。启动或恢复时已按住 R3，需要先释放再按。已经读过新版状态后，状态消失／损坏／进程退出时保守停用，直到有效状态恢复。
 - 录不到声音：查看 `arecord -l`、probe 电平和 Mic3R 焊接/线路；尚未验证本机硬件，不把静音归因为软件或焊接。
 - 播放提示 Device busy：松开原有发声扳机后再试。原生音效与复读可能竞争硬件播放通路；本版会报错，不会停止 robotd 或篡改全局 ALSA 播放配置。
 - 变调同时改变语速；本版支持按键后识别坐立短口令，不含连续唤醒、自由对话和保持语速的变声。

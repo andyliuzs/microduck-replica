@@ -19,7 +19,7 @@ export function UpdateSettings({api,csrf}){
   useEffect(()=>{mounted.current=true;refresh();const timer=setInterval(refresh,2000);return()=>{mounted.current=false;clearInterval(timer);};},[]);
   async function operate(op){
     if(pending)return;setPending(true);setError('');
-    const native=op==='native_install'||op==='native_recover';
+    const native=op==='native_install'||op==='native_recover'||op==='native_restore';
     if(native&&!confirmed){setPending(false);return;}
     try{const result=await api('/api/updates',native?{op,confirmed:true}:{op},20000);if(!mounted.current)return;
       if(!result.ok)throw new Error(result.error||'更新请求未完成');merge(result);
@@ -62,19 +62,20 @@ export function UpdateSettings({api,csrf}){
     ${job?.id?html`<p>任务：${job.id}</p>`:null}
     <hr />
     <div data-native-updates style="scroll-margin-top:72px">
-      <h3>② 主程序更新（可选）</h3>
-      <p>用于本版 Qinmo 手动类型选择。现有板卡继续用“自动识别（现有板卡）”，无需为了保留原用法更新主程序。仅支持已知 20261027 基线，其他版本请维护者核对。</p>
+      <h3>② ${native?.bundle_schema?'配套驱动更新':'主程序更新（可选）'}</h3>
+      <p>${native?.bundle_schema?'本版手柄映射需要匹配的 padd、robotd 和服务权限。第一步只更新网页 / 语音；这里完成独立的配套驱动安装。':'用于 Qinmo 手动类型选择；现有板卡可继续用自动识别。'}仅支持已知 20261027 基线，其他版本请维护者核对。</p>
       <p role="status" data-native-phase=${native?.phase||'unavailable'}>${nativeMessage(native)}</p>
       <p>实际运行：<strong data-native-identity>${native?.supported?'已核验':'未核验'}</strong>${native?.mode?` · ${native.mode==='motion'?'控制模式':native.mode==='commissioning'?'标定模式':native.mode}`:''}</p>
-      ${native?.installed_sha256||native?.transaction_id?html`<details><summary>诊断信息</summary>${native?.installed_sha256?html`<p>实际 SHA256：${native.installed_sha256}</p>`:null}${native?.transaction_id?html`<p>主程序事务：${native.transaction_id}</p>`:null}</details>`:null}
+      ${native?.installed_sha256||native?.transaction_id?html`<details><summary>诊断信息</summary>${native?.installed_sha256?html`<p>robotd SHA256：${native.installed_sha256}</p>`:null}${native?.components?.padd?html`<p>padd SHA256：${native.components.padd.installed_sha256||'未核验'}</p>`:null}${native?.transaction_id?html`<p>事务：${native.transaction_id}</p>`:null}</details>`:null}
       <p>先扶稳、承托鸭子并卸力，关闭策略、语音、音乐和所有录制 / 标定会话。确认后才会启动独立主程序任务；中途断开网页可重连继续看。第二步保持承托卸力即可。</p>
-      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.6"><input type="checkbox" data-native-confirm checked=${confirmed} onChange=${event=>setConfirmed(event.target.checked)} disabled=${pending||!native?.service_available||!!data?.busy} /><span>我已扶稳承托鸭子、确认卸力并关闭上述活动；同意安装或恢复主程序。</span></label>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.6"><input type="checkbox" data-native-confirm checked=${confirmed} onChange=${event=>setConfirmed(event.target.checked)} disabled=${pending||!native?.service_available||!!data?.busy} /><span>我已扶稳承托鸭子、确认卸力并关闭上述活动；同意安装或恢复${native?.bundle_schema?'配套驱动':'主程序'}。</span></label>
       <div class="update-actions">
-        <button type="button" class="primary" data-update="native_install" disabled=${!nativeOps.install} onClick=${()=>operate('native_install')}>确认安装主程序</button>
-        <button type="button" data-update="native_recover" disabled=${!nativeOps.recover} onClick=${()=>operate('native_recover')}>恢复未完成的主程序更新</button>
+        <button type="button" class="primary" data-update="native_install" disabled=${!nativeOps.install} onClick=${()=>operate('native_install')}>确认安装${native?.bundle_schema?'配套驱动':'主程序'}</button>
+        <button type="button" data-update="native_recover" disabled=${!nativeOps.recover} onClick=${()=>operate('native_recover')}>恢复未完成的${native?.bundle_schema?'配套驱动':'主程序'}更新</button>
+        ${native?.bundle_schema?html`<button type="button" data-update="native_restore" disabled=${!nativeOps.restore} onClick=${()=>operate('native_restore')}>恢复旧配套驱动</button>`:null}
       </div>
       ${native?.request_error?html`<p role="alert">${native.request_error}。以这里的实际状态为准，急停仍可使用。</p>`:null}
-      <p>主程序失败时会尝试恢复旧二进制；上方“退回上一版”只回退网页 / 语音，后续主程序降级不在本版范围内。Qinmo 实物及本版整机升级仍待实机验收。</p>
+      <p>${native?.bundle_schema?'失败时会尝试恢复整套旧驱动和原服务配置。退回旧网页 / 语音前，先在这里恢复旧配套驱动；自定义映射文件会保留，旧语音需等完整恢复后才可启动。':'失败时会尝试恢复旧主程序；网页 / 语音回退单独进行。'}本版整机升级仍待实机验收。</p>
     </div>
   </section>`;
 }

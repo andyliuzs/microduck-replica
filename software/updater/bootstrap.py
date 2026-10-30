@@ -75,7 +75,7 @@ Requires=microduck-voice-prepare.service
 After=sound.target microduck-voice-prepare.service microduck-update-control.service
 [Service]
 User=radxa
-SupplementaryGroups=audio input
+SupplementaryGroups=audio input robot
 Environment=PYTHONUNBUFFERED=1
 Environment=ECHO_CAPTURE=plughw:CARD=aic3104,DEV=0
 Environment=ECHO_PLAYBACK=plughw:CARD=aic3104,DEV=0
@@ -369,7 +369,7 @@ def bootstrap(root,package,public_key,engine,engine_command=None,offline=False):
                 import pwd
                 account=pwd.getpwnam('radxa')
                 migrate_state(legacy,destination,backup,account.pw_uid,account.pw_gid)
-            subprocess.run(['usermod','-a','-G','audio,input','radxa'],check=True)
+            subprocess.run(['usermod','-a','-G','audio,input,robot','radxa'],check=True)
         subprocess.run([*command,'install','--from',str(cache),'--component','software'],check=True,env=engine_env)
         current=root/'opt/microduck/software/current'; metadata=verify_tree(current)
         if metadata['version']!=manifest['version']: raise ValueError('engine installed an unexpected version')
