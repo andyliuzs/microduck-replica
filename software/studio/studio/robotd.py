@@ -23,8 +23,10 @@ from .log import log_cmd
 from .rpc import Conn, RpcError, Timeout, Unreachable, call_once, encode, open_conn, read_message
 from .startup import StartupTrack, startup_loop
 
-API_VERSION = 40                     # duck-ipc-proto/src/lib.rs:437；不一致只记日志，不拒绝
-KNOWN_BUILDS = ("1fa8438-feetech-ft6-control.43", "4734cbb-feetech-imu-auto-control.44")
+API_VERSION = 42                     # duck-ipc-proto；不一致只记日志，不拒绝
+KNOWN_BUILDS = ("1fa8438-feetech-ft6-control.43", "4734cbb-feetech-imu-auto-control.44",
+                "0791fcd-feetech-qinmo-control.45", "0791fcd-feetech-qinmo-control.46",
+                "0791fcd-feetech-qinmo-control.47")
 BACKOFF = (0.5, 1.0, 2.0, 5.0)
 STREAM_HZ = 10
 STREAM_LINGER_S = 10.0
@@ -63,6 +65,7 @@ class Robotd:
         self.estop = EStop()
         self.viewers = 0             # 可见的页面数
         self.force_subscribe = False
+        self.background_music = False  # 内部动作消费者；不伪装成可见页面
         self.stream_open = False
         self._last_viewer_at = 0.0
         self._tasks = []
@@ -154,6 +157,12 @@ class Robotd:
         if self.viewers and not n:
             self._last_viewer_at = time.monotonic()
         self.viewers = n
+
+    def set_background_music(self, on):
+        on = bool(on)
+        if on != self.background_music:
+            self.background_music = on
+            self._wake_stream.set()
 
     # ---- 卸力 ----
 
@@ -247,6 +256,8 @@ class Robotd:
             if not isinstance(r, dict):
                 raise RpcError(method, None, f"回的不是对象（{type(r).__name__}）")
         except (RpcError, Timeout) as e:
+            if key == "bus" or isinstance(e, Timeout):
+                self.bus.fail(e)
             n = self._fails[key] = self._fails.get(key, 0) + 1
             self._due[key] = time.monotonic() + BACKOFF[min(n - 1, len(BACKOFF) - 1)] * 2
             if n in (1, 10) or n % 60 == 0:      # 第 1、10 次和之后每 60 次记一行
@@ -275,6 +286,7 @@ class Robotd:
                 self.log.info("跟主程序的轮询连接重连过：当成新连上，重新 hello、重读标定状态", cat="robotd")
             try:
                 if not hello_done:
+                    self.bus.fail("等待这次连接的总线状态")
                     r = await self.poll.call("hello", {"api_version": API_VERSION}, timeout=2.0)
                     self.hello.set(r)
                     self.calib_valid_after = self.hello.at    # 这之前读到的标定状态作废（审查 O5）
@@ -331,6 +343,7 @@ class Robotd:
                         due["policies"] = now + 2.0
                 fails = 0
             except Unreachable as e:
+                self.bus.fail(e)
                 hello_done = False
                 self._mark_present(False, e)
                 fails += 1
@@ -414,7 +427,7 @@ class Robotd:
     def _want_stream(self):
         if self.paused:
             return False
-        if self.force_subscribe or self.viewers > 0:
+        if self.force_subscribe or self.background_music or self.viewers > 0:
             return True
         return time.monotonic() - self._last_viewer_at < STREAM_LINGER_S
 

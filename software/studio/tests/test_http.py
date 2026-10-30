@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import tempfile
+import threading
 import time
 import unittest
 import unittest.mock
@@ -18,7 +19,7 @@ sys.path[:0] = [str(HERE.parent), str(HERE.parent / "deps"), str(HERE.parent / "
 import uvicorn  # noqa: E402
 from wsproto import ConnectionType, WSConnection  # noqa: E402
 from wsproto.events import (AcceptConnection, CloseConnection, RejectConnection, Request,  # noqa: E402
-                            TextMessage)
+                            TextMessage, Ping, Pong)
 
 from fake_robotd import FakeRobotd  # noqa: E402
 from studio.app import build_app  # noqa: E402
@@ -29,6 +30,7 @@ from studio.log import Log  # noqa: E402
 from studio.onboard import Onboarding  # noqa: E402
 from studio.robotd import Robotd  # noqa: E402
 from studio import helper  # noqa: E402
+from studio.ws_protocol import MusicWebSocketProtocol  # noqa: E402
 from studio.servo import ServoSession  # noqa: E402
 
 FIXTURE = HERE / "fixtures" / "now-20261018.jsonl"
@@ -58,6 +60,7 @@ class WsClient:
         self.ws = WSConnection(ConnectionType.CLIENT)
         self.msgs, self.buf = [], ""
         self.accepted = self.rejected = self.close_code = None
+        self.pong_mode, self.pings = 'valid', []
 
     async def open(self):
         self.r, self.w = await asyncio.open_connection("127.0.0.1", self.port)
@@ -87,6 +90,12 @@ class WsClient:
                     self.rejected = ev.status_code
                 elif isinstance(ev, CloseConnection):
                     self.close_code = ev.code
+                elif isinstance(ev, Ping):
+                    self.pings.append(ev.payload)
+                    if self.pong_mode is not None:
+                        payload = ev.payload if self.pong_mode == 'valid' else b'unmatched'
+                        self.w.write(self.ws.send(Pong(payload=payload)))
+                        await self.w.drain()
                 elif isinstance(ev, TextMessage):
                     self.buf += ev.data
                     if ev.message_finished:
@@ -118,7 +127,7 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
         app = build_app(auth=self.auth, robotd=self.rd, log=log, web_dir=WEB, duck={"label": "测试鸭"},
                         names=["microduck-2"], servo=self.servo, imu=ImuBackend(self.rd, log, self.tmp.name),
                         pad=self.pad, onboard=self.onboard, ssh_home=str(Path(self.tmp.name) / "home"))
-        cfg = uvicorn.Config(app, host="127.0.0.1", port=0, ws="wsproto", http="h11", lifespan="on",
+        cfg = uvicorn.Config(app, host="127.0.0.1", port=0, ws=MusicWebSocketProtocol, http="h11", lifespan="on",
                              log_level="critical")
         self.server = uvicorn.Server(cfg)
         self.task = asyncio.create_task(self.server.serve())
@@ -436,8 +445,10 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
         c = WsClient(self.port, origin=self.origin, cookie=token)
         await c.open()
         await c.send({"t": "cmd", "id": "o1", "name": "servo.open"})
-        await c.pump(until=lambda: any(m.get("t") == "servo" and m.get("state") == "open" and m.get("online") == 15
-                                       for m in c.msgs), timeout=3.0)
+        await c.pump(until=lambda: (
+            any(m.get("t") == "result" and m.get("id") == "o1" for m in c.msgs)
+            and any(m.get("t") == "servo" and m.get("state") == "open" and m.get("online") == 15
+                    for m in c.msgs)), timeout=3.0)
         res = [m for m in c.msgs if m.get("t") == "result" and m.get("id") == "o1"]
         self.assertTrue(res and res[0]["ok"], res)
         self.assertTrue(self.rd.paused)
@@ -455,6 +466,47 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.servo.state, "closed")
         self.assertFalse(self.rd.paused)
         c.close()
+
+    async def test_servo_session_accepts_open_snapshot_before_command_result(self):
+        """The independent snapshot loop may observe open before open's worker returns."""
+        release=threading.Event()
+        original_open=self.servo.open
+        original_client=WsClient
+        loop=asyncio.get_running_loop()
+        observed=[]
+        clients=[]
+
+        def opening(*args,**kwargs):
+            result=original_open(*args,**kwargs)
+            if result[0] and not release.wait(3):
+                raise AssertionError('client did not observe the independent open snapshot')
+            return result
+
+        class Messages(list):
+            def append(messages,message):
+                super().append(message)
+                if (not observed and message.get('t')=='servo' and message.get('state')=='open'
+                        and message.get('online')==15):
+                    observed.append(not any(m.get('t')=='result' and m.get('id')=='o1' for m in messages))
+                    # Release on the next loop turn, after pump evaluates its
+                    # completion predicate against this snapshot without an ack.
+                    loop.call_soon(release.set)
+
+        class Client(original_client):
+            def __init__(client,*args,**kwargs):
+                super().__init__(*args,**kwargs)
+                client.msgs=Messages()
+                clients.append(client)
+
+        try:
+            with unittest.mock.patch.object(self.servo,'open',side_effect=opening), \
+                 unittest.mock.patch(__name__+'.WsClient',Client):
+                await self.test_servo_session_via_ws()
+            self.assertEqual(observed,[True],'test must exercise snapshot-before-result ordering')
+        finally:
+            release.set()
+            for client in clients:
+                if hasattr(client,'w'):client.close()
 
     async def test_imu_view_and_ops_via_ws(self):
         """IMU 页：收到 {t:'imu'}（芯片、安装方向取自主程序）；solve 回结果；写入这一步先拒、说清楚原因。"""
@@ -630,6 +682,17 @@ class HttpTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.rd.viewers, 0)
         c.close()
 
+    async def test_ordinary_javascript_silent_connection_still_times_out(self):
+        from studio import app as app_mod
+        token, _ = await self.login()
+        c = WsClient(self.port, origin=self.origin, cookie=token)
+        with unittest.mock.patch.object(app_mod, "HB_DEAD_S", .4):
+            await c.open()
+            await c.pump(until=lambda: c.close_code is not None, timeout=2.)
+        self.assertEqual(c.close_code, 4408)
+        self.assertEqual(c.pings, [])
+        c.close()
+
 
 class PadHttpTest(HttpTest):
     """开着手柄页后端，把上面的网页测试整套再跑一遍（卸力、舵机页接管交还、IMU、心跳……不能被手柄页弄坏），
@@ -638,6 +701,67 @@ class PadHttpTest(HttpTest):
     def make_pad(self, log, robotd_port, configd_port):
         return default_pad(log, configd_addr=f"tcp:127.0.0.1:{configd_port}", robotd_addr=f"tcp:127.0.0.1:{robotd_port}",
                            tap_addr="tcp:127.0.0.1:9", state_dir=self.tmp.name)
+
+    async def music_client(self):
+        self.fake.set_posture("policy")
+        class Audio:
+            def snapshot(self):
+                return {"available": True, "listening": True, "music": True,
+                        "rhythm": {"bpm": 120., "confidence": .9, "feel": "lively",
+                                   "last_beat": time.monotonic(), "age": .01}}
+            def close(self):
+                pass
+        self.pad.audio.close()
+        self.pad.audio = Audio()
+        token, _ = await self.login()
+        c = WsClient(self.port, origin=self.origin, cookie=token)
+        await c.open()
+        await c.send({"t": "hb", "visible": True, "route": "/pad", "pad_visible": True})
+        await c.send({"t": "cmd", "id": "open", "name": "pad.op", "args": {"op": "drive", "open": True}})
+        await c.pump(until=lambda: any(m.get("motion_studio", {}).get("idle_available", {}).get("ok")
+                                     for m in c.msgs) and self.rd.state.at is not None, timeout=4.)
+        await c.send({"t": "cmd", "id": "music", "name": "pad.op", "args": {"op": "motion", "action": "idle_start", "kind": "music"}})
+        await c.pump(until=lambda: any(m.get("id") == "music" for m in c.msgs), timeout=3.)
+        result = next(m for m in c.msgs if m.get("id") == "music")
+        self.assertTrue(result.get("ok"), result)
+        self.assertTrue(self.pad.motion_studio.background_music())
+        await c.send({"t": "hb", "visible": False, "route": "/logs", "pad_visible": False})
+        await c.send({"t": "cmd", "id": "leave", "name": "pad.op", "args": {"op": "drive", "on": False}})
+        await c.pump(until=lambda: any(m.get("id") == "leave" for m in c.msgs))
+        return c, result["data"]["session_id"]
+
+    async def test_javascript_silent_music_uses_native_pongs_without_fake_viewers(self):
+        from studio import app as app_mod
+        c, token = await self.music_client()
+        before = self.rd.state.at
+        self.rd._last_viewer_at = time.monotonic() - 11.
+        with unittest.mock.patch.object(app_mod, "HB_DEAD_S", .4):
+            await c.pump(until=lambda: False, timeout=2.4)
+        self.assertIsNone(c.close_code)
+        self.assertGreaterEqual(len(c.pings), 2)
+        self.assertEqual(self.rd.viewers, 0)
+        self.assertGreater(self.rd.state.at, before)
+        self.assertEqual(self.pad.motion_studio.session["id"], token)
+        c.close()
+        end = time.monotonic() + 1.
+        while self.pad.motion_studio.session is not None and time.monotonic() < end:
+            await asyncio.sleep(.02)
+        self.assertIsNone(self.pad.motion_studio.session)
+
+    async def test_missing_or_unmatched_native_pong_closes_and_stops_music(self):
+        from studio import app as app_mod
+        for mode in (None, "invalid"):
+            with self.subTest(mode=mode):
+                c, _ = await self.music_client()
+                c.pong_mode = mode
+                with unittest.mock.patch.object(app_mod, "HB_DEAD_S", .4), \
+                        unittest.mock.patch.object(app_mod, "MUSIC_PONG_TIMEOUT_S", .15):
+                    await c.pump(until=lambda: c.close_code is not None, timeout=2.5)
+                self.assertTrue(c.pings)
+                self.assertEqual(c.close_code, 4408)
+                await asyncio.sleep(.1)
+                self.assertIsNone(self.pad.motion_studio.session)
+                c.close()
 
     async def test_pad_page_via_ws(self):
         """手柄页开着时：收到 {t:'pad'}；顶上卸力照常落到主程序（只发一次）；页面断开后方向盘是空的。
@@ -883,6 +1007,16 @@ class ServoSessionBatch3Test(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(r["ok"], r)
 
     # ---- D1：标记、Studio 退出不卸力、重启接着管 ----
+
+    async def test_native_persistent_guard_prevents_boot_servo_autorestore(self):
+        self.marker.write_text(json.dumps({'v':1,'sim':True,'at':1.7e9,'by':'x'}),encoding='utf-8')
+        with unittest.mock.patch('studio.helper.native_update_state',return_value={'active':True,'phase':'recovery_required'}), \
+             unittest.mock.patch('studio.app._bus_take',return_value=(True,None)) as take:
+            await self.start(robotd_up=False)
+            self.assertTrue(await self.until(lambda:self.logs('主程序更新保护'),timeout=2))
+            self.assertEqual(self.servo.state,'closed')
+            take.assert_not_called()
+            self.assertTrue(self.marker.exists())
 
     async def test_marker_kept_on_exit_and_session_restored_after_restart(self):
         await self.start(robotd_up=True)
@@ -1224,7 +1358,10 @@ class ServoSessionBatch3Test(unittest.IsolatedAsyncioTestCase):
         c = await self.client()
         await self.open_holding(c)
         sim = self.servo.sim_serial
-        self.assertTrue(await self.until(lambda: self.servo.state == "closed", timeout=12))
+        # close() publishes the port state in a worker before the async watcher
+        # finishes dropping its marker, unpausing robotd and reporting conflict.
+        self.assertTrue(await self.until(lambda: self.servo.state == "closed" and not self.rd.paused
+                                        and not self.marker.exists() and bool(self.logs("主程序被手动起来了")), timeout=12))
         self.assertEqual([sim._by_id(i).r[40] for i in (20, 21)], [1, 1])      # 没写舵机（robotd 自己会全部松开）
         self.assertFalse(self.marker.exists())
         self.assertFalse(self.rd.paused)

@@ -44,9 +44,22 @@ Microduck 是 Pollen Robotics 的商业产品，硬件**部分开源**：
 | `tools/stl_viewer.html` | 零依赖 WebGL STL 查看器 | **Apache-2.0** |
 | `software/studio/` 的代码 | Microduck Studio 网页中控（不含 `web/vendor/`、`deps/`、`web/model/`） | **Apache-2.0** |
 | `software/image/` | 复刻镜像的构建脚本、首次开机和配网脚本 | **Apache-2.0** |
+| `software/updater/` | 签名组件包构建、原更新引擎适配、网页升级协调与首次引导工具 | **Apache-2.0**；原updaterd来自Pollen Robotics，来源1fa8438 |
+| `software/duck-echo/` 的代码 | 本地R3语音、录音和音乐互动；不包含构建机私钥或用户录音 | **Apache-2.0**；外置Vosk模型及ARM64依赖按各自许可，清单保留来源和hash |
 | `docs/*.md`、`*.md` | 全部文档与逆向分析文本 | **CC BY-NC-SA 4.0** |
 | `build-log/` 照片 | 实物构建照片 | **CC BY-NC-SA 4.0**，由本项目参与者拍摄并授权 |
-| `assets/` | 封面与交流群二维码 | 同上 |
+| `assets/` 中的项目原创素材 | 封面、交流群二维码与项目预览图；不含下列官方板卡图片 | 同上 |
+
+## 官方板卡图片
+
+以下两张图片原样引用，保留各自的作者与原许可，不受本项目文档或原创素材的 CC BY-NC-SA 许可覆盖：
+
+| 路径 | 来源与作者 | 许可证 |
+|---|---|---|
+| `assets/hw/radxa-zero3w-official.webp` | [Radxa ZERO 3 官方文档](https://docs.radxa.com/en/zero/zero3)，Radxa Computer (Shenzhen) Co., Ltd. | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| `assets/hw/rpi-robot-hat-official.png` | [Pollen Robotics 官方 HAT 仓库](https://github.com/pollen-robotics/elec_RPI_Robot_HAT)，Pollen Robotics | [Apache-2.0](https://github.com/pollen-robotics/elec_RPI_Robot_HAT/blob/main/LICENSE) |
+
+原图地址、固定版本和校验值见[图片来源记录](assets/hw/official-board-images.md)。
 
 ## 内置训练工程
 
@@ -71,6 +84,7 @@ Microduck 是 Pollen Robotics 的商业产品，硬件**部分开源**：
 | 路径 | 内容 | 来源 | 许可证 |
 |---|---|---|---|
 | `tools/飞特/` | 飞特 FD 调试软件 1.9.8.5 + CH340 驱动 | [gitee.com/ftservo/fddebug](https://gitee.com/ftservo/fddebug)，2026-09-11 复制 | **MIT**（FTServo 2024，LICENSE 同目录） |
+| `tools/rufus/` | Rufus 4.15 Windows x64 便携版与同版本源码 | [pbatard/rufus v4.15](https://github.com/pbatard/rufus/releases/tag/v4.15)，2026-10-25 原样下载 | **GPL-3.0-or-later**；许可、源码归档、校验值及来源记录在该目录 |
 | `software/studio/web/vendor/` | Studio 前端库：Preact、htm 3.1.1、three.js 0.160.0 | 各自官方发布 | Preact、three.js **MIT**，htm **Apache-2.0**（许可证在 `web/vendor/licenses/`） |
 | `software/studio/deps/` | Studio 的 Python 依赖（anyio、click、h11、idna、pyserial、sniffio、starlette、typing_extensions、uvicorn、wsproto） | pypi.org 原版 wheel，版本和校验值见 `deps/VERSIONS.txt` | MIT / BSD-3-Clause / PSF-2.0 等，各包许可证在各自的 `*.dist-info` 里 |
 
