@@ -54,6 +54,26 @@ const assertCompactFrame = async (rotation, label) => {
   assert(Math.abs(geometry.center-geometry.cardCenter)<2, `compact video is centered (${label})`);
   assert(geometry.height>=280 && geometry.height<=421, `preview is readable and stays below its height budget (${label}): ${JSON.stringify(geometry)}`);
 };
+const exerciseInlineZoom = async label => {
+  const before = await js(`(() => {
+    const video=document.querySelector('.inline-camera-video');window.__zoomVideo=video;window.__zoomStream=video.srcObject;
+    return {hash:location.hash,height:document.querySelector('.inline-camera .camera-screen').getBoundingClientRect().height,
+      sockets:__sensorFixture.sockets.length,pcs:__sensorFixture.pcs.length,frames:video.getVideoPlaybackQuality().totalVideoFrames};
+  })()`);
+  assert(await js(`document.querySelector('.inline-camera-expand')?.tagName==='BUTTON'`), 'enlarge is an inline toggle, never a page link');
+  await click('.inline-camera-expand');
+  await wait(`document.querySelector('.inline-camera-expand')?.getAttribute('aria-pressed')==='true' && document.querySelector('.inline-camera .camera-screen').getBoundingClientRect().height>${before.height+20}`, `in-place enlargement ${label}`);
+  await js(`document.querySelector('.inline-camera').scrollIntoView({block:'start'})`); await sleep(100);
+  assert(await js(`location.hash===${JSON.stringify(before.hash)} && !document.querySelector('.camera-page') &&
+    document.querySelector('.inline-camera-video')===__zoomVideo && __zoomVideo.srcObject===__zoomStream &&
+    __sensorFixture.sockets.length===${before.sockets} && __sensorFixture.pcs.length===${before.pcs}`), 'enlargement keeps the route, video element and media session');
+  assert(await js('document.documentElement.scrollWidth<=innerWidth+1'), 'enlarged preview never overflows horizontally');
+  await wait(`__zoomVideo.getVideoPlaybackQuality().totalVideoFrames>${before.frames}`, 'same video keeps playing during enlargement');
+  await shot(`inline-camera-expanded-${label}`);
+  await click('.inline-camera-expand');
+  await wait(`document.querySelector('.inline-camera-expand')?.getAttribute('aria-pressed')==='false' && Math.abs(document.querySelector('.inline-camera .camera-screen').getBoundingClientRect().height-${before.height})<2`, 'restore original inline size');
+  assert(await js(`location.hash===${JSON.stringify(before.hash)} && __sensorFixture.sockets.length===${before.sockets} && document.querySelector('.inline-camera-video')===__zoomVideo`), 'restore does not reconnect or navigate');
+};
 
 // Explicit test double. The video element still receives and plays a native canvas MediaStream.
 function installVideoFixture() {
@@ -174,11 +194,13 @@ try {
   await wait(`(() => { const s=document.querySelector('.inline-camera .camera-screen').getBoundingClientRect(), v=document.querySelector('.inline-camera-video').getBoundingClientRect();
     return Math.abs(v.width-s.width)<2 && Math.abs(v.height-s.height)<2 && getComputedStyle(document.querySelector('.inline-camera-video')).transform!=='none'; })()`, 'rotated video bounds settle after frame resize');
   await assertCompactFrame(90, 'desktop portrait');
-  assert(await js(`document.querySelector('.inline-camera-expand')?.getAttribute('href')==='#/camera'`), 'an explicit enlarge control opens the dedicated camera view');
+  await exerciseInlineZoom('desktop');
+  await js(`document.querySelector('.inline-camera').scrollIntoView({block:'center'})`); await sleep(100);
   await shot('inline-camera-live-desktop');
   await js('__sensorFixture.rotate=0'); await click('.inline-camera-retry');
   await wait(`document.querySelector('.inline-camera-status')?.dataset.state==='playing'`, 'landscape preview plays');
   await sleep(150); await assertCompactFrame(0, 'desktop landscape');
+  await exerciseInlineZoom('landscape-desktop');
   await shot('inline-camera-landscape-desktop');
   await js('__sensorFixture.rotate=90'); await click('.inline-camera-retry');
   await wait(`document.querySelector('.inline-camera-status')?.dataset.state==='playing'`, 'portrait preview returns');
@@ -213,13 +235,11 @@ try {
     assert(await js(`(() => { const d=document.querySelector('.pd-3d').getBoundingClientRect(), c=document.querySelector('.inline-camera').getBoundingClientRect(), r=document.querySelector('#pd-remote').getBoundingClientRect();
       return d.bottom<=c.top && c.bottom<=r.top && document.documentElement.scrollWidth<=innerWidth+1; })()`), `camera follows 3D and fits ${width}px`);
     await assertCompactFrame(90, `mobile portrait ${width}`);
+    await exerciseInlineZoom(`mobile-${width}`);
     await shot(`inline-camera-mobile-${width}`);
   }
-  const compactHeight = await js(`document.querySelector('.inline-camera .camera-screen').getBoundingClientRect().height`);
-  await click('.inline-camera-expand');
+  await js(`location.hash='#/camera'`);
   await wait(`document.querySelector('.camera-status')?.dataset.state==='playing'`, 'dedicated camera takes over');
-  assert(await js(`document.querySelector('.camera-page .camera-screen').getBoundingClientRect().height`) > compactHeight,
-    'enlarge control provides a genuinely larger view');
   assert(await js('__sensorFixture.sockets.filter(s=>s.readyState===1).length===1'), 'only one active video session across routes');
   await js(`location.hash='#/pad'`);
   // The handpad's async status banner can shift this anchor after it scrolls.

@@ -239,6 +239,7 @@ function CameraScreen({ connection, video, compact = false }) {
 export function InlineCamera({ api, active = false }) {
   const card = useRef(null), video = useRef(null);
   const [inView, setInView] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     const observer = new IntersectionObserver(entries => setInView(entries.some(entry => entry.isIntersecting)), { threshold: 0 });
     observer.observe(card.current);
@@ -246,10 +247,11 @@ export function InlineCamera({ api, active = false }) {
   }, []);
   const { config, connection, reconnect } = useCameraSession({ api, video, active: active && inView, inline: true });
   const source = cameraSource(config, connection.producer);
-  return html`<section ref=${card} class="board pd-card inline-camera" aria-labelledby="inline-camera-title">
+  return html`<section ref=${card} class="board pd-card inline-camera" data-expanded=${expanded} aria-labelledby="inline-camera-title">
     <div class="inline-camera-head"><h3 id="inline-camera-title">摄像头</h3>
       <span class="sensor-pill inline-camera-status" role="status" data-state=${connection.state}>${CAMERA_STATES[connection.state] || '等待画面'}</span>
-      <div class="inline-camera-actions"><a class="inline-camera-expand" href="#/camera">放大查看</a>
+      <div class="inline-camera-actions"><button class="inline-camera-expand" type="button" aria-pressed=${expanded}
+        disabled=${!expanded && connection.state !== 'playing'} onClick=${() => setExpanded(value => !value)}>${expanded ? '还原' : '放大'}</button>
         <button class="btn-light inline-camera-retry" type="button" onClick=${reconnect} disabled=${['loading', 'connecting', 'signaling', 'negotiating', 'receiving'].includes(connection.state)}>重新检测</button></div>
     </div>
     <${CameraScreen} connection=${connection} video=${video} compact />
