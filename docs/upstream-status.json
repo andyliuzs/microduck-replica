@@ -77,6 +77,26 @@
       },
       "tracked_development_releases": [
         {
+          "tag": "daemon-dev-telemetry",
+          "url": "https://github.com/pollen-robotics/microduck/releases/tag/daemon-dev-telemetry",
+          "published_at": "2026-10-30T11:21:31Z",
+          "version": "daemon 0.18.0-dev.1522.1f60acc (telemetry)",
+          "head_sha": "1f60acc8f2ee825f0ec3c256372e178f111345b7",
+          "prerelease": true,
+          "api_version": 47,
+          "change": "Same source as openPR502: optional-by-owner but default-on usage reporting and telemetry.* switch. Different API47 contract from other development branches.",
+          "comparison_to_recorded_main": {
+            "from_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
+            "to_sha": "1f60acc8f2ee825f0ec3c256372e178f111345b7",
+            "status": "diverged",
+            "ahead_by": 5,
+            "behind_by": 8,
+            "merge_base_sha": "a360b3843bb49fd48a635b39eabcb835d9fffecb"
+          },
+          "priority": "higher_before_any_adoption: review default choice, payload fields, LAN switch authority, client/API and persistence; no current stable action required",
+          "replica_integration": "not_integrated; no runtime/image/configuration or online-page change by tracker"
+        },
+        {
           "tag": "daemon-dev-pr-474-pad-reconnect",
           "url": "https://github.com/pollen-robotics/microduck/releases/tag/daemon-dev-pr-474-pad-reconnect",
           "published_at": "2026-10-30T08:24:14Z",
@@ -183,11 +203,19 @@
           "verification": "Read2fixedsourcepatches including4mappingtests; no execution, published nudge-weight download, new training or physical input/motion validation.",
           "same_source_as_ground_grasp_x": false,
           "ground_grasp_source_relationship": {
-            "checked_at_utc": "2026-10-28T17:36:37.308118+00:00",
+            "checked_at_utc": "2026-10-30T12:08:18.791615+00:00",
             "previously_identical_at_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
-            "ground_grasp_now_at_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
-            "note": "Precision-pad tag did not move; ground-grasp-x added one phase/sound skill commit."
-          }
+            "ground_grasp_now_at_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+            "note": "Precision-pad tag remains614acd6; ground-grasp-x additionally has phase/WAV and new CSV beak track code."
+          },
+          "ground_grasp_relationship_history": [
+            {
+              "checked_at_utc": "2026-10-28T17:36:37.308118+00:00",
+              "previously_identical_at_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
+              "ground_grasp_now_at_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+              "note": "Precision-pad tag did not move; ground-grasp-x added one phase/sound skill commit."
+            }
+          ]
         },
         {
           "tag": "daemon-dev-footsteps",
@@ -1231,10 +1259,10 @@
         {
           "tag": "daemon-dev-ground-grasp-x",
           "url": "https://github.com/pollen-robotics/microduck/releases/tag/daemon-dev-ground-grasp-x",
-          "published_at": "2026-10-28T17:07:07Z",
-          "head_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+          "published_at": "2026-10-30T11:28:54Z",
+          "head_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
           "prerelease": true,
-          "change": "Onecommit5files adds optional phase-clock configurable skills and a localWAV trigger at successful skill start, plus CLI phase/sound/action-scale flags; keeps previous two-grasp and precision-pad features. Precision-pad tag itself remains614acd6 and is no longer identical to this tag.",
+          "change": "One commit/five files adds optional local CSV mouth track to configurable skills, CLI --mouth and editor persistence, driving-time mouth priority and flap statistics; keeps prior phase/WAV features. No track/model/audio asset delivered.",
           "replica_integration": "not_integrated; requires HD-1910 policy/contract and mouth-ownership review",
           "priority": "medium",
           "history": [
@@ -1276,28 +1304,86 @@
               "verification": "Latest2mapping/paddpatches read; earlier7file secondgrasp scope preserved in prior entries/history. No inference, training, controller or robot execution.",
               "previous_head_sha": "8df04b35a7ea2a2f7548f3e990eb96f25912a2b0",
               "superseded_at_check_utc": "2026-10-28T17:36:37.308118+00:00"
+            },
+            {
+              "tag": "daemon-dev-ground-grasp-x",
+              "url": "https://github.com/pollen-robotics/microduck/releases/tag/daemon-dev-ground-grasp-x",
+              "published_at": "2026-10-28T17:07:07Z",
+              "head_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+              "prerelease": true,
+              "change": "Onecommit5files adds optional phase-clock configurable skills and a localWAV trigger at successful skill start, plus CLI phase/sound/action-scale flags; keeps previous two-grasp and precision-pad features. Precision-pad tag itself remains614acd6 and is no longer identical to this tag.",
+              "replica_integration": "not_integrated; requires HD-1910 policy/contract and mouth-ownership review",
+              "priority": "medium",
+              "version": "daemon 0.17.8-dev.1493.ade23e7 (ground-grasp-x)",
+              "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/614acd6eac926931f5bd4ea22ca5910246c89355...ade23e7c16abef90f18d06f01f15a0be502b709f",
+              "version_family": "0.17.8-development, diverged from current main; not PR481/static default nor a stable update",
+              "comparison_to_recorded_main": {
+                "from_sha": "6cdfdaad21bed25e01b450c0dd4e0aee0ae19fde",
+                "to_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+                "status": "diverged",
+                "ahead_by": 6,
+                "behind_by": 16,
+                "merge_base_sha": "942e58e3aa6dbb28e7037203fff11866122c7567",
+                "file_count": 19,
+                "fixed_url": "https://github.com/pollen-robotics/microduck/compare/6cdfdaad21bed25e01b450c0dd4e0aee0ae19fde...ade23e7c16abef90f18d06f01f15a0be502b709f",
+                "scope_note": "Fixed comparison to recorded main; diverged branches are not clean additions atop current main."
+              },
+              "contract_note": "Reserves fourth built-in request bit, shifts configurable mask by4 and reduces MAX_SKILLS29to28. Requires matching config/selection/request/report and mouth ownership, not version-number equivalence.",
+              "verification": "Read all5fixed source patches and added phase-clock unit-test text only. No new policy/WAV download, inference, audio replay, training, installation or robot execution.",
+              "previous_head_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
+              "latest_increment": {
+                "from_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
+                "to_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+                "commit_count": 1,
+                "file_count": 5,
+                "files": [
+                  "robotctl/src/main.rs",
+                  "robotd-params/src/edit.rs",
+                  "robotd-params/src/lib.rs",
+                  "robotd/src/control.rs",
+                  "robotd/src/main.rs"
+                ],
+                "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/614acd6eac926931f5bd4ea22ca5910246c89355...ade23e7c16abef90f18d06f01f15a0be502b709f",
+                "new_model_or_audio_bytes": false
+              },
+              "phase_clock_skills": {
+                "config": "[[policy.skill]] phase=true and optional sound path; defaults phase=false/sound=None",
+                "holding_command": "[cos(2*pi*phi),sin(2*pi*phi),0] with phi clamped0..1 over positive duration",
+                "ordinary_and_unwind": "Plain skills keep constant command; unwind phase uses existing unwind command.",
+                "audio": "voice.play_file invoked only after start_skill returns Ok(true), from configured localWAV if voice exists; no new play on Ok(false) or refusal. Not a measured acoustic alignment guarantee.",
+                "CLI_options": [
+                  "--phase",
+                  "--sound",
+                  "--action-scale"
+                ],
+                "CLI_phase_conflicts_with_constant_command": true,
+                "action_scale_precedence": "Explicit CLI flag, then manifest action_scale; not automatic dynamics adaptation.",
+                "persistence": "File editor writes phase/sound only when set. robot.setSkill preserves these from the existing entry; new fields are not added to that RPC wire contract.",
+                "new_policy_or_WAV_delivered": false,
+                "HD1910_verified": false
+              }
             }
           ],
-          "version": "daemon 0.17.8-dev.1493.ade23e7 (ground-grasp-x)",
-          "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/614acd6eac926931f5bd4ea22ca5910246c89355...ade23e7c16abef90f18d06f01f15a0be502b709f",
+          "version": "daemon 0.17.8-dev.1523.fe9ad02 (ground-grasp-x)",
+          "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/ade23e7c16abef90f18d06f01f15a0be502b709f...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
           "version_family": "0.17.8-development, diverged from current main; not PR481/static default nor a stable update",
           "comparison_to_recorded_main": {
-            "from_sha": "6cdfdaad21bed25e01b450c0dd4e0aee0ae19fde",
-            "to_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+            "from_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
+            "to_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
             "status": "diverged",
-            "ahead_by": 6,
-            "behind_by": 16,
+            "ahead_by": 7,
+            "behind_by": 54,
             "merge_base_sha": "942e58e3aa6dbb28e7037203fff11866122c7567",
             "file_count": 19,
-            "fixed_url": "https://github.com/pollen-robotics/microduck/compare/6cdfdaad21bed25e01b450c0dd4e0aee0ae19fde...ade23e7c16abef90f18d06f01f15a0be502b709f",
-            "scope_note": "Fixed comparison to recorded main; diverged branches are not clean additions atop current main."
+            "fixed_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+            "scope_note": "Older0.17.8/API44 development base; not a current stable package."
           },
           "contract_note": "Reserves fourth built-in request bit, shifts configurable mask by4 and reduces MAX_SKILLS29to28. Requires matching config/selection/request/report and mouth ownership, not version-number equivalence.",
-          "verification": "Read all5fixed source patches and added phase-clock unit-test text only. No new policy/WAV download, inference, audio replay, training, installation or robot execution.",
-          "previous_head_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
+          "verification": "Read5fixed patches,3added test functions (oneORT-dependent ignored) and fixedmodel/IPC constants; no source/test/inference/audio/robot execution.",
+          "previous_head_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
           "latest_increment": {
-            "from_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
-            "to_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+            "from_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+            "to_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
             "commit_count": 1,
             "file_count": 5,
             "files": [
@@ -1307,8 +1393,9 @@
               "robotd/src/control.rs",
               "robotd/src/main.rs"
             ],
-            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/614acd6eac926931f5bd4ea22ca5910246c89355...ade23e7c16abef90f18d06f01f15a0be502b709f",
-            "new_model_or_audio_bytes": false
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/ade23e7c16abef90f18d06f01f15a0be502b709f...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+            "new_model_or_audio_bytes": false,
+            "new_CSV_track_asset": false
           },
           "phase_clock_skills": {
             "config": "[[policy.skill]] phase=true and optional sound path; defaults phase=false/sound=None",
@@ -1325,6 +1412,17 @@
             "persistence": "File editor writes phase/sound only when set. robot.setSkill preserves these from the existing entry; new fields are not added to that RPC wire contract.",
             "new_policy_or_WAV_delivered": false,
             "HD1910_verified": false
+          },
+          "api_version": 44,
+          "mouth_track": {
+            "configuration": "SkillDef mouth optional path / robotctl policy add --mouth CSV; robot.setSkill preserves an existing file key but has no new mouth-track wire parameter.",
+            "format": "t,mouth CSV: seconds and radians, finite values and strictly increasing times. Blank/comment lines skipped; pre-data header/non-number rows skipped; extra cells not consumed.",
+            "evaluation": "Linear interpolation, hold first/last endpoints, official-model clamp from-5deg to+30deg. Skill time is duration-remaining; unwinding holds endpoint.",
+            "priority": "Overrides trigger/idle/instrument/grasp mouth only while driving with active tracked skill; stopped/finished skill returns ownership.",
+            "missing_or_invalid_file": "Warns and runs skill without mouth track; not a successful mouth replay.",
+            "clock": "Read after controller step, documented one tick ahead of leg clock. Existing WAV trigger is not measured audio/video/servo synchronization.",
+            "tests": "CSV interpolation/clamp and TOML roundtrip sources plus an ignored ORT>=1.23 ownership test; not run by tracker.",
+            "HD1910": "Review mouth direction, physical travel, angle units and ownership; no new BAM/training or physical mouth/sound acceptance."
           }
         },
         {
@@ -1359,6 +1457,104 @@
         }
       ],
       "pending_pull_requests": [
+        {
+          "number": 502,
+          "url": "https://github.com/pollen-robotics/microduck/pull/502",
+          "title": "Anonymous usage telemetry to PostHog, with an opt-out",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-30T11:16:56Z",
+          "updated_at": "2026-10-30T11:20:23Z",
+          "head_sha": "1f60acc8f2ee825f0ec3c256372e178f111345b7",
+          "base_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
+          "review": {
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...1f60acc8f2ee825f0ec3c256372e178f111345b7",
+            "commit_count": 5,
+            "file_count": 13,
+            "api_version": 47,
+            "version_family": "0.18.0-development; diverged5ahead8behind0.18.2, merge basea360b38",
+            "scope": "Proposed usage reporting by updaterd to PostHog EU; default-on with stored opt-out. Unmerged and not present in current stable or replica image.",
+            "endpoint": "https://eu.i.posthog.com/batch/",
+            "events": {
+              "daemon_started": "updaterd process start while active",
+              "update_result": "from_version/to_version on observed version change, no success field; includes downgrade/select possibilities",
+              "daily_heartbeat": "process uptime,24h interval",
+              "policies": "mode and filled policy slots once per run/id after robotd responds",
+              "policy_loaded": "changed or newly filled slot, mode/origin/policy; emptied slots do not count"
+            },
+            "payload": {
+              "identifier": "128random bits from /dev/urandom,32hex characters; not derived from hardware serial",
+              "common": [
+                "daemon_version",
+                "os_version:ID+VERSION_ID",
+                "os_build:BUILD_ID",
+                "board",
+                "arch"
+              ],
+              "policies": "Hub-origin paths become org/name@revision/file, including public repo namespace; manual paths outside known roots become local.",
+              "explicit_client_payload_exclusions": [
+                "Wi-Fi SSID",
+                "robot name",
+                "HF account/token",
+                "SoC serial/hardware ID",
+                "logs",
+                "camera frames",
+                "audio"
+              ],
+              "server_flags": {
+                "geoip_disable": true,
+                "process_person_profile": false
+              },
+              "limits": "A resettable stable id and Hub namespaces remain in payload; no server retention/geolocation policy or full anonymity certified by tracker."
+            },
+            "queue": {
+              "memory_only": true,
+              "capacity": 500,
+              "flush_interval_s": 60,
+              "HTTP_timeout_s": 10,
+              "poll": "robot.policies with2s timeout each flush tick; Tokio interval ticks initially without waiting a minute.",
+              "retry": "Network/TLS errors,429 and5xx retry; other unsuccessful HTTP statuses drop batch. No source timestamp, server arrival time is used."
+            },
+            "switch": {
+              "RPC": [
+                "telemetry.status",
+                "telemetry.set {enabled}"
+              ],
+              "default_path": "/var/lib/robot/updater/telemetry.json",
+              "actual_path": "<updater.state_dir>/telemetry.json",
+              "missing_file": "on",
+              "unreadable_or_invalid_file": "off",
+              "off": "Clears memory queue and deletes random id/last_version from persisted state. Later enable generates a new id.",
+              "environment_forces_off": {
+                "MICRODUCK_TELEMETRY": [
+                  "0",
+                  "false",
+                  "no",
+                  "off"
+                ],
+                "DO_NOT_TRACK": [
+                  "1",
+                  "true",
+                  "yes",
+                  "on"
+                ]
+              },
+              "environment_normalization": "trimmed and case-insensitive; environment applies to updaterd process",
+              "routes": "BLE and WebRTC permitted. Set is not classified mutating/gated; mediad comment explicitly permits any reachable LAN peer to flip it.",
+              "console": "Checkbox shown after telemetry.status response; tracks stored enabled, while active only reflects enabled and environment allowance, not delivery confirmation.",
+              "source_observation": "Off clears queued entries but flush has already drained a batch before awaiting HTTP; no cancellation of an in-flight request is implemented. Static observation, not reproduced.",
+              "sim_and_test": "duck-sim and systemd-test source set MICRODUCK_TELEMETRY=0; tracker did not execute either."
+            },
+            "verification": {
+              "author_reported": "Workspace fmt/clippy/tests incl.mediad Docker; zero3 board duck-882e on OSbuild20261030092008 temporarily ran updaterd, then restored0.18.2.",
+              "board_scope": "Startup/policy/version-change sends and off behavior reported before final success-field removal; final RPC switch E2E, daily heartbeat and policy_loaded explicitly not board-tested.",
+              "tracker": "Read all13fixed patches and full539-line telemetry source, not compiled/imported/executed; no PostHog request, model replacement or device connection."
+            },
+            "priority": "higher_before_any_adoption: review default choice, payload fields, LAN switch authority, client/API and persistence; no current stable action required",
+            "replica_integration": "not_integrated; no runtime/image/configuration or online-page change by tracker"
+          }
+        },
         {
           "number": 500,
           "url": "https://github.com/pollen-robotics/microduck/pull/500",
@@ -4175,31 +4371,24 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-30T09:13:00.989855+00:00",
+  "checked_at_utc": "2026-10-30T12:08:18.791615+00:00",
   "latest_review": {
-    "default_branch_changes": true,
-    "new_stable_release": true,
+    "default_branch_changes": false,
+    "new_stable_release": false,
     "stable_release_tag": "daemon-v0.18.2",
     "stable_release_actual_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
-    "previous_tracked_prs_merged": true,
-    "merged_previously_tracked_prs": {
+    "stable_assets_changed": false,
+    "previous_tracked_prs_merged": false,
+    "new_pull_requests": {
       "pollen-robotics/microduck": [
-        474
+        502
       ]
     },
-    "new_pull_requests": {},
-    "changed_pull_request_heads": {
-      "pollen-robotics/microduck": {
-        "474": "5833ac8498434bf83b111c8cb9bf32a869e0b06f",
-        "448": "dd4c8f6771117c7d5a73689735d8fd398bc6c2e0",
-        "449": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1"
-      }
-    },
     "new_development_releases": [
-      "daemon-dev-pr-474-pad-reconnect"
+      "daemon-dev-telemetry"
     ],
     "moved_development_tags": [
-      "daemon-dev-main"
+      "daemon-dev-ground-grasp-x"
     ],
     "retired_development_tags": [],
     "official_blog_new_articles": false,
@@ -4209,7 +4398,8 @@
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "Official0.18.2 at e1b49bf/API46 includesPR474:5commits6files since0.18.1, pairing4file blobs unchanged from reviewed14e. Eight asset metadata and2smallJSONmanifests verified without archive/bootstrap/signature/install. Old premerge dev14e remains0.17.9/API44. PR448sync has same feature lines; PR449sync preservesphase behavior but renumbers its separate contract toAPI47. Both remainunmerged. Other default heads, model metadata and blog unchanged; no replica runtime/image/migration/hardware or online-page changes."
+    "telemetry_endpoint_contacted_by_tracker": false,
+    "notes": "OpenPR502/dev1f60 proposes default-on PostHog EU usage reports, resettable id/policy names and API47 ungated LAN switch; old0.18.0base diverged5ahead8behind stable. Ground-grasp-xfe9 adds CSV beak-track file/CLI behavior on old0.17.8/API44,1commit5files, no CSV/WAV/weights. Actual fields, opt-out state/env and in-flight/source limits reviewed, not executed. Four default heads, stable0.18.2/eightassets, oldPRs, model metadata and blog unchanged; no replica runtime/image/migration/hardware or online-page changes."
   },
   "replica_migration": {
     "recorded_on": "2026-10-27",
