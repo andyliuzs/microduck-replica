@@ -436,7 +436,17 @@ class PadOps(DriveMixin):
             reason = self._base_block(self.clock(), ignore_mapping=True)
             if reason:
                 raise MappingError(reason)
-            if (self._policies() or {}).get('enabled') is not False or self._robot.get('posture') not in ('holding','limp'):
+            # robot.policies.enabled is the configured model-loading switch,
+            # not the live controller state. BusDynamic is flattened on wire.
+            bus=self._robot.get('bus') or {}
+            pose=self._robot.get('posture')
+            native=bus.get('native') or {}
+            guard=bus.get('home_start_guard')
+            stable=(pose=='limp' and native.get('torque_state_confirmed') is False) or (
+                pose=='holding' and native.get('torque_state_confirmed') is True
+                and bus.get('homed') is True and (guard is None or isinstance(guard,dict) and guard.get('ready') is True))
+            if (bus.get('phase')!='control' or bus.get('policy_enabled') is not False
+                    or bus.get('home_recovery') is not False or bus.get('torque_off_pending') is not False or not stable):
                 raise MappingError('请先点“停下（站好）”，等策略停止并站稳，再开始映射')
             if self._cmd_busy or self._job_alive() or self.motion_studio.session is not None or self.test.get('state') not in FINAL:
                 raise MappingError('请先结束配对、动作、录制回放和急停测试，再重新映射')

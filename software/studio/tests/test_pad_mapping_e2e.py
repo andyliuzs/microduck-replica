@@ -19,14 +19,9 @@ class MappingBrowser(unittest.TestCase):
         source.write_text(json.dumps({'seq':0,'buttons':{},'axes':{'0':0,'1':0,'3':0,'4':0,'2':0},'events':[]}),encoding='utf-8')
         robot,config,web,cdp=[harness._port(0) for _ in range(4)]
         processes,streams=[],[]; record=output/'robot.jsonl'
-        # The capture's policies reply predates its busStatus reply. Match the
-        # simulated holding posture explicitly; production must reject that
-        # contradictory enabled=True capture rather than weaken its guard.
-        fixture=output/'holding.jsonl'
-        rows=[json.loads(line) for line in (ROOT/'tests/fixtures/now-20261018.jsonl').read_text(encoding='utf-8').splitlines() if line]
-        for row in rows:
-            if row.get('method')=='robot.policies': row['reply']['result']['enabled']=False
-        fixture.write_text('\n'.join(json.dumps(row) for row in rows)+'\n',encoding='utf-8')
+        # Keep the actual capture unchanged: policies.enabled=True describes
+        # installed models, while busStatus.policy_enabled=False means stopped.
+        fixture=ROOT/'tests/fixtures/now-20261018.jsonl'
         def launch(name,args):
             stream=(output/name).open('w',encoding='utf-8');streams.append(stream)
             processes.append(subprocess.Popen(args,cwd=ROOT,env={**os.environ,'PAD_MAPPING_INPUT':str(source),

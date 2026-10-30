@@ -718,12 +718,13 @@ class PadHttpTest(HttpTest):
                 if request['op']=='status':time.sleep(.15)
                 return super().call(request)
         self.pad.mapping.client=SlowStatus()
-        self.fake.policies['enabled']=False
+        self.fake.policies['enabled']=True
         self.fake.set_posture('holding')
         token,_=await self.login()
         c=WsClient(self.port,origin=self.origin,cookie=token);await c.open()
         await c.send({'t':'hb','visible':True,'route':'/pad','pad_visible':True})
-        await c.pump(until=lambda:((self.pad._robot or {}).get('policies') or {}).get('enabled') is False,timeout=4)
+        await c.pump(until=lambda:((self.pad._robot or {}).get('bus') or {}).get('policy_enabled') is False
+                     and ((self.pad._robot or {}).get('policies') or {}).get('enabled') is True,timeout=4)
         c.w.write(b''.join(c.ws.send(TextMessage(json.dumps(message))) for message in (
             {'t':'cmd','id':'map','name':'pad.op','args':{'op':'mapping','action':'begin'}},
             {'t':'cmd','id':'servo','name':'servo.open','args':{}})))

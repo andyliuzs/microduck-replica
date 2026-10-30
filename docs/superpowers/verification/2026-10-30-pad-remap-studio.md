@@ -44,7 +44,7 @@ duck-echo 全量测试：Windows Python 3.13 **共 172 项，153 项通过、19 
 - `robot.jsonl` 中没有 `robot.init/enable/do/head/mouth/move` 请求。Studio 连接时原有 `robot.pose {active:false}` 中性清理保留。
 - 1440／390／320 像素没有横向溢出，主面板与页脚共六张截图，已目视检查。桌面面板避让吸顶仪表带；320 像素逐轴配置分行显示。
 
-运行时设置新的 `PAD_MAPPING_E2E_DIR`，不要复用旧浏览器状态。fixture 的 holding policies 明确设为 disabled，避免录制中的 policies 与 busStatus 时间差造成矛盾；生产门控未放宽。Windows fixture 文件替换对短暂 NTFS 共享锁进行最多 500 ms 的有界重试，仍保持原子替换。
+运行时设置新的 `PAD_MAPPING_E2E_DIR`，不要复用旧浏览器状态。发行前真实协议复核发现原测试错误地把 `robot.policies.enabled` 改为 false；它实际是配置中的模型载入开关，不是运行状态。该修改及相应错误门控已删除，原录制中的 `policies.enabled=true` 与顶层 `busStatus.policy_enabled=false` 原样保留。Windows fixture 文件替换对短暂 NTFS 共享锁进行最多 500 ms 的有界重试，仍保持原子替换。
 
 ### Python × Rust 生产 socket 合同
 
@@ -69,5 +69,11 @@ native 的 Rust 单测、ARM64 构建和 QEMU version/help 由 native 分支记�
 后续必需角色草稿 `clear`／交换小修的独立增量审查同样通过，Critical／Important／Minor 均为 0。独立 22 项 unit／PadOps、真实 Rust socket 十类合同和完整浏览器（19.244 秒）全部通过；额外确认非所有者 clear、必需项 skip 和不完整 save 均拒绝，native 没有写入 save、输出仍 blocked。该增量也包含在最终 300 项全量与 Linux 42 项回归中。
 
 独立增量产物：WSL `/tmp/pad-remap-clear-review-1793365335413`；浏览器 `C:/Users/12440/AppData/Local/Temp/pad-mapping-e2e-plcff9dj`。
+
+### 发行前真实 wire 修复
+
+先前通过的学习／映射测试没有证明 `policies.enabled` 的运行语义，浏览器 fixture 的错误改写曾掩盖真实停止状态仍被拒绝的问题。修复后 Studio 开始门控读取新鲜、扁平的 bus 运行字段：`phase=control`、`policy_enabled=false`、`home_recovery=false`、`torque_off_pending=false`，并确认 holding 的 HOME／扭矩或 limp 的失能证据。配置 `policies.enabled=true` 不再阻止学习；未知、旧的嵌套形状、过期和过渡状态仍拒绝，native 的独立停止证明保持不变。
+
+除原始实机录制外，回归还使用当前 robotd 的实际 Rust `Bus::report()`／`PoliciesResult`／`RobotState` 序列化输出，原样保存在 `software/studio/tests/fixtures/robotd-stopped-wire.json`，SHA256 `aa9036954c808aa251fb3f560a302340538235abf52dc9faf66e93eb6b95e5b3`，来源见同目录说明。当前修复的 Linux 定点 46 项通过，未篡改配置开关的完整浏览器 19.926 秒通过，证据在 `artifacts/software-features-20261030/mapping-wire-browser`。独立复审核对了 Rust 生产序列化与导出测试源码，Linux integration／同包 HTTP 9 项及完整浏览器（18.926 秒）通过，有限修复 Critical／Important／Minor 均为 0；这不代表尚未实现的伴随升级 bundle 已验收。
 
 尚需实物验收：不同厂家手柄、USB／蓝牙模式、真实 evdev 掉线与 SYN_DROPPED、手柄固件事件组合、真机中性门控及 R3 麦克风／音频。浏览器后台路径用真实页面 visibilitychange 事件处理器和 native 回执验证，但没有冒充所有手机系统的冻结／杀页行为；native 五秒租期另由真实 Rust 合同测试验证。配套 padd／Studio／duck-echo／systemd 需要一起更新，本轮不做部署。
