@@ -151,3 +151,23 @@ class MappingTest(unittest.TestCase):
         manager.poll(force=True);self.assertTrue(manager.blocked)
         n.status.update(output_blocked=False,session=None);manager.poll(force=True)
         self.assertFalse(manager.blocked)
+    def test_required_bindings_can_be_cleared_in_draft_for_swap_but_not_saved_incomplete(self):
+        n=Native()
+        original={'select':{'kind':'key','code':314},'start':{'kind':'key','code':315},
+            **{role:{'kind':'axis','code':code,'min':-100,'max':100,'center':0,'invert':False,'deadzone':.12}
+               for role,code in [('lx',0),('ly',1),('rx',3),('ry',4)]}}
+        n.status['profile']={'schema':1,'name':'original','bindings':copy.deepcopy(original)}
+        manager=PadMapping(n);manager.handle({'action':'begin'},'a')
+        for role in ('select','start','lx','ly'):manager.handle({'action':'clear','role':role},'a')
+        self.assertEqual(set(manager.snapshot('a')['required_missing']),{'select','start','lx','ly'})
+        with self.assertRaises(MappingError):manager.handle({'action':'save','name':'edited'},'a')
+        self.assertEqual(n.status['profile']['bindings'],original)
+        for role,code in [('select',315),('start',314)]:
+            manager.handle({'action':'learn','role':role},'a')
+            n.event(1,code,1);manager.poll(force=True);n.event(1,code,0);manager.poll(force=True)
+        for role,code in [('lx',1),('ly',0)]:
+            manager.handle({'action':'learn','role':role},'a')
+            for value in (100,-100,0):n.event(3,code,value);manager.poll(force=True)
+            manager.handle({'action':'confirm_axis'},'a')
+        saved=manager.handle({'action':'save','name':'edited'},'a')['profile']['bindings']
+        self.assertEqual([saved[r]['code'] for r in ('select','start','lx','ly')],[315,314,1,0])

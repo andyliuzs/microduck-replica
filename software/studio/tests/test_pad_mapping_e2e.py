@@ -49,7 +49,7 @@ class MappingBrowser(unittest.TestCase):
             self.assertEqual(result.returncode,0,f'{result.stderr[-4000:]}\n{output}')
             report=json.loads(result.stdout);self.assertEqual(report['errors'],[])
             self.assertTrue(all(report[k] for k in ('button_swap','axis_calibration','save_reload','reset','no_auto_resume','guarded',
-                'duplicate','hats','triggers','deadzone','ownership','cancel_preserves','navigation_cancel','reconnect','background_cancel')))
+                'duplicate','hats','triggers','deadzone','ownership','cancel_preserves','navigation_cancel','reconnect','background_cancel','edit_swap_save')))
             self.assertEqual(report['widths'],[1440,390,320])
             rows=[json.loads(line) for line in record.read_text(encoding='utf-8').splitlines() if line]
             self.assertFalse(any(r['method'] in {'robot.init','robot.enable','robot.do','robot.head','robot.mouth','robot.move'} for r in rows))

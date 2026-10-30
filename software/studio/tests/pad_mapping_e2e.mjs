@@ -98,6 +98,18 @@ try{
  await wait(`document.querySelector('[data-map-profile]')?.innerText.includes('测试手柄')`,'saved profile reload');report.save_reload=true;
  assert(await js(`!document.querySelector('.pad-mapping').dataset.mine || document.querySelector('.pad-mapping').dataset.mine==='false'`),'reload cannot resume learning');report.no_auto_resume=true;
  await click('[data-map-begin]');await wait(`document.querySelector('.pad-mapping').dataset.mine==='true'`,'reenter');
+ await click('[data-map-clear="lx"]');await click('[data-map-clear="ly"]');
+ assert(await js(`document.querySelector('[data-map-save]').disabled`),'incomplete required draft cannot save');
+ for(const [role,code] of [['lx',0],['ly',3]]){
+   await click(`[data-map-role="${role}"]`);await wait(`document.querySelector('[data-map-capture]')?.dataset.role==='${role}'`,'saved axis swap arm');
+   for(const value of [100,-100,0]){event(3,code,value);await sleep(250)}
+   await click('[data-map-confirm-axis]');await wait(`!document.querySelector('[data-map-capture]')`,'saved axis swap confirmed');
+ }
+ await click('[data-map-save]');await wait(`document.querySelector('[data-map-message]')?.innerText.includes('已保存')`,'edited axis swap saved');
+ await click('[data-map-begin]');await wait(`document.querySelector('.pad-mapping').dataset.mine==='true'`,'edited swap reenter');
+ await click('[data-map-role="rx"]');event(3,0,100);
+ await wait(`Number(document.querySelector('.pad-mapping [data-role="ls"] .pd-stick-cap')?.getAttribute('cx'))===132`,'edited swap native preview');
+ event(3,0,0);report.edit_swap_save=true;
  await key('south',307);await click('[data-map-cancel]');await wait(`!document.querySelector('.pad-mapping').dataset.mine`,'cancel ack');
  await click('[data-map-begin]');await wait(`document.querySelector('.pad-mapping').dataset.mine==='true'`,'cancel reenter');
  await click('[data-map-role="lx"]');event(1,305,1);await wait(`!!document.querySelector('.pad-mapping [data-role="south"].pd-on')`,'cancel keeps original binding');event(1,305,0);report.cancel_preserves=true;

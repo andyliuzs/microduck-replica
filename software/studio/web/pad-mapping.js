@@ -77,7 +77,8 @@ export function PadMapping({ mapping, link, active, Diagram, onClose }) {
     <button type="button" class="map-target" data-map-role=${target} data-bound=${!!draft[target]}
       disabled=${!canLearn} onClick=${()=>learn(target)} aria-pressed=${role===target}>
       <span>${label}${REQUIRED.has(target)?html`<small>必需</small>`:null}</span><span class="map-binding">${draft[target]?'✓ 已设置':'未设置'}</span></button>
-    ${canLearn&&draft[target]?html`<button type="button" class="map-text-button" aria-label=${'清除'+label} disabled=${REQUIRED.has(target)} onClick=${()=>skip(target)}>清除</button>`:null}
+    ${canLearn&&draft[target]?html`<button type="button" class="map-text-button" data-map-clear=${target} aria-label=${'清除'+label}
+      onClick=${()=>{setAutomatic(false);call('clear',{role:target})}}>清除</button>`:null}
     ${canLearn&&draft[target]?.kind==='axis'?html`<button type="button" class="map-text-button" onClick=${()=>call('invert',{role:target})}>${draft[target].invert?'反向 ✓':'反向'}</button>`:null}
     ${canLearn&&draft[target]?.kind==='axis'?html`<label class="map-axis-deadzone"><span>死区</span><select data-map-deadzone=${target}
       aria-label=${label+'死区'} disabled=${busy} value=${String(draft[target].deadzone)}

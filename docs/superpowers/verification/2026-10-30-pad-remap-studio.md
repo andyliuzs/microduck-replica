@@ -6,6 +6,7 @@
 
 - Studio 的 `PadMapping` 只在 worker 中调用限长／限时 socket，快照只读内存；按页面连接独占 token，状态／诊断包不暴露 token。开始等待驱动 ACK 时先关闭本地动作门，ACK 丢失保守暂停，直到新鲜状态确认。五秒 native 租期独立生效。
 - 用新鲜 raw cursor 学按钮、四方向帽轴、四根摇杆和模拟／数字 LT／RT；支持两端行程、中心、反向、逐轴死区和冲突拒绝。进入前按住、输入丢历史、SYN_DROPPED、设备替换都有回归。
+- 编辑已保存配置时允许清除任意角色的内存草稿，用于交换 Select／Start 或摇杆轴；`skip` 仍仅限可选角色，不完整草稿仍禁止保存，原持久化配置保持不变直到完整保存。
 - 页面显示 native `mapped`／`preview`，保存以驱动持久化回读为准；包含跳过、清除、重录、取消保留、恢复默认、断开重连和多页面所有权。切页和后台取消，后台停止续期，刷新不自动恢复会话。
 - 网页动作、配对、录制／回放、舵机、IMU／标定、软件更新以及 REST 模型写／上传与映射互斥。模型事务锁和上传锁反向阻止开始映射；同一 WebSocket 包中的 begin／servo.open 互斥。网页卸力保留。
 - duck-echo 按 native 目标节点及相同的 R3／Select 原始绑定监听，支持没有默认 318 的控制器；自定义配置省略 R3 时不回退默认。暂停取消监听／识别／待执行动作／回放，配置和设备变化重新取基线；`updates_allowed`、`motion_lease` 再次检查暂停。
@@ -24,9 +25,9 @@ Studio 工作目录为 `software/studio`：
 py -3.13 -X utf8 -I -c "import sys;sys.path[:0]=['deps','.'];import unittest;unittest.main(module=None,argv=['x','-q','tests.test_pad_mapping','tests.test_pad_mapping_integration','tests.test_pad','tests.test_http','tests.test_models_http'])"
 ```
 
-最终 **299 项全部通过**，输出见 `studio-final.log`，名单包含输入丢历史、ACK 丢失及模型 HTTP 双向互斥。Windows 的既有后台 audio-status `AF_UNIX` 不存在警告、临时 socket/file ResourceWarning 与 unittest 断言失败分开记录；真实 Unix socket 和语音子进程另在 Linux 验证。
+最终 **300 项全部通过**（147.878 秒），输出见 `studio-edit-swap-final.log`，名单包含输入丢历史、ACK 丢失、模型 HTTP 双向互斥，以及编辑已有配置时必需输入互换。Windows 的既有后台 audio-status `AF_UNIX` 不存在警告、临时 socket/file ResourceWarning 与 unittest 断言失败分开记录；真实 Unix socket 和语音子进程另在 Linux 验证。
 
-额外使用 WSL Python 3.13 跑 mapping／PadOps／models HTTP 和两项 WebSocket／servo 互斥，共 **41 项全部通过**。新 HTTP 测试等待 policies 时出现短暂 `None` 的 predicate 已修正并在 Linux 重验。
+额外使用 WSL Python 3.13 跑 mapping／PadOps／models HTTP 和两项 WebSocket／servo 互斥，共 **42 项全部通过**（`studio-edit-swap-linux.log`）。新 HTTP 测试等待 policies 时出现短暂 `None` 的 predicate 已修正并在 Linux 重验。
 
 duck-echo 全量测试：Windows Python 3.13 **共 172 项，153 项通过、19 项平台／硬件测试跳过，0 失败**；WSL Ubuntu 22.04 Python 3.10 为 **172 项全部通过**（`voice-final-windows.log`、`voice-final-linux.log`）。Linux 包括真实 ALSA 替身子进程和不同 UID 的读取测试；该测试仅对子进程调用 setuid/setgid 65534，读取临时文件，不更改任何账户或真实服务。
 
@@ -34,10 +35,11 @@ duck-echo 全量测试：Windows Python 3.13 **共 172 项，153 项通过、19 
 
 ### 真实浏览器
 
-`tests.test_pad_mapping_e2e` 启动隔离 fake robotd、真实 Studio／认证／WebSocket 和无头 Edge；只模拟 native 原始输入边界。最终 `final-ui3/browser.json` 全部场景通过，Runtime exceptions 为零：
+`tests.test_pad_mapping_e2e` 启动隔离 fake robotd、真实 Studio／认证／WebSocket 和无头 Edge；只模拟 native 原始输入边界。最终 `edit-swap-final/browser.json` 全部场景通过（19.48 秒），Runtime exceptions 为零：
 
 - AB 交换、重复冲突不覆盖、四方向帽、模拟 LT 与数字 RT、换轴、方向校准和死区。
 - native 预览、保存回读、刷新后已保存配置、无自动恢复、取消保留、断开重连、恢复默认。
+- 清除已保存的必需摇杆轴时保存按钮禁用，补齐互换后再次保存，重新进入后 native 预览按交换后的真实轴更新。
 - 第二连接可读但不能修改／拿到 token；切页取消、后台收到 native cancel ACK，重新可见后 UI 收敛。
 - `robot.jsonl` 中没有 `robot.init/enable/do/head/mouth/move` 请求。Studio 连接时原有 `robot.pose {active:false}` 中性清理保留。
 - 1440／390／320 像素没有横向溢出，主面板与页脚共六张截图，已目视检查。桌面面板避让吸顶仪表带；320 像素逐轴配置分行显示。
@@ -54,7 +56,7 @@ python3 software/studio/tests/pad_mapping_native_contract.py \
   --dir /tmp/<新的隔离目录>
 ```
 
-`cross-language-final.json` 九类结果全部通过：所有权、重复冲突、AB／全部帽方向／换轴反向死区／两种释放方向的模拟扳机／预览保存、真实 runtime 的 duck-echo 读取、磁盘重读与断开重连、取消保留、数字扳机、恢复默认、五秒租期。对应 fixture 日志在 WSL `/tmp/pad-remap-cross-studio-freeze/native.log`。
+`cross-language-edit-swap.json` 十类结果全部通过：所有权、重复冲突、AB／全部帽方向／换轴反向死区／两种释放方向的模拟扳机／预览保存、真实 runtime 的 duck-echo 读取、磁盘重读与断开重连、取消保留、数字扳机、已保存 Select／Start 和双轴互换、恢复默认、五秒租期。对应 fixture 日志在 WSL `/tmp/pad-remap-cross-studio-edit-swap/native.log`。
 
 native 的 Rust 单测、ARM64 构建和 QEMU version/help 由 native 分支记录；该分支报告最终 112 项 Rust 测试通过。本 Studio 测试直接运行其最终生产 socket handler，不把两份各自 mock 当作合同验证。
 
@@ -62,6 +64,10 @@ native 的 Rust 单测、ARM64 构建和 QEMU version/help 由 native 分支记�
 
 独立规格／质量审查中发现的现代状态文件丢失回退、REST 模型入口互斥、begin ACK 丢失以及跨 UID EPERM 问题均已添加红测、修复并回归。最终独立审查分别给出：**规格符合性通过，质量／安全通过；新增代码范围 Critical 0、Important 0、Minor 0**。
 
-独立复验包含 mapping／PadOps／模型 HTTP 39 项、Linux Python 3.13 WebSocket／servo 两项、Linux 语音映射 12 项（含真实不同 UID）、Rust 生产 socket × Python 九类合同、完整真实浏览器一项。原模型 select 绕过复现已返回 409 且 handler 未执行；丢失 begin 回执复现的 native 和 Studio 门均保持 blocked。独立浏览器产物在 `C:/Users/12440/AppData/Local/Temp/pad-mapping-e2e-gw4miziq`，独立合同 fixture 在 WSL `/tmp/pad-remap-independent-contract-1793364239399`。
+首轮独立复验包含 mapping／PadOps／模型 HTTP 39 项、Linux Python 3.13 WebSocket／servo 两项、Linux 语音映射 12 项（含真实不同 UID）、Rust 生产 socket × Python 九类合同、完整真实浏览器一项。原模型 select 绕过复现已返回 409 且 handler 未执行；丢失 begin 回执复现的 native 和 Studio 门均保持 blocked。独立浏览器产物在 `C:/Users/12440/AppData/Local/Temp/pad-mapping-e2e-gw4miziq`，独立合同 fixture 在 WSL `/tmp/pad-remap-independent-contract-1793364239399`。
+
+后续必需角色草稿 `clear`／交换小修的独立增量审查同样通过，Critical／Important／Minor 均为 0。独立 22 项 unit／PadOps、真实 Rust socket 十类合同和完整浏览器（19.244 秒）全部通过；额外确认非所有者 clear、必需项 skip 和不完整 save 均拒绝，native 没有写入 save、输出仍 blocked。该增量也包含在最终 300 项全量与 Linux 42 项回归中。
+
+独立增量产物：WSL `/tmp/pad-remap-clear-review-1793365335413`；浏览器 `C:/Users/12440/AppData/Local/Temp/pad-mapping-e2e-plcff9dj`。
 
 尚需实物验收：不同厂家手柄、USB／蓝牙模式、真实 evdev 掉线与 SYN_DROPPED、手柄固件事件组合、真机中性门控及 R3 麦克风／音频。浏览器后台路径用真实页面 visibilitychange 事件处理器和 native 回执验证，但没有冒充所有手机系统的冻结／杀页行为；native 五秒租期另由真实 Rust 合同测试验证。配套 padd／Studio／duck-echo／systemd 需要一起更新，本轮不做部署。

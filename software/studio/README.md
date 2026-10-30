@@ -324,6 +324,8 @@ py -3.13 -I -c "import sys;sys.path[:0]=['deps','.','dev'];import unittest;unitt
 
 摇杆先向提示的正方向（右／下）推到底，再推另一端，最后回中确认；扳机按到底后完全释放确认。每根轴可分别反向、调死区。图上的实时测试来自 padd 回读的预览值。点「保存」后必须得到驱动保存回读，才算应用成功；所有键释放、摇杆回中稳定后才恢复控制。「取消」保留原配置；「恢复默认」删除当前设备的自定义配置并使用原有默认识别。USB／蓝牙模式分别保存，重连自动加载。
 
+交换两个已经占用的必需输入时，可以先清除这两项草稿，再分别重录。清除不会改动已保存配置；必需项没有补齐时不能保存，取消仍保留原映射。
+
 同一时刻只有发起学习的页面拥有会话，其他标签页只能查看。切换页面、转到后台、关闭页面时取消，断网后驱动的五秒租期也会自动失效；页面不会在重连后自动接着学习。输入中断或手柄更换需要重新开始。丢失开始回执时网页保守暂停，直到新鲜驱动状态确认。
 
 本功能需要配套新版 padd 和 duck-echo，旧 padd 会提示更新，网页不会假保存。padd 提供 `/run/padd/mapping.sock` v1 控制接口，原 `/run/padd/pad.sock` 仍只读；配置原子保存到 `/var/lib/padd/mappings.json`，服务需要 `StateDirectory=padd`。duck-echo 读取无会话 token 的 `/run/padd/mapping-state.json`，按同一原始绑定处理 R3／Select，并遵守暂停状态；独立安装和软件套件 bootstrap 的服务配置需要 `robot` 附加组才能读取 0640 状态文件。具体协议和验收见 [设计](../../docs/superpowers/specs/2026-10-30-pad-remap-design.md) 与 [验证记录](../../docs/superpowers/verification/2026-10-30-pad-remap-studio.md)。本地实现没有部署到实体主板。

@@ -97,6 +97,20 @@ def main():
         handle('begin');key('rt',311);handle('save',name='digital-trigger')
         assert view()['profile']['bindings']['rt']=={'kind':'key','code':311};report['digital_trigger']=True
         until(lambda:not view()['output_blocked'],'digital neutral')
+        handle('begin')
+        for role in ('select','start','lx','ly'):handle('clear',role=role)
+        try:handle('save',name='incomplete');raise AssertionError('required draft was saved')
+        except MappingError:pass
+        key('select',315);key('start',314)
+        for role,code in [('lx',0),('ly',3)]:
+            handle('learn',role=role)
+            for value in (100,-100,0):inject(3,code,value)
+            handle('confirm_axis')
+        handle('save',name='edited-swap')
+        edited=view()['profile']['bindings']
+        assert [edited[role]['code'] for role in ('select','start','lx','ly')]==[315,314,0,3]
+        report['edit_required_swap']=True
+        until(lambda:not view()['output_blocked'],'edited swap neutral')
         handle('begin');handle('reset');until(lambda:not view()['output_blocked'],'reset neutral')
         assert view()['profile'] is None;report['reset']=True
         handle('begin');time.sleep(5.2)

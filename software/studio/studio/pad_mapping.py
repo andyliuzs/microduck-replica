@@ -201,7 +201,7 @@ class PadMapping:
 
     def handle(self, args, conn):
         action=args.get('action','status')
-        allowed={'status','begin','learn','confirm_axis','skip','invert','deadzone','save','cancel','reset','heartbeat'}
+        allowed={'status','begin','learn','confirm_axis','skip','clear','invert','deadzone','save','cancel','reset','heartbeat'}
         if action not in allowed: raise MappingError('不支持这个映射操作')
         with self._io:
             try:
@@ -268,8 +268,8 @@ class PadMapping:
                                     'baseline':copy.deepcopy(raw.get('axes',{})),'code':None,'invert':False,'sweep':{}}
                                 self._message=None
                             elif action=='confirm_axis': self._confirm_axis()
-                            elif action=='skip':
-                                if role in REQUIRED: raise MappingError('这个是必需控制，请完成学习')
+                            elif action in ('skip','clear'):
+                                if action=='skip' and role in REQUIRED: raise MappingError('这个是必需控制，请完成学习')
                                 self._draft.pop(role,None); self._capture=None
                             elif action in ('invert','deadzone'):
                                 b=self._draft.get(role)
