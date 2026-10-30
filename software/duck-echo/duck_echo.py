@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Click R3 to toggle continuous speech; --trigger-mode hold retains hold/release."""
+PADD_MAPPING_CONTRACT = 1
+
 import argparse
 import array
 import glob

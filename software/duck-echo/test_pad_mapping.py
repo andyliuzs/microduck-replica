@@ -16,6 +16,9 @@ class MappingRuntimeTests(unittest.TestCase):
         from pad_mapping import MappingRuntime
         self.tmp=tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.path=Path(self.tmp.name)/'mapping-state.json'; self.reader=MappingRuntime(self.path)
+    def test_voice_explicitly_declares_the_mapping_startup_contract(self):
+        self.assertIs(type(getattr(echo,'PADD_MAPPING_CONTRACT',None)),int)
+        self.assertEqual(echo.PADD_MAPPING_CONTRACT,1)
     def write(self, **values):
         state={'version':1,'pid':os.getpid(),'output_blocked':False,
                'device':{'id':'controller','node':'/dev/input/event8'},'profile':None,**values}
