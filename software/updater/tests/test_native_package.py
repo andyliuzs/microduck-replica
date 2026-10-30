@@ -15,24 +15,31 @@ import build_package as B
 
 
 class NativePackage(unittest.TestCase):
-    def frozen(self,native_source=None):
+    def frozen(self,native_source=None,*,bundle_source=None,extra=None):
         if native_source is None:
             native_source=(Path(__file__).resolve().parents[2]/'studio/deploy/native_update.py').read_bytes()
         buffer=io.BytesIO()
+        members={'software/studio/deploy/microduck-helper':b'helper','software/studio/deploy/native_update.py':native_source}
+        if bundle_source is not None:members['software/studio/deploy/controller_bundle.py']=bundle_source
+        members.update(extra or {})
         with tarfile.open(fileobj=buffer,mode='w') as archive:
-            for name,data in {'software/studio/deploy/microduck-helper':b'helper','software/studio/deploy/native_update.py':native_source}.items():
+            for name,data in members.items():
                 info=tarfile.TarInfo(name);info.size=len(data);archive.addfile(info,io.BytesIO(data))
         return buffer.getvalue()
 
-    def build(self,native=None,*,native_source=None):
+    def build(self,native=None,*,native_source=None,padd=None,bundle_source=None,extra=None):
         self.assertIn('native_robotd',__import__('inspect').signature(B.build).parameters,'missing optional native publisher input')
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);binary=root/'native';binary.write_bytes(native or b'')
+            kwargs={}
+            if padd is not None:
+                self.assertIn('native_padd',__import__('inspect').signature(B.build).parameters,'missing explicit reviewed padd input')
+                padd_file=root/'padd';padd_file.write_bytes(padd);kwargs['native_padd']=padd_file
             def run(argv,**kwargs):
                 if argv[0]=='fake-zstd': kwargs['stdout'].write(kwargs['input'])
                 if '-S' in argv: Path(argv[argv.index('-x')+1]).write_bytes(b'signature')
-            with mock.patch.object(B.subprocess,'check_output',side_effect=['a'*40,self.frozen(native_source)]), mock.patch.object(B.subprocess,'run',side_effect=run), mock.patch.object(B.shutil,'which',return_value='fake-zstd'):
-                B.build(root,'HEAD','2026.10.30',root,'secret','public',zstd='fake-zstd',native_robotd=binary if native else None)
+            with mock.patch.object(B.subprocess,'check_output',side_effect=['a'*40,self.frozen(native_source,bundle_source=bundle_source,extra=extra)]), mock.patch.object(B.subprocess,'run',side_effect=run), mock.patch.object(B.shutil,'which',return_value='fake-zstd'):
+                B.build(root,'HEAD','2026.10.30',root,'secret','public',zstd='fake-zstd',native_robotd=binary if native else None,**kwargs)
             with tarfile.open(root/'2026.10.30.tar.zst') as archive:
                 return {item.name:archive.extractfile(item).read() for item in archive}
 
@@ -89,6 +96,43 @@ class NativePackage(unittest.TestCase):
         altered=source.replace(b"REVIEWED_SHA256 = '725b74cd93660a312970a44879abe5b75e8becf108499a1b8798961e48ca5f00'",b"REVIEWED_SHA256 = '1111111111111111111111111111111111111111111111111111111111111111'")
         self.assertNotEqual(source,altered)
         with self.assertRaises(ValueError):self.build(self.reviewed_binary(),native_source=altered)
+
+    def bundle_fixture(self):
+        # Synthetic bytes test the publisher boundary, not production ELF acceptance.
+        padd=b'publisher-contract-fixture'
+        source=f'''import hashlib
+def bundle_manifest(version,robotd,padd):
+    return {{'schema':'synthetic-controller-contract/1','software_version':version,
+             'padd_sha256':hashlib.sha256(padd).hexdigest(),
+             'robotd_sha256':hashlib.sha256(robotd).hexdigest(),'frozen_marker':'fixture-only'}}
+def validate_bundle(robotd,padd,manifest,version):
+    if padd!={padd!r} or hashlib.sha256(robotd).hexdigest()!='725b74cd93660a312970a44879abe5b75e8becf108499a1b8798961e48ca5f00' or manifest!=bundle_manifest(version,robotd,padd):
+        raise ValueError('not the reviewed fixture inputs')
+'''.encode()
+        return padd,source
+
+    def test_companion_requires_matching_explicit_robotd_input(self):
+        padd,source=self.bundle_fixture()
+        with self.assertRaises(ValueError):self.build(padd=padd,bundle_source=source)
+
+    def test_companion_and_manifest_are_bound_to_signed_suite(self):
+        padd,source=self.bundle_fixture()
+        files=self.build(self.reviewed_binary(),padd=padd,bundle_source=source)
+        manifest=json.loads(files['studio/deploy/native/controller-manifest.json'])
+        suite=json.loads(files['suite-version.json'])
+        self.assertEqual(manifest['frozen_marker'],'fixture-only')
+        self.assertEqual(files['studio/deploy/native/padd'],padd)
+        for name in ('robotd','manifest.json','padd','controller-manifest.json'):
+            path='studio/deploy/native/'+name
+            self.assertEqual(suite['files'][path],hashlib.sha256(files[path]).hexdigest())
+
+    def test_unreviewed_companion_is_refused_by_frozen_validator(self):
+        padd,source=self.bundle_fixture()
+        with self.assertRaises(ValueError):self.build(self.reviewed_binary(),padd=padd+b'tamper',bundle_source=source)
+
+    def test_companion_cannot_be_injected_by_git_archive_without_explicit_input(self):
+        with self.assertRaises(ValueError):
+            self.build(extra={'software/studio/deploy/native/padd':b'foreign'})
 
 
 if __name__=='__main__':unittest.main()
