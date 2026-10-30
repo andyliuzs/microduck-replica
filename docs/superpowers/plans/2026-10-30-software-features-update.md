@@ -34,6 +34,7 @@
 - [ ] Freeze a clean source commit and produce a new signed software envelope with the existing release key/public key; retain old assets byte-for-byte.
 - [ ] Build legacy bootstrap from the same commit and verified original ARM engine/ASR resources. Keep signing private keys outside every archive.
 - [ ] Adapt the established `legacy_engine_acceptance.py` into a separate artifact directory and run the original 27 source/ARM engine against the final package. Check dry-run, tamper rejection, install, rollback, bad-health rollback and interrupted recovery without touching a live board.
+- [ ] Separately exercise direct rollback through the original 27 control/ARM engine with the external compatibility gate present: old voice must refuse under a genuine non-root UID, a compatible consumer must pass, and matching-native restore must permit the old consumer again. Test inaccessible public parents as well as missing markers. UI refusal and a four-file envelope test alone do not prove this gate; record simulated service control separately from genuine systemd evidence.
 - [ ] Verify native bundle installation/recovery and compatibility guard with actual target identities and isolated services; record source, package, native and bootstrap hashes.
 
 ## 5. Publish and device path
