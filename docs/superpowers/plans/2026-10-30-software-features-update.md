@@ -11,15 +11,15 @@
 - [x] Create `release/software-features-20261030` from latest public `origin/master` (`577af8a`) outside the canonical checkout.
 - [x] Cherry-pick the SSH guide, mapping/clear and camera in-place zoom commits, preserving the root README/Alipay and existing music player.
 - [ ] Native owner fixes proof and synthetic fixture using the actual flattened busStatus wire format, merges the media unit fix in a separate release worktree, and freezes a new ARM64 binary plus provenance.
-- [ ] Studio owner replaces configuration-policy checks with fresh runtime evidence, restores realistic policy-enabled browser fixtures, observes red/green and commits only its scoped source/tests.
-- [ ] Independent reviewer checks the real-wire evidence and repeats the cross-language contract against the corrected native fixture.
+- [x] Studio owner replaces configuration-policy checks with fresh runtime evidence, restores realistic policy-enabled browser fixtures, observes red/green and commits only its scoped source/tests (`2cabc46`).
+- [x] Independent reviewer checks the real serializer fixture and native/Studio wire changes. Native 113-test Linux evidence predates the WSL failure; full bundle permission/socket validation is still pending.
 
 ## 2. Native companion transaction
 
 - [ ] Preserve legacy robotd-only payload/journal support; implement a distinct fixed component-vector schema for robotd, padd and owned drop-ins.
-- [ ] Builder accepts explicit bounded regular native inputs, validates exact reviewed identities, and records every payload member in suite provenance. No implicit local filesystem/native input is allowed.
+- [x] Builder accepts explicit bounded regular native inputs, validates exact reviewed identities, and records every payload member in suite provenance. No implicit local filesystem/native input is allowed. Frozen voice contract attestation and archive collision rejection are included; 32 updater tests ran with four platform skips. Actual ARM bundle verification still requires the newly frozen padd.
 - [ ] Add tests before implementation for robotd already .47 with old padd, wrong/missing hashes, unknown installed predecessors, groups/StateDirectory, file/inode identity, health checks, partial writes, restart failure, process death and recovery of every owned component.
-- [ ] Keep the existing policy-off/freshness/home/zero-motion/torque, readiness, operation/motion locks and explicit confirmation requirements. No direct device path or arbitrary service/program parameter is introduced.
+- [ ] Keep the existing policy-off/freshness/zero-motion/all-15-torque-off, readiness, operation/motion locks and explicit confirmation requirements. A legitimate limp state has `homed=false` after `robot.relax`; do not require a contradictory homed state. No direct device path or arbitrary service/program parameter is introduced.
 - [ ] Implement and test release-external legacy-voice compatibility protection and the required matching-native restoration before a software downgrade.
 - [ ] UI distinguishes software installed, native bundle pending, completed and recovery required; never derives bundle completion solely from robotd SHA.
 
@@ -41,3 +41,7 @@
 - [ ] Publish new source/artifacts and instructions after final review. Existing 27 systems use their current update entry; do not instruct them to rerun bootstrap or reflash.
 - [ ] For the development duck, inspect the supported legacy profile and retain a private backup; complete one-time bootstrap only when its stopped-state checks pass. Native installation remains the explicit guarded second stage.
 - [ ] Verify the installed software and actual native capabilities before claiming availability. Report remaining physical acceptance and avoid treating image/source/package/device versions as interchangeable.
+
+## Environment checkpoint
+
+WSL cannot create a Linux process while its E: host volume has about 19 MB free. No WSL restart, VHD modification or user SDK archive move has been performed. A question about relocating one exact ISAAC installer archive after copy/hash verification is pending; silence does not authorize that operation. Windows implementation/review can continue. ARM compilation, POSIX permission checks, signing and original-27 engine acceptance remain pending.
