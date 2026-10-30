@@ -257,4 +257,4 @@
 
 从装配、调试到软件和文档，这个项目是靠一次次尝试积累起来的。如果这些资料和工具帮到了你，欢迎点个 Star ⭐、反馈问题或分享复刻经验；也可以自愿打赏，请作者喝杯咖啡，支持项目继续维护。感谢每一位鸭友的支持。
 
-<p align="center"><a href="assets/wechat-support.jpg"><img src="assets/wechat-support.jpg" alt="微信打赏二维码，点击查看原图" width="240"></a><br><sub>微信扫码支持 · 点击图片查看原图</sub></p>
+<p align="center"><a href="assets/alipay-support.jpg"><img src="assets/alipay-support.jpg" alt="支付宝打赏二维码，点击查看原图" width="240"></a><br><sub>支付宝扫码支持 · 点击图片查看原图</sub></p>
