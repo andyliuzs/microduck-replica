@@ -3323,8 +3323,8 @@ def native_update_conflict(op):
                     or type(m.get('cleanup_pending',False)) is not bool):raise ValueError('invalid native state')
             active=m['active'] or m.get('restore_pending',False) or m.get('cleanup_pending',False)
         except (OSError,ValueError,TypeError,AttributeError,Stop):active=True
-    bundle='/var/lib/microduck-helper/controller-update/journal.json'
-    if exists(op.ctx,bundle):
+    for bundle in ('/var/lib/microduck-helper/controller-update/journal.json','/var/lib/microduck-helper/controller-update/prepared.json'):
+        if not exists(op.ctx,bundle):continue
         try:
             if os.lstat(op.ctx.p(bundle)).st_size>65536:raise ValueError('oversized controller state')
             m=json.loads(imu_profile_safe_file(op,bundle))

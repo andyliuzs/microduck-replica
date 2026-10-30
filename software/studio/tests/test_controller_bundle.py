@@ -55,6 +55,12 @@ class BundleManifest(unittest.TestCase):
 
 
 class VoiceCompatibility(unittest.TestCase):
+    def test_external_gate_permission_error_is_not_a_missing_marker(self):
+        namespace={'__name__':'fixture_voice_guard'}
+        exec(compile(C.VOICE_GUARD_PROGRAM,'external-voice-guard.py','exec'),namespace)
+        with mock.patch.object(os,'lstat',side_effect=PermissionError('fixture EACCES')),mock.patch.object(Path,'lstat',side_effect=PermissionError('fixture EACCES')):
+            self.assertEqual(namespace['guard']('/unreadable-fixture'),1)
+
     def test_legacy_suite_is_denied_until_explicit_component_restore(self):
         self.assertIsNotNone(C,'controller companion module must exist')
         old={'files':{'duck-echo/duck_echo.py':'a'*64}}
@@ -112,6 +118,9 @@ class VoiceCompatibility(unittest.TestCase):
             def unprivileged():os.setgroups([]);os.setgid(65534);os.setuid(65534)
             command=['/usr/bin/python3','-I','-c','import runpy,sys;raise SystemExit(runpy.run_path(sys.argv[1])["guard"](sys.argv[2]))',str(program),temporary]
             self.assertEqual(subprocess.run(command,preexec_fn=unprivileged,capture_output=True).returncode,0)
+            marker.parent.chmod(0o700)
+            self.assertEqual(subprocess.run(command,preexec_fn=unprivileged,capture_output=True).returncode,1)
+            marker.parent.chmod(0o755)
             suite.write_text(json.dumps({'files':{}}))
             self.assertEqual(subprocess.run(command,preexec_fn=unprivileged,capture_output=True).returncode,1)
 
@@ -191,7 +200,12 @@ class BundleWorld(legacy.NativeWorld):
 class BundleTransaction(unittest.TestCase):
     def fresh(self,bus):
         legacy.NativeTest.fresh(self,bus);bus['homed']=False
-    socket=legacy.NativeTest.socket
+    def socket(self,path,payload):
+        if payload.get('op')=='native-recovery-readiness':
+            intent=json.loads(self.w.path(C.PREPARED).read_text(encoding='utf-8'))
+            self.assertEqual(payload,{'op':'native-recovery-readiness','transaction_id':intent['transaction_id']})
+            return {'ready':True}
+        return legacy.NativeTest.socket(self,path,payload)
 
     def setUp(self):
         self.assertIsNotNone(C)
@@ -214,7 +228,7 @@ class BundleTransaction(unittest.TestCase):
         self.op=legacy.H.Op(self.ctx,'robotd-update')
         return C.handle(legacy.H,self.op,{'by':'Studio','action':action,**({'confirmed':True} if action!='status' else {})},self.release,legacy.N)
 
-    def journal(self):return json.loads(self.w.path(C.JOURNAL).read_text())
+    def journal(self):return json.loads(self.w.path(C.JOURNAL).read_text(encoding='utf-8'))
 
     def test_robotd_current_still_installs_padd_and_owned_units_then_explicitly_restores(self):
         self.assertEqual(self.update(),0)
@@ -317,6 +331,119 @@ class BundleTransaction(unittest.TestCase):
         with mock.patch.object(C.BundleTransaction,'write',die),self.assertRaises(PowerLoss):self.update()
         with self.assertRaises(legacy.H.Stop):legacy.H.native_update_conflict(self.op)
         self.assertEqual(self.update('recover'),0)
+
+    def test_power_loss_after_prepared_before_active_is_guarded_and_recoverable(self):
+        from studio import helper
+        class PowerLoss(BaseException):pass
+        original=C.BundleTransaction.write
+        def die(transaction,path,*args,**kwargs):
+            result=original(transaction,path,*args,**kwargs)
+            if path==C.PREPARED:raise PowerLoss()
+            return result
+        with mock.patch.object(C.BundleTransaction,'write',die),self.assertRaises(PowerLoss):self.update()
+        self.assertFalse(self.w.path(legacy.N.ACTIVE).exists())
+        self.assertTrue(helper.native_update_state(root=self.tmp)['active'])
+        with self.assertRaises(legacy.H.Stop):legacy.H.native_update_conflict(self.op)
+        self.assertEqual(self.update('recover'),0)
+        self.assertEqual(self.journal()['phase'],'restored')
+
+    def test_new_unpublished_intent_is_not_hidden_by_previous_restored_journal(self):
+        self.assertEqual(self.update(),0);self.assertEqual(self.update('restore'),0)
+        old_id=self.journal()['transaction_id']
+        class PowerLoss(BaseException):pass
+        original=C.BundleTransaction.write
+        def die(transaction,path,*args,**kwargs):
+            result=original(transaction,path,*args,**kwargs)
+            if path==C.PREPARED:raise PowerLoss()
+            return result
+        with mock.patch.object(C.BundleTransaction,'write',die),self.assertRaises(PowerLoss):self.update()
+        self.assertEqual(self.update('recover'),0)
+        self.assertNotEqual(self.journal()['transaction_id'],old_id)
+        self.assertFalse(self.w.path(C.PREPARED).exists())
+
+    def test_each_legacy_cleanup_unlink_boundary_leaves_terminal_or_recoverable_state(self):
+        class PowerLoss(BaseException):pass
+        paths=(legacy.N.ACTIVE,*legacy.N.Transaction.controller_guard_paths(None),legacy.N.RESTORE_PERMIT)
+        for path in paths:
+            fixture=BundleTransaction();fixture.setUp();remove=legacy.H.remove
+            def die(ctx,target):
+                result=remove(ctx,target)
+                if target==path:raise PowerLoss()
+                return result
+            try:
+                with self.subTest(path=path):
+                    with mock.patch.object(legacy.H,'remove',die),self.assertRaises(PowerLoss):fixture.update()
+                    state=fixture.journal()
+                    self.assertFalse(state['active'] or state['restore_pending'] or state['cleanup_pending'])
+                    self.assertEqual(fixture.update('recover'),0)
+                    self.assertFalse(C.BundleTransaction(legacy.H,fixture.op,fixture.release,legacy.N).base.has_exclusion())
+            finally:fixture.doCleanups()
+
+    def test_unpublished_intent_needs_fresh_safety_and_exact_unchanged_preimages(self):
+        class PowerLoss(BaseException):pass
+        original=C.BundleTransaction.write
+        def die(transaction,path,*args,**kwargs):
+            result=original(transaction,path,*args,**kwargs)
+            if path==C.PREPARED:raise PowerLoss()
+            return result
+        with mock.patch.object(C.BundleTransaction,'write',die),self.assertRaises(PowerLoss):self.update()
+        original_bus=self.w.bus_mutate
+        self.w.bus_mutate=lambda bus:(original_bus(bus),bus.update(policy_enabled=True))
+        with self.assertRaises(legacy.H.Stop):self.update('recover')
+        self.assertFalse(self.w.path(legacy.N.ACTIVE).exists())
+        self.w.bus_mutate=original_bus
+        self.w.path(C.PADD).write_bytes(NEW_PAD)
+        with self.assertRaises(legacy.H.Stop):self.update('recover')
+        self.assertFalse(self.w.path(legacy.N.ACTIVE).exists())
+        intent=json.loads(self.w.path(C.PREPARED).read_text());intent['targets'][C.PADD]['sha256']='f'*64
+        self.w.path(C.PREPARED).write_text(json.dumps(intent))
+        with self.assertRaises(legacy.H.Stop):self.update('recover')
+
+    def test_power_loss_before_terminal_commit_keeps_old_helper_exclusion(self):
+        class PowerLoss(BaseException):pass
+        original=C.BundleTransaction.save
+        def die(transaction,m,phase,**fields):
+            if phase=='completed' and fields.get('active') is False:raise PowerLoss()
+            return original(transaction,m,phase,**fields)
+        with mock.patch.object(C.BundleTransaction,'save',die),self.assertRaises(PowerLoss):self.update()
+        self.assertTrue(self.w.path(legacy.N.ACTIVE).exists(),'old helpers cannot read v2 pending flags')
+        self.assertTrue(self.journal()['active'])
+        self.assertEqual(self.update('recover'),0)
+
+    def test_power_loss_after_terminal_commit_before_cleanup_is_recoverable(self):
+        class PowerLoss(BaseException):pass
+        with mock.patch.object(legacy.N.Transaction,'remove_controller_exclusion',side_effect=PowerLoss),self.assertRaises(PowerLoss):self.update()
+        self.assertFalse(self.journal()['active'])
+        self.assertTrue(self.w.path(legacy.N.ACTIVE).exists())
+        self.assertEqual(self.update('recover'),0)
+        self.assertEqual(self.journal()['phase'],'restored')
+
+    def test_protection_attempts_all_stops_after_robot_and_padd_fail(self):
+        self.assertEqual(self.update(),0)
+        transaction=C.BundleTransaction(legacy.H,self.op,self.release,legacy.N)
+        original=self.w.run;stops=[]
+        def fail(argv):
+            if argv[:2]==['systemctl','stop']:
+                stops.append(argv[2])
+                if argv[2] in ('robotd','padd'):return 1,'','injected persistent stop failure'
+            return original(argv)
+        with mock.patch.object(self.w,'run',fail):self.assertTrue(transaction.protect(self.journal()))
+        self.assertEqual(set(stops),{'robotd',*C.SERVICES})
+        for unit in ('duck-echo','microduck-studio','mediad'):self.assertEqual(self.w.units[unit],'inactive')
+        self.assertTrue(self.w.path(legacy.N.ACTIVE).exists())
+
+    def test_inactive_unknown_or_absent_media_cannot_gain_network_permissions(self):
+        self.w.units['mediad']='inactive'
+        self.w.path(C.MEDIAD).write_bytes(b'unknown-custom-media')
+        with self.assertRaises(legacy.H.Stop):self.update()
+        self.assertFalse(self.w.path('/etc/systemd/system/mediad.service.d/'+C.DROPIN).exists())
+
+    def test_absent_media_service_refuses_the_fixed_bundle_layout(self):
+        original=self.w.show
+        def absent(unit,props):
+            return 'LoadState=not-found\nActiveState=inactive\nSubState=dead\n' if unit=='mediad' else original(unit,props)
+        with mock.patch.object(self.w,'show',absent),self.assertRaises(legacy.H.Stop):self.update()
+        self.assertFalse(self.w.path(C.JOURNAL).exists())
 
     def test_unknown_media_policy_and_binary_are_refused_without_overwriting_settings(self):
         original=self.w.show

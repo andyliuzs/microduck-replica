@@ -118,8 +118,11 @@ def guard(root='/'):
         with os.fdopen(fd,'rb') as source:return source.read(limit+1)
     try:
         marker='/var/lib/microduck-controller-update/compatibility.json'
-        if not os.path.lexists(base/marker.lstrip('/')):return 0
-        state=json.loads(read(marker,8192))
+        # lexists() also returns false on EACCES. Only a real ENOENT after
+        # walking trusted parents means the compatibility requirement is absent.
+        try:raw=read(marker,8192)
+        except FileNotFoundError:return 0
+        state=json.loads(raw)
         if state.get('schema')!='microduck-controller-compat/1' or state.get('required') is not True:return 1
         current=base/'opt/microduck/software/current';release=current.resolve()
         if not current.is_symlink() or release.parent!=(base/'opt/microduck/software/releases').resolve():return 1
@@ -165,7 +168,24 @@ class BundleTransaction:
     def read(self,path,limit=32*1024*1024):return self.base.read(path,limit)
     def present(self,path):return self.base.present(path)
     def write(self,path,data,mode):return self.base.write(path,data,mode)
-    def directory(self,path,mode=0o755):return self.base.directory(path,mode)
+    def directory(self,path,mode=0o755):
+        parts=path.strip('/').split('/')
+        missing=['/'+'/'.join(parts[:i]) for i in range(1,len(parts)+1) if not self.present('/'+'/'.join(parts[:i]))]
+        self.base.directory(path,mode)
+        # mkdir's mode is filtered by the caller's umask. Set explicit modes
+        # only on directories just created and owned by this root transaction.
+        for name in missing:
+            os.chmod(self.ctx.p(name),mode if name==path else 0o755)
+            self.base.sync_dir(os.path.dirname(name))
+
+    def public_parents(self,path):
+        parts=path.strip('/').split('/')
+        for i in range(1,len(parts)):
+            try:info=os.lstat(self.ctx.p('/'+'/'.join(parts[:i])))
+            except FileNotFoundError:return
+            if (not stat.S_ISDIR(info.st_mode) or (os.name=='posix' and
+                    (info.st_mode&0o005!=0o005 or info.st_mode&0o022 or (self.ctx.check_owner and info.st_uid!=0)))):
+                self.refuse('公开状态或兼容门的父目录不能由服务账户安全读取')
     def unit(self,name):return self.base.unit(name)
 
     def payload(self):
@@ -196,6 +216,7 @@ class BundleTransaction:
     def save(self,m,phase,**fields):
         m.update(phase=phase,**fields)
         raw=(json.dumps(m,ensure_ascii=False,allow_nan=False)+'\n').encode()
+        self.public_parents(JOURNAL)
         if phase=='prepared':
             # Two-file publication: first persist the complete recoverable
             # intent, then the exclusion recognized by old helpers, then expose
@@ -209,13 +230,29 @@ class BundleTransaction:
         self.op.emit('native','info',phase,{key:m.get(key) for key in PUBLIC if key in m})
 
     def load(self):
-        path=JOURNAL if self.present(JOURNAL) else PREPARED
-        if self.present(PREPARED) and self.present(self.legacy.ACTIVE):path=PREPARED
+        if self.present(PREPARED):
+            prepared=self.load_record(PREPARED)
+            if not self.present(JOURNAL):return prepared
+            committed=self.load_record(JOURNAL)
+            if committed['transaction_id']==prepared['transaction_id']:
+                immutable=('schema','bundle_schema','mode','target_robotd','target_padd','old_sha256','target_sha256',
+                    'records','files','service_files','targets','services','controllers','original_services','original_process',
+                    'padd_args','profile_sha256','protected')
+                if any(committed.get(k)!=prepared.get(k) for k in immutable):self.refuse('准备记录与已发布记录不属于同一事务','controller_tampered')
+                return committed
+            if (committed['phase']!='restored' or committed['active'] or committed['restore_pending'] or committed['cleanup_pending']):
+                self.refuse('新准备记录覆盖了尚未恢复的另一事务','controller_tampered')
+            return prepared
+        return self.load_record(JOURNAL)
+
+    def load_record(self,path):
         if not self.present(path):return None
         try:
             m=json.loads(self.read(path,65536))
-            if path==PREPARED and (not self.present(self.legacy.ACTIVE) or self.read(self.legacy.ACTIVE,128)!=m.get('transaction_id','').encode()):
-                raise ValueError('unpublished controller intent')
+            if path==PREPARED and (m.get('phase')!='prepared' or m.get('active') is not True
+                    or m.get('restore_pending') is not False or m.get('cleanup_pending') is not False
+                    or (self.present(self.legacy.ACTIVE) and self.read(self.legacy.ACTIVE,128)!=m.get('transaction_id','').encode())):
+                raise ValueError('untrusted controller intent')
             if (m.get('schema')!=SCHEMA or m.get('phase') not in PHASES
                     or type(m.get('active')) is not bool or not re.fullmatch('[0-9a-f]{32}',m.get('transaction_id',''))
                     or m.get('mode')!='motion' or [r['path'] for r in m['records']]!=list(self.paths())
@@ -238,6 +275,7 @@ class BundleTransaction:
                         or (not row['existed'] and row.get('sha256') is not None)):raise ValueError('user file metadata changed')
             allowed={parent+'/'+u+'.service' for u in KNOWN_OVERRIDES for parent in ('/etc/systemd/system','/lib/systemd/system','/usr/lib/systemd/system')}
             allowed|={'/etc/systemd/system/'+u+'.service.d/'+name for u,names in KNOWN_OVERRIDES.items() for name in names}
+            allowed.add(MEDIAD)
             if (not isinstance(m['service_files'],list) or len(m['service_files'])>16
                     or len({r['path'] for r in m['service_files']})!=len(m['service_files'])
                     or any(r['path'] not in allowed for r in m['service_files'])):raise ValueError('service paths changed')
@@ -254,7 +292,7 @@ class BundleTransaction:
                 elif any(row.get(key) is not None for key in ('sha256','mode','uid','gid')):
                     raise ValueError('invalid absent preimage')
             if m['records'][0]['sha256'] not in (*self.legacy.SUPPORTED_SHA256,ROBOTD_SHA256):raise ValueError('unknown old robotd')
-            if m['records'][1]['sha256'] not in (*SUPPORTED_PADD_SHA256,PADD_SHA256):raise ValueError('unknown old padd')
+            if m['records'][1]['sha256'] not in SUPPORTED_PADD_SHA256:raise ValueError('unknown old padd')
             if any(row['existed'] for row in m['records'][2:]):raise ValueError('owned path preimage was not empty')
             return m
         except (OSError,ValueError,TypeError,KeyError,AttributeError):
@@ -275,14 +313,16 @@ class BundleTransaction:
         rows=[]
         for unit,names in KNOWN_OVERRIDES.items():
             if self.state(unit)=='absent':
-                if unit!='mediad':self.refuse('缺少配套运行服务：'+unit)
-                continue
+                self.refuse('缺少已审核 20261027 配套运行服务：'+unit)
             props=self.properties(unit);fragment=props.get('FragmentPath','')
             user={'padd':'padd','duck-echo':'radxa','microduck-studio':'radxa','mediad':'mediad'}[unit]
             if props.get('User')!=user:self.refuse('服务账户不是已审核安装：'+unit)
             if unit=='mediad' and set(props.get('RestrictAddressFamilies','').split()) not in (
                     {'AF_UNIX','AF_INET','AF_INET6'},{'AF_UNIX','AF_INET','AF_INET6','AF_NETLINK'}):
                 self.refuse('媒体地址族策略不是已审核前驱，不能覆盖自定义沙箱')
+            if unit=='mediad':
+                if sha(self.read(MEDIAD))!=MEDIAD_SHA256:self.refuse('媒体磁盘程序不是已审核前驱')
+                rows.append(self.snapshot(MEDIAD))
             if fragment not in tuple(parent+'/'+unit+'.service' for parent in ('/etc/systemd/system','/lib/systemd/system','/usr/lib/systemd/system')):
                 self.refuse('不支持自定义服务安装路径：'+unit)
             rows.append(self.snapshot(fragment))
@@ -432,6 +472,14 @@ class BundleTransaction:
             self.refuse('先完成标定并进入普通运动控制，关闭策略并卸力，再安装配套驱动')
         if self.base.gate()!='motion':self.refuse('主程序未稳定停在运动控制模式')
 
+    def unpublished_readiness(self,m):
+        try:
+            studio=self.legacy.json_socket(self.ctx.p('/run/microduck-studio/update.sock'),
+                {'op':'native-recovery-readiness','transaction_id':m['transaction_id']})
+            if studio.get('ready') is not True:self.refuse('网页仍有活动或不支持本事务的准备态恢复检查')
+            self.voice_health()
+        except (OSError,ValueError,TypeError,AttributeError):self.refuse('无法核验准备态恢复的网页 / 语音空闲')
+
     def bridge(self,m):
         if self.present(self.legacy.ACTIVE) and self.read(self.legacy.ACTIVE,128)!=m['transaction_id'].encode():
             self.refuse('旧版可见保护不属于本事务')
@@ -446,9 +494,14 @@ class BundleTransaction:
         if self.ctx.run(['systemctl','daemon-reload'])[0]:self.refuse('保护配置未生效')
 
     def stop_services(self,m):
-        for unit,state in m['services'].items():
-            if state!='absent' and self.ctx.run(['systemctl','stop',unit],timeout=20)[0]:self.refuse('停止服务失败：'+unit)
-        if any(self.state(u)=='active' for u,s in m['services'].items() if s!='absent'):self.refuse('控制服务没有停止')
+        errors=[]
+        for unit in SERVICES:
+            try:
+                rc=self.ctx.run(['systemctl','stop',unit],timeout=20)[0]
+                state=self.state(unit)
+                if state=='active' or (rc and state!='absent'):errors.append(unit)
+            except Exception:errors.append(unit)
+        if errors:self.refuse('停止或核验控制服务失败：'+'、'.join(errors))
 
     def stop_robot(self):
         if self.ctx.run(['systemctl','stop','robotd'],timeout=20)[0] or self.unit('robotd').get('ActiveState') not in ('inactive','failed'):
@@ -472,7 +525,9 @@ class BundleTransaction:
             self.refuse('软件升级器的 native 进程基线被外部改变，保留现场')
 
     def install_bytes(self,path,data,mode,uid=0,gid=0):
-        self.directory(os.path.dirname(path));self.write(path,data,mode)
+        self.directory(os.path.dirname(path))
+        if path in (COMPAT,VOICE_GUARD):self.public_parents(path)
+        self.write(path,data,mode)
         if os.name=='posix' and self.ctx.check_owner:
             os.chown(self.ctx.p(path),uid,gid,follow_symlinks=False)
             descriptor=os.open(self.ctx.p(path),os.O_RDONLY|os.O_NOFOLLOW)
@@ -513,6 +568,7 @@ class BundleTransaction:
                    and (os.name!='posix' or stat.S_IMODE(os.lstat(self.ctx.p(path)).st_mode)==row['mode']) for path,row in m['targets'].items())
 
     def target_health(self,m):
+        if sha(self.read(MEDIAD))!=MEDIAD_SHA256:self.refuse('媒体磁盘程序已改变')
         pad=self.process('padd',PADD_SHA256,m['padd_args'],groups=True)
         props=self.properties('padd')
         if props.get('StateDirectory')!='padd':self.refuse('padd 状态目录未生效')
@@ -575,8 +631,10 @@ class BundleTransaction:
         baseline={'robotd':robot['unit'],'padd':pad['unit']}
         self.save(m,phase,active=True,restore_pending=True,cleanup_pending=True,protected_next=baseline,baseline_boot_id=self.ctx.boot_id())
         self.write(self.legacy.PROTECTED,json.dumps(baseline).encode(),0o600)
-        self.base.remove_controller_exclusion(m)
+        # Commit is durable before cleanup starts. Old helpers must continue to
+        # see their persistent bridge while any v2 pending flag remains true.
         self.save(m,phase,active=False,restore_pending=False,cleanup_pending=False,running_verified=True)
+        self.base.remove_controller_exclusion(m)
 
     def protect(self,m):
         errors=[]
@@ -626,6 +684,7 @@ class BundleTransaction:
         if previous and (previous['active'] or previous.get('restore_pending') or previous.get('cleanup_pending')):
             self.refuse('先用原签名软件包恢复单独 robotd 更新')
         if self.base.has_exclusion():self.refuse('存在未归属的旧更新保护')
+        for path in (COMPAT,VOICE_GUARD,JOURNAL):self.public_parents(path)
         self.base.readiness();self.base.config();self.base.resources();self.gate()
         args=self.base.args()
         if args!=self.legacy.ARGS:self.refuse('伴随升级仅支持已完成标定的运动模式')
@@ -661,7 +720,7 @@ class BundleTransaction:
         self.save(m,'prepared');return m
 
     def status(self):
-        m=self.load();active=bool(m and (m['active'] or m.get('restore_pending') or m.get('cleanup_pending'))) or self.base.has_exclusion()
+        m=self.load();active=bool(m and (m['active'] or m.get('restore_pending') or m.get('cleanup_pending'))) or self.base.has_exclusion() or self.present(PREPARED)
         try:
             robot_hash=sha(self.read(ROBOTD));pad_hash=sha(self.read(PADD))
             self.base.process(robot_hash,self.base.args());pad_args=self.pad_arguments();self.process('padd',pad_hash,pad_args)
@@ -698,8 +757,15 @@ class BundleTransaction:
                 if not m:
                     if self.base.has_exclusion():self.refuse('保护存在但伴随记录缺失')
                     self.refuse('没有可以恢复的伴随升级记录')
-                if action=='recover' and not m['active'] and not m.get('restore_pending') and not m.get('cleanup_pending'):
+                if action=='recover' and not m['active'] and not m.get('restore_pending') and not m.get('cleanup_pending') and not self.base.has_exclusion() and not self.present(PREPARED):
                     return self.status()
+                unpublished=self.present(PREPARED) and not self.present(self.legacy.ACTIVE)
+                if unpublished:
+                    # No target write was authorized before ACTIVE publication.
+                    # Validate all fixed preimages before creating any exclusion.
+                    self.owned(m)
+                    if any(self.snapshot(row['path'])!=row for row in m['records']):self.refuse('未发布准备记录的旧组件已改变')
+                    self.unpublished_readiness(m);self.gate()
                 if action=='restore':
                     self.base.readiness();self.gate();self.unchanged(m)
                 try:self.restore(m)

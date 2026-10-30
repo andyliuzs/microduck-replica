@@ -6,7 +6,7 @@ signed or installable release. New padd ARM pins remain `None`; validation fails
 closed until a newly reviewed build is frozen. No live device, account, service,
 image or existing published artifact was changed by these checks.
 
-## Windows checks completed
+## Windows baseline checks completed
 
 - `tests.test_controller_bundle`: 27 total, 0 failures/errors, 2 POSIX tests
   skipped (25 executed), 17.818s. Isolated temporary filesystem and simulated
@@ -99,3 +99,51 @@ WSL failed before usable output during this stage; the host volume holding its
 VHD had about 19MiB free. No new WSL launch, VM reset, process termination or
 unapproved disk move was used to bypass that environment limitation. The lack of
 Linux/ARM evidence is a release blocker, not a passing/skipped acceptance claim.
+
+## Independent review fixes
+
+The first review of `bbe1664a6c88b1f68fa97274f2716bbf574fa99f` found five Important
+issues. All five were reproduced red before their fixes:
+
+1. A crash after prepared intent publication but before legacy ACTIVE could not
+   recover. Both initial install and reinstall after a restored older journal
+   now validate the complete prepared record/preimages, retain both journal
+   identities safely and expose busy state. Unpublished recovery requires fresh
+   stationary/unloaded proof and an exact unchanged old vector. Its fixed
+   internal `native-recovery-readiness` request carries only the transaction ID;
+   real build_app checks match only that prepared native guard. Ordinary software
+   readiness, wrong IDs, actual servo activity and the software marker still
+   refuse. The original always-ready socket fixture had hidden the self-lock;
+   the regression now runs the real app callback through the native recovery.
+2. Completion removed the legacy bridge before durable terminal flags. The
+   verified terminal record is now durable first; legacy bridge removal is
+   retryable cleanup. Tests interrupt before and after terminal commit and after
+   every legacy cleanup unlink. Pending v2 state retains old-helper exclusion.
+3. A failed first controller stop skipped later services. Protection now attempts
+   every fixed service and aggregates stop/state failures; simultaneous robotd
+   and padd stop failures still stop voice, Studio and media.
+4. `lexists` converted EACCES into a missing compatibility marker. The external
+   guard now permits only explicit FileNotFoundError; other access/path errors
+   refuse. Created directory modes are explicit despite umask; public ancestry
+   must be safely traversable. Windows injected-EACCES proves the branch; the
+   expanded real nobody/root0700-directory test still requires Linux.
+5. Inactive mediad skipped binary identity checking. Every supported media
+   installation now pins its on-disk executable and unchanged snapshot regardless
+   of active state. Missing media service layouts refuse the fixed bundle;
+   no conditional component vector or unknown-binary sandbox extension is added.
+
+After these changes the affected regression command passed **165 total,
+0 failures/errors, 7 platform skips (158 executed), 75.426s**. Modules are
+`test_controller_bundle`, `test_native_update`, `test_updates_native`,
+`test_updates_http`, `test_pad_mapping_integration`; complete output is
+`controller-review-fixes-tests.log` under the same evidence root. The controller
+module includes 37 tests, with the same two POSIX compatibility tests pending.
+`node tests/updates_ui.test.mjs` and `git diff --check` also passed. The UI files
+are unchanged from the final screenshots/browser run above.
+
+Root independently ran the complete pre-fix Windows Studio baseline: 1461 total,
+0 test failures/errors, 85 skips (1376 executed), 308.138s. Its inherited Windows
+audio-status thread AF_UNIX AttributeError is retained in the log. This broad
+baseline is not evidence that the subsequent review fixes passed all 1461 tests;
+only the fresh affected regression above applies to those fixes. Final independent
+review and Linux/ARM/old-27 release gates remain outstanding.

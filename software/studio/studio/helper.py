@@ -42,6 +42,7 @@ IMU_REDO_MANIFEST = "/var/lib/microduck-helper/imu-recalibrate/manifest.json"
 NATIVE_UPDATE_JOURNAL = "/var/lib/microduck-helper/native-update/journal.json"
 NATIVE_UPDATE_ACTIVE = "/var/lib/microduck-helper/native-update/active"
 CONTROLLER_UPDATE_JOURNAL = "/var/lib/microduck-helper/controller-update/journal.json"
+CONTROLLER_UPDATE_PREPARED = "/var/lib/microduck-helper/controller-update/prepared.json"
 NATIVE_UPDATE_EXCLUSIONS = (NATIVE_UPDATE_ACTIVE, "/run/microduck-helper/native-update-restore",
     "/etc/systemd/system/robotd.service.d/zzzzzzz-microduck-native-update.conf", *(
         "/etc/systemd/system/"+unit+".service.d/zzzzzzz-microduck-native-update.conf"
@@ -269,8 +270,10 @@ def robotd_update(by, action, *, confirmed=None, timeout=180):
 
 def native_update_state(*, root="/"):
     legacy=_native_update_state(root=root,journal=NATIVE_UPDATE_JOURNAL)
-    if not os.path.lexists(os.path.join(root,CONTROLLER_UPDATE_JOURNAL.lstrip('/'))):return legacy
-    bundle=_native_update_state(root=root,journal=CONTROLLER_UPDATE_JOURNAL)
+    path=CONTROLLER_UPDATE_PREPARED
+    if not os.path.lexists(os.path.join(root,path.lstrip('/'))):path=CONTROLLER_UPDATE_JOURNAL
+    if not os.path.lexists(os.path.join(root,path.lstrip('/'))):return legacy
+    bundle=_native_update_state(root=root,journal=path)
     if legacy.get('active'):bundle['active']=True
     return bundle
 
@@ -293,7 +296,7 @@ def _native_update_state(*,root,journal):
             raise ValueError("更新记录超出大小限制")
         with open(path, encoding="utf-8") as stream:
             value = json.load(stream)
-        bundle=journal==CONTROLLER_UPDATE_JOURNAL
+        bundle=journal in (CONTROLLER_UPDATE_JOURNAL,CONTROLLER_UPDATE_PREPARED)
         phases=("prepared","guarding","replacing","verifying","restoring","completed","restored","recovery_required") if bundle else (
             "prepared","guarding","guarded","replacing","replaced","verified_commissioning","restoring_normal","verified_motion",
             "factory_handoff_pending","completed","rolled_back","recovering","old_restored","recovery_required")

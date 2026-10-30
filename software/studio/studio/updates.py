@@ -2,6 +2,7 @@
 import asyncio
 import json
 import os
+import re
 from pathlib import Path
 from . import helper
 
@@ -167,8 +168,13 @@ class Updates:
         async def serve(reader,writer):
             try:
                 raw=await asyncio.wait_for(reader.readline(),2)
-                if raw==b'{"op": "readiness"}\n' or json.loads(raw)=={'op':'readiness'}:
+                request=json.loads(raw)
+                if request=={'op':'readiness'}:
                     result=snapshot()
+                elif (isinstance(request,dict) and set(request)=={'op','transaction_id'}
+                        and request['op']=='native-recovery-readiness' and isinstance(request['transaction_id'],str)
+                        and re.fullmatch('[0-9a-f]{32}',request['transaction_id'])):
+                    result=snapshot(native_transaction=request['transaction_id'])
                 else: result={'ready':False,'error':'不支持的内部请求'}
                 writer.write(json.dumps(result,ensure_ascii=False).encode()+b'\n'); await writer.drain()
             except Exception: pass
