@@ -9,6 +9,7 @@ import stat
 import threading
 from pathlib import Path
 from contextlib import contextmanager
+from pad_mapping import PAD_MAPPING
 
 UPDATE_MARKER=Path('/run/microduck-updater/installing')
 NATIVE_JOURNAL='/var/lib/microduck-helper/native-update/journal.json'
@@ -83,12 +84,13 @@ NATIVE_GUARD=NativeUpdateGuard()
 
 class UpdateLocked(RuntimeError): pass
 
-def updates_allowed(): return not UPDATE_MARKER.exists() and not NATIVE_GUARD.active()
+def updates_allowed(): return not UPDATE_MARKER.exists() and not NATIVE_GUARD.active() and not PAD_MAPPING.blocked()
 
 @contextmanager
 def motion_lease(marker=UPDATE_MARKER,lock=None):
     """Finish existing actions before root's EX preflight; reject new actions."""
     marker=Path(marker);lock=Path(lock) if lock else marker.parent/'motion.lock'
+    if PAD_MAPPING.blocked():raise UpdateLocked('controller mapping in progress')
     if marker.exists() or NATIVE_GUARD.active():raise UpdateLocked('software / native update in progress')
     descriptor=None
     try:
@@ -101,6 +103,7 @@ def motion_lease(marker=UPDATE_MARKER,lock=None):
             try:fcntl.flock(descriptor,fcntl.LOCK_SH|fcntl.LOCK_NB)
             except BlockingIOError:raise UpdateLocked('software update in progress') from None
         if marker.exists() or NATIVE_GUARD.active():raise UpdateLocked('software / native update in progress')
+        if PAD_MAPPING.blocked():raise UpdateLocked('controller mapping in progress')
         yield
     finally:
         if descriptor is not None:os.close(descriptor)

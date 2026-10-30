@@ -162,11 +162,13 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
     if pad is not None:
         pad.update_guard=updates.installing
     update_commands = set()
+    mapping_requests = set()
 
     def update_readiness():
         busy = any(not task.done() for task in update_commands) or model_upload_gate.locked()
         motion = getattr(pad,'motion_studio',None)
         if (updates.installing() or busy or (servo is not None and servo.state != 'closed')
+            or mapping_requests or (pad is not None and getattr(getattr(pad,'mapping',None),'blocked',False))
             or (motion is not None and (motion.state != 'idle' or motion.session is not None))
             or (imu is not None and (getattr(imu,'_redo_busy',False)
                 or getattr(imu,'blocks_updates',lambda:False)()))):
@@ -188,6 +190,18 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
     login_gate = asyncio.Semaphore(1)
     servo_gate = asyncio.Lock()         # 开 / 关舵机总线一次一个
     model_upload_gate = asyncio.Lock()
+    def mapping_readiness():
+        # Called in a pad worker: cached flags only. Robot poll latency must
+        # not hide a servo takeover or an active IMU calibration session.
+        from .pad_mapping import MappingError
+        if (servo_gate.locked() or model_upload_gate.locked()
+                or (models is not None and getattr(models,'_lock',None) is not None and models._lock.locked())
+                or (commit is not None and getattr(commit,'_writing',None) is not None and commit._writing.locked())
+                or (servo is not None and servo.state!='closed')
+                or (imu is not None and (getattr(imu,'_redo_busy',False)
+                    or getattr(imu,'blocks_updates',lambda:False)()))):
+            raise MappingError('请先结束舵机、标定和模型更新会话，再重新映射手柄')
+    if pad is not None:pad.mapping_guard=mapping_readiness
     # 舵机会话的标记（审查 D1）：没给 state 目录（测试）就不写
     marker = Path(state_dir) / SERVO_MARKER if state_dir and servo is not None else None   # 登录一个一个来：退避不会被并发绕过，scrypt 也不会同时吃掉几份 16 MB
 
@@ -513,6 +527,8 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
             return model_response({"ok": False, "error": "请求校验失败，刷新页面再试"}, 403)
         if write and updates.installing():
             return model_response({'ok':False,'error':'软件更新正在进行，请等待完成'},409)
+        if write and (mapping_requests or (pad is not None and pad.mapping.blocked)):
+            return model_response({'ok':False,'error':'请先完成或取消手柄映射并回中，再修改模型'},409)
         if models is None:
             return model_response({"ok": False, "error": "当前模式没有开启模型管理"}, 503)
         return None
@@ -564,7 +580,8 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
             return model_response({"ok": False, "error": "操作请求格式不正确"}, 400)
         task=asyncio.current_task();update_commands.add(task)
         try:
-            if updates.installing():return model_response({'ok':False,'error':'软件更新正在进行，请等待完成'},409)
+            refused=model_access(request,write=True)
+            if refused is not None:return refused
             return await model_result(lambda: models.handle(body, by=_client_desc(request)))
         finally:update_commands.discard(task)
 
@@ -585,7 +602,8 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
         async with model_upload_gate:
             temporary = None
             try:
-                if updates.installing():return model_response({'ok':False,'error':'软件更新正在进行，请等待完成'},409)
+                refused=model_access(request,write=True)
+                if refused is not None:return refused
                 length = request.headers.get("content-length")
                 if length is not None and int(length) > MODEL_UPLOAD_LIMIT:
                     raise OverflowError()
@@ -1138,6 +1156,12 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
                         await send({'t':'result','id':cid,'ok':False,
                                     'reason':'IMU 标定 / 类型切换会话未结束：先验证完成或取消；卸力仍可使用'})
                         continue
+                    if ((mapping_requests or (pad is not None and getattr(getattr(pad, 'mapping', None), 'blocked', False)))
+                            and name in {'tune.op', 'servo.open', 'servo.op', 'calib.op', 'imu.op'}
+                            and not safe_during_update(name, args)):
+                        await send({'t':'result','id':cid,'ok':False,
+                                    'reason':'请先完成或取消手柄映射并回中；网页卸力仍可使用'})
+                        continue
                     if name not in COMMANDS:
                         await send({"t": "result", "id": cid, "ok": False, "reason": f"这一版还不支持「{name}」"})
                         continue
@@ -1164,6 +1188,11 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
                         continue
                     if name == "pad.op":
                         task = asyncio.create_task(run_pad_op(cid, msg.get("args") or {}))
+                        if args.get('op')=='mapping' and args.get('action')=='begin':
+                            # Reserve on the event loop before another command
+                            # from the same WebSocket packet can start takeover.
+                            mapping_requests.add(task)
+                            task.add_done_callback(mapping_requests.discard)
                         cmd_tasks.add(task)
                         update_commands.add(task)
                         task.add_done_callback(update_commands.discard)

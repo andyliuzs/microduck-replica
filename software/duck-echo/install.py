@@ -15,7 +15,7 @@ DESTINATION = Path('/opt/duck-echo')
 UNIT = Path('/etc/systemd/system/duck-echo.service')
 DEFAULTS = Path('/etc/default/duck-echo')
 RUNTIME_FILES = ('duck_echo.py', 'install.py', 'duck-echo.service', 'README.md',
-                 'voice_commands.py', 'speech_control.py', 'install_speech.py',
+                 'voice_commands.py', 'speech_control.py', 'install_speech.py', 'pad_mapping.py',
                  'continuous_audio.py', 'music_feel.py', 'music_interaction.py', 'audio_control.py')
 CAPTURE_SETTINGS = {
     'Right PGA Mixer Mic3R Switch': 'on',
@@ -189,7 +189,7 @@ def main(argv=None):
         print('Echo service removed; capture mixer restored. Files retained in', DESTINATION)
     else:
         run(['id', args.user])
-        for group in ('audio', 'input'):
+        for group in ('audio', 'input', 'robot'):
             run(['getent', 'group', group])
         for executable in ('arecord', 'aplay', 'amixer', 'systemctl'):
             if not shutil.which(executable):

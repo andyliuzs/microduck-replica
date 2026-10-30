@@ -306,7 +306,7 @@ py -3.13 -I -c "import sys;sys.path[:0]=['deps','.','dev'];import unittest;unitt
 - **SSH 远程登录**（「更多」页，10-21 用户：「出了问题他们 SSH 自己修，不用重新烧卡」）：镜像出厂只认钥匙、不带任何人的钥匙，也没有能远程登录的默认密码。用户先设网页登录密码（没设时后端拒绝：不然连上热点的人都能打开网页、顺手打开 SSH），再自己定一个 SSH 密码（8–64 位，不能是 microduck 这类大家都猜得到的），`POST /api/ssh {action: on}` → 小助手 `ssh-password`：`chpasswd` 从 stdin 设 radxa 的密码，写 `/etc/ssh/sshd_config.d/05-microduck-ssh-password.conf`（排在镜像的 `10-microduck.conf` 前面），`sshd -t`、`sshd -T` 读回密码登录真开了才 `reload`，哪一步不对就删掉文件退回去。关掉 = 删这个文件再 reload。**密码只走小助手的 stdin，不进命令行、日志、结果文件**（测试逐项核对）。卡片上给出 `ssh radxa@<现在这个地址>` 的登录命令。
   「办法二：登记钥匙」（`studio/sshkeys.py`）：Studio 本来就以 radxa 身份跑，`~/.ssh/authorized_keys` 是它自己的文件，不经过小助手。只收一整行公钥（ed25519 / rsa / ecdsa / sk-*），base64 里的类型要跟开头写的一致，前面不能带 `command=` 这类选项；贴私钥会被认出来拦下。同一把（按 SHA256 指纹，跟 `ssh-keygen -l` 一样）不重复写；删掉按指纹删。目录 700、文件 600，`~/.ssh` 或文件是软链接就拒绝。跟打开密码登录一样，要先设网页登录密码。
 - **写进主程序**：上手清单第 3 步把舵机零位、方向、IMU 方向一次写进 robotd 的标定。出厂镜像是标定模式；写成功后小助手删掉 commissioning drop-in、重启主程序切运动模式。成功不只看重启：还要 `mode=motion`、`phase=control`，并且 `calibration-status` 读回逐项一致；不成就把文件和模式换回去。Studio 重启后会读 `last-result.json` 把上次结果放回第 3 步卡片。
-- **手柄**：配对（走官方 `robotctl pad pair`）、网页手柄、测急停。
+- **手柄**：配对（走官方 `robotctl pad pair`）、网页手柄、测急停，以及下面的实体手柄重新映射／校准。
 - **遥控**：站起来 / 开始走 / 坐下、技能、动作和组合动作。
 - **调手感**：只看。**模型管理**：导入部署包、改名、选择模型、恢复内置、设置动作键和删除导入模型；具体格式见 [模型导入说明](MODEL_IMPORT.md)。
 - **日志**：日志页和诊断包；手机底栏从「更多」也能进日志、导出诊断包。
@@ -315,6 +315,26 @@ py -3.13 -I -c "import sys;sys.path[:0]=['deps','.','dev'];import unittest;unitt
 
 还不能的（下一版）：
 - 在网页上**改**调手感参数（走路幅度、平滑、P/D/限力）。
+
+## 实体手柄重新映射／校准
+
+在「手柄」标题旁点「重新映射／校准」。先停策略并站稳，结束网页遥控、配对、录制／回放、舵机和标定会话；驱动确认暂停后才开始学习。学习和测试期间禁止运动输出，顶上的网页卸力仍可用。
+
+图使用标准位置：A 在下、B 在右、X 在左、Y 在上，和实体按键的印字可不同。点目标键后按一下实体输入；可以按顺序学习，也能随时选择任一项重录。四方向支持按钮或帽轴，LT／RT 支持数字按钮或模拟轴。Select、Start 和四根摇杆轴必需，其余项可以跳过或清除，未设置的键不触发对应动作。
+
+摇杆先向提示的正方向（右／下）推到底，再推另一端，最后回中确认；扳机按到底后完全释放确认。每根轴可分别反向、调死区。图上的实时测试来自 padd 回读的预览值。点「保存」后必须得到驱动保存回读，才算应用成功；所有键释放、摇杆回中稳定后才恢复控制。「取消」保留原配置；「恢复默认」删除当前设备的自定义配置并使用原有默认识别。USB／蓝牙模式分别保存，重连自动加载。
+
+同一时刻只有发起学习的页面拥有会话，其他标签页只能查看。切换页面、转到后台、关闭页面时取消，断网后驱动的五秒租期也会自动失效；页面不会在重连后自动接着学习。输入中断或手柄更换需要重新开始。丢失开始回执时网页保守暂停，直到新鲜驱动状态确认。
+
+本功能需要配套新版 padd 和 duck-echo，旧 padd 会提示更新，网页不会假保存。padd 提供 `/run/padd/mapping.sock` v1 控制接口，原 `/run/padd/pad.sock` 仍只读；配置原子保存到 `/var/lib/padd/mappings.json`，服务需要 `StateDirectory=padd`。duck-echo 读取无会话 token 的 `/run/padd/mapping-state.json`，按同一原始绑定处理 R3／Select，并遵守暂停状态；独立安装和软件套件 bootstrap 的服务配置需要 `robot` 附加组才能读取 0640 状态文件。具体协议和验收见 [设计](../../docs/superpowers/specs/2026-10-30-pad-remap-design.md) 与 [验证记录](../../docs/superpowers/verification/2026-10-30-pad-remap-studio.md)。本地实现没有部署到实体主板。
+
+软件验证（从 `software/studio` 目录运行）：
+
+```powershell
+py -3.13 -X utf8 -I -c "import sys;sys.path[:0]=['deps','.'];import unittest;unittest.main(module=None,argv=['x','tests.test_pad_mapping','tests.test_pad_mapping_integration','tests.test_pad_mapping_e2e'])"
+```
+
+浏览器使用真实 Studio／认证／WebSocket 与隔离的原始输入 fixture，截图覆盖 1440、390、320 像素。Linux 下 `tests/pad_mapping_native_contract.py --fixture <Rust测试可执行文件> --dir <新临时目录>` 使用生产 Unix socket handler，验证 Python 学习器与真实 Rust 映射／存储／租期；均不代表不同型号实体手柄已经验收。
 
 ## 参考
 
