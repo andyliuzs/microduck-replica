@@ -7,8 +7,21 @@ from pathlib import Path
 import shutil
 import subprocess
 import tarfile
-import importlib.util
+import types
 from package import runtime_path, valid_version
+
+def frozen_manifest_module(archive, filename):
+    """Publisher metadata must come from the same frozen tree as the payload."""
+    name='software/studio/deploy/'+filename
+    with tarfile.open(fileobj=io.BytesIO(archive)) as source:
+        matches=[item for item in source if item.name==name]
+        if len(matches)!=1 or not matches[0].isfile() or not 0<matches[0].size<=512*1024:
+            raise ValueError('frozen source lacks a bounded manifest module: '+filename)
+        data=source.extractfile(matches[0]).read()
+    module=types.ModuleType('publisher_'+filename.replace('.','_'))
+    module.__file__=name
+    exec(compile(data,name,'exec'),module.__dict__)
+    return module
 
 def build(repo, ref, version, output, signing_key, public_key, minisign='minisign', changelog='', zstd='zstd', native_robotd=None):
     if not valid_version(version): raise ValueError('version must be SemVer')
@@ -19,8 +32,7 @@ def build(repo, ref, version, output, signing_key, public_key, minisign='minisig
         path=Path(native_robotd)
         if path.is_symlink() or not path.is_file() or path.stat().st_size>32*1024*1024:
             raise ValueError('native input must be a bounded regular file')
-        spec=importlib.util.spec_from_file_location('publisher_native_manifest',Path(__file__).resolve().parents[1]/'studio/deploy/native_update.py')
-        native=importlib.util.module_from_spec(spec);spec.loader.exec_module(native)
+        native=frozen_manifest_module(frozen,'native_update.py')
         data=path.read_bytes(); native_manifest=native.native_manifest(version,data)
         native.validate_payload(data,native_manifest,version)
         native_files={'studio/deploy/native/robotd':data,

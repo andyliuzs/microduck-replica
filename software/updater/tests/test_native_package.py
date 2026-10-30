@@ -15,21 +15,23 @@ import build_package as B
 
 
 class NativePackage(unittest.TestCase):
-    def frozen(self):
+    def frozen(self,native_source=None):
+        if native_source is None:
+            native_source=(Path(__file__).resolve().parents[2]/'studio/deploy/native_update.py').read_bytes()
         buffer=io.BytesIO()
         with tarfile.open(fileobj=buffer,mode='w') as archive:
-            for name,data in {'software/studio/deploy/microduck-helper':b'helper','software/studio/deploy/native_update.py':b'module'}.items():
+            for name,data in {'software/studio/deploy/microduck-helper':b'helper','software/studio/deploy/native_update.py':native_source}.items():
                 info=tarfile.TarInfo(name);info.size=len(data);archive.addfile(info,io.BytesIO(data))
         return buffer.getvalue()
 
-    def build(self,native=None):
+    def build(self,native=None,*,native_source=None):
         self.assertIn('native_robotd',__import__('inspect').signature(B.build).parameters,'missing optional native publisher input')
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);binary=root/'native';binary.write_bytes(native or b'')
             def run(argv,**kwargs):
                 if argv[0]=='fake-zstd': kwargs['stdout'].write(kwargs['input'])
                 if '-S' in argv: Path(argv[argv.index('-x')+1]).write_bytes(b'signature')
-            with mock.patch.object(B.subprocess,'check_output',side_effect=['a'*40,self.frozen()]), mock.patch.object(B.subprocess,'run',side_effect=run), mock.patch.object(B.shutil,'which',return_value='fake-zstd'):
+            with mock.patch.object(B.subprocess,'check_output',side_effect=['a'*40,self.frozen(native_source)]), mock.patch.object(B.subprocess,'run',side_effect=run), mock.patch.object(B.shutil,'which',return_value='fake-zstd'):
                 B.build(root,'HEAD','2026.10.30',root,'secret','public',zstd='fake-zstd',native_robotd=binary if native else None)
             with tarfile.open(root/'2026.10.30.tar.zst') as archive:
                 return {item.name:archive.extractfile(item).read() for item in archive}
@@ -68,6 +70,25 @@ class NativePackage(unittest.TestCase):
 
     def test_unreviewed_bytes_are_refused(self):
         with self.assertRaises(ValueError): self.build(b'foreign binary')
+
+    def reviewed_binary(self):
+        relative='artifacts/imu-independent-20261030/robotd-independent-imu-arm64'
+        for root in (Path('F:/chengshenzhilu/Robot/Microduck'),Path('/mnt/f/chengshenzhilu/Robot/Microduck')):
+            if (root/relative).is_file():return (root/relative).read_bytes()
+        self.skipTest('reviewed local release input not present')
+
+    def test_native_manifest_comes_from_frozen_revision_not_builder_worktree(self):
+        source=(Path(__file__).resolve().parents[2]/'studio/deploy/native_update.py').read_bytes()
+        altered=source.replace(b"SOURCE = '931ce978f2efb27c157b7a583ee402793131a0d2'",b"SOURCE = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'")
+        self.assertNotEqual(source,altered)
+        files=self.build(self.reviewed_binary(),native_source=altered)
+        self.assertEqual(json.loads(files['studio/deploy/native/manifest.json'])['source_revision'],'b'*40)
+
+    def test_frozen_validator_cannot_be_bypassed_by_valid_builder_worktree(self):
+        source=(Path(__file__).resolve().parents[2]/'studio/deploy/native_update.py').read_bytes()
+        altered=source.replace(b"REVIEWED_SHA256 = '725b74cd93660a312970a44879abe5b75e8becf108499a1b8798961e48ca5f00'",b"REVIEWED_SHA256 = '1111111111111111111111111111111111111111111111111111111111111111'")
+        self.assertNotEqual(source,altered)
+        with self.assertRaises(ValueError):self.build(self.reviewed_binary(),native_source=altered)
 
 
 if __name__=='__main__':unittest.main()
