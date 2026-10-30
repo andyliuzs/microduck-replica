@@ -7,7 +7,7 @@ from . import helper
 
 MAX_UPLOAD=160*1024*1024
 OPS={'check','download','validate','install','rollback'}
-NATIVE_OPS={'native_status','native_install','native_recover'}
+NATIVE_OPS={'native_status','native_install','native_recover','native_restore'}
 
 def safe_during_update(name,args):
     if name in {'relax','servo.ports'}:return True
@@ -58,7 +58,8 @@ class Updates:
         persisted=self.native_state()
         try: ok,code,detail=await asyncio.to_thread(self.native_call,'Studio','status',timeout=10)
         except Exception: ok,code,detail=False,'unavailable',None
-        fields=('active','phase','transaction_id','available','installed_sha256','target_sha256','running_verified','mode','reason')
+        fields=('active','phase','transaction_id','available','installed_sha256','target_sha256','running_verified','mode','reason',
+                'bundle_schema','bundle_current','components','restorable')
         value={key:detail[key] for key in fields if isinstance(detail,dict) and key in detail} if ok else dict(persisted)
         if persisted.get('active') is True:
             value['active']=True
@@ -71,6 +72,8 @@ class Updates:
         value['current']=(value['supported'] and not value['active'] and
             isinstance(value.get('target_sha256'),str) and len(value['target_sha256'])==64 and
             value.get('installed_sha256')==value['target_sha256'])
+        if 'bundle_schema' in value:
+            value['current']=value['supported'] and not value['active'] and value.get('bundle_current') is True
         value['submitting']=self.native_preparing()
         value['request_error']=self.native_error
         if not ok and not value.get('reason'):
@@ -83,7 +86,7 @@ class Updates:
 
     async def native_request(self,action,*,confirmed=None):
         if action=='status': return {'ok':True,'native':await self.native_status()}
-        if action not in {'install','recover'} or confirmed is not True:
+        if action not in {'install','recover','restore'} or confirmed is not True:
             raise UpdateError('validation','主程序更新需要明确确认：已扶稳并卸力')
         if self.native_preparing() or self.marker.exists():
             raise UpdateError('busy','已有更新任务，请等待或重新读取状态',409)
@@ -123,6 +126,10 @@ class Updates:
         if operation not in OPS|{'status'}: raise UpdateError('validation','不支持的更新操作')
         if operation in {'install','rollback'} and (self.native_preparing() or self.native_state().get('active') is True):
             raise UpdateError('busy','主程序更新尚未结束：先完成或恢复主程序更新',409)
+        if operation=='rollback' and self.native_state().get('bundle_schema'):
+            native=await self.native_status()
+            if native.get('restorable') or native.get('phase')!='restored':
+                raise UpdateError('busy','退回旧网页 / 语音前，请先恢复旧配套驱动并核验',409)
         writer=None
         try:
             reader,writer=await self.connect()

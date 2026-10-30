@@ -59,6 +59,7 @@ class NativeBridge(unittest.IsolatedAsyncioTestCase):
         self.assertFalse((await self.updates.native_status())['current'])
         self.state['running_verified'] = True
         self.assertTrue((await self.updates.native_status())['current'])
+        with self.assertRaises(UpdateError):await self.updates.request('rollback')
 
     async def test_private_preparing_task_is_not_a_motion_or_readiness_guard(self):
         self.hold.clear()
@@ -105,6 +106,18 @@ class NativeBridge(unittest.IsolatedAsyncioTestCase):
         self.hold.clear()
         results=await asyncio.gather(*(self.updates.native_request('install',confirmed=True) for _ in range(2)),return_exceptions=True)
         self.assertEqual(sum(isinstance(row,UpdateError) for row in results),1,results)
+
+    async def test_bundle_current_requires_complete_component_vector_and_explicit_restore(self):
+        self.state.update(installed_sha256=NEW,bundle_schema='microduck-controller-payload/1',bundle_current=False,
+            restorable=False,components={'robotd':{'installed_sha256':NEW},'padd':{'installed_sha256':OLD}})
+        result=await self.updates.native_status()
+        self.assertFalse(result['current'],'robotd .47 alone is not a current controller bundle')
+        self.assertIn('padd',result['components'])
+        self.state.update(bundle_current=True,restorable=True)
+        self.assertTrue((await self.updates.native_status())['current'])
+        await self.updates.native_request('restore',confirmed=True)
+        await self.updates.native_task
+        self.assertIn(('Studio','restore',{'confirmed':True}),self.calls)
 
 
 class NativeHttp(unittest.IsolatedAsyncioTestCase):
@@ -158,6 +171,16 @@ class NativeHttp(unittest.IsolatedAsyncioTestCase):
                 result=next(m for m in client.msgs if m.get('id')==cid and m.get('t')=='result')
                 self.assertEqual(result['ok'],name=='relax',result)
         finally: client.close()
+
+    async def test_bundle_restore_requires_auth_csrf_and_boolean_confirmation(self):
+        for body in ({'op':'native_restore'},{'op':'native_restore','confirmed':1}):
+            status,_,_=await self.call('POST','/api/updates',body,self.headers);self.assertEqual(status,400)
+        status,_,_=await self.call('POST','/api/updates',{'op':'native_restore','confirmed':True},{})
+        self.assertEqual(status,401)
+        status,_,_=await self.call('POST','/api/updates',{'op':'native_restore','confirmed':True},self.headers)
+        self.assertEqual(status,200)
+        await self.updates.native_task
+        self.assertIn(('Studio','restore',{'confirmed':True}),self.native_calls)
 
     async def test_real_prejournal_battery_refusal_reaches_helper_bridge_and_http(self):
         from tests.test_native_update import NativeTest,H,STATE

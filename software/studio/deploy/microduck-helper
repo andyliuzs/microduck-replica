@@ -3266,7 +3266,17 @@ def load_native_update(op):
         if suite.get('version')!=version or not isinstance(suite.get('files'),dict): raise ValueError('invalid suite provenance')
         names = ['studio/deploy/microduck-helper','studio/deploy/native_update.py']
         native = ['studio/deploy/native/robotd','studio/deploy/native/manifest.json']
-        if any(os.path.lexists(ctx.p(release+'/'+name)) or name in suite['files'] for name in native): names += native
+        companion = ['studio/deploy/native/padd','studio/deploy/native/controller-manifest.json']
+        has_companion=any(os.path.lexists(ctx.p(release+'/'+name)) or name in suite['files'] for name in companion)
+        controller='studio/deploy/controller_bundle.py'
+        controller_state=any(os.path.lexists(ctx.p('/var/lib/microduck-helper/controller-update/'+n)) for n in ('journal.json','prepared.json'))
+        if has_companion or controller in suite['files'] or controller_state:
+            names.append(controller)
+        if has_companion:
+            contract=(suite.get('contracts') or {}).get('padd_mapping')
+            if type(contract) is not int or contract!=1:raise ValueError('voice mapping contract missing')
+            names+=companion+['duck-echo/duck_echo.py','duck-echo/pad_mapping.py']
+        if has_companion or any(os.path.lexists(ctx.p(release+'/'+name)) or name in suite['files'] for name in native): names += native
         verified = {}
         for name in names:
             data = read(release+'/'+name,32*1024*1024)
@@ -3274,6 +3284,10 @@ def load_native_update(op):
             verified[name] = data
         namespace = {'__name__':'microduck_trusted_native_update','__file__':ctx.p(release+'/studio/deploy/native_update.py')}
         exec(compile(verified['studio/deploy/native_update.py'],namespace['__file__'],'exec'),namespace)
+        if controller in verified:
+            dependency={'__name__':'microduck_trusted_controller_bundle','__file__':ctx.p(release+'/'+controller)}
+            exec(compile(verified[controller],dependency['__file__'],'exec'),dependency)
+            namespace['CONTROLLER_BUNDLE']=types.SimpleNamespace(**dependency)
         return types.SimpleNamespace(**namespace), release
     except (OSError,ValueError,TypeError,KeyError,AttributeError) as error:
         raise Stop(EXIT_STATE,'native_untrusted_release','主程序更新只能从已安装并校验的 root 管理签名软件包运行') from error
@@ -3281,7 +3295,7 @@ def load_native_update(op):
 
 def verb_robotd_update(op, args, raw):
     if (set(args)-{'by','action','confirmed'} or args.get('by')!='Studio'
-            or args.get('action') not in ('status','install','recover')
+            or args.get('action') not in ('status','install','recover','restore')
             or (args['action']!='status' and args.get('confirmed') is not True)
             or ('confirmed' in args and type(args['confirmed']) is not bool)):
         raise Stop(EXIT_ARGS,'bad_args','robotd-update 只接受 Studio 的固定动作和明确确认')
@@ -3308,6 +3322,15 @@ def native_update_conflict(op):
                     or type(m.get('restore_pending',False)) is not bool
                     or type(m.get('cleanup_pending',False)) is not bool):raise ValueError('invalid native state')
             active=m['active'] or m.get('restore_pending',False) or m.get('cleanup_pending',False)
+        except (OSError,ValueError,TypeError,AttributeError,Stop):active=True
+    bundle='/var/lib/microduck-helper/controller-update/journal.json'
+    if exists(op.ctx,bundle):
+        try:
+            if os.lstat(op.ctx.p(bundle)).st_size>65536:raise ValueError('oversized controller state')
+            m=json.loads(imu_profile_safe_file(op,bundle))
+            if (m.get('schema')!='microduck-controller-update/1' or type(m.get('active')) is not bool
+                    or type(m.get('restore_pending')) is not bool or type(m.get('cleanup_pending')) is not bool):raise ValueError('invalid controller state')
+            active=active or m['active'] or m['restore_pending'] or m['cleanup_pending']
         except (OSError,ValueError,TypeError,AttributeError,Stop):active=True
     if active:raise Stop(EXIT_STATE,'native_update_active','主程序更新尚未完成：先完成或恢复更新，再操作总线 / 标定')
 
