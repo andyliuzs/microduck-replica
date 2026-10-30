@@ -143,3 +143,34 @@ hardware deployment, or one end-to-end production controller transaction with
 real UART/evdev devices. The local candidate was not published or deployed by
 this validation task. The signed envelope's separate stage1 install, signature,
 health rollback and crash-recovery acceptance remains recorded by root.
+
+
+## Final public software release
+
+[Software 2026.10.31](https://github.com/fanhao375/microduck-replica/releases/tag/microduck-software-v2026.10.31)
+was published after independent review with no remaining Critical/Important/Minor
+findings. Its tag and runtime source are `26150eb`; later documentation commits do not
+change the Studio, voice or updater trees.
+
+- All 11 GitHub attachment sizes/SHA256 digests match the independently checked local
+  inventory. Software is 9,287,680 bytes, SHA256
+  `5f6a597abe27d9c4af8e137841c9dcab4b6c4b378f44c8f88f4c7b4f6ae09204`.
+- Bootstrap is 61,425,062 bytes, SHA256
+  `8a12c6ee378782d7441b0347c3bd15524ade9c5c69151dcd5121d01f4d4cb6ee`.
+  Its 319 declared files were individually checked, including 304 resources, original
+  ARM engine/public key and the exact same signed software envelope.
+- The actual original 27 client anonymously discovered 31 from the public catalog,
+  downloaded the software package and verified both minisign signatures with its
+  original public key. The 27 image remains GitHub Latest.
+- [Public native source export](https://github.com/fanhao375/Microduck-kissqy/tree/27d7921dbcb280bd7d6ba3e9937624f1e2e61d23)
+  has program/build-input blobs and modes identical to the original frozen 665 source.
+  Its sole parent is the existing public baseline. Protected local console changes
+  and history were excluded; the unchanged pre-push hook passed normally. The new
+  public recipe was syntax/gate checked, including `python -O` rejection, but not used
+  to rebuild the frozen binary.
+
+Public identities and scope are in the attached `runtime-provenance.json`. Local
+publication evidence is `publication-assets.json`, `local-assets-verification.json`,
+`draft-publication-verification.json` and `public-publication-verification.json`
+under the task artifact root. Publication does not install or accept the new
+controller bundle on a physical duck; that separate device gate remains pending.
