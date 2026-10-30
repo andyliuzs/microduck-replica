@@ -228,7 +228,7 @@ function CameraScreen({ connection, video, compact = false }) {
   const height = connection.height || connection.metadata?.height || 480;
   const sideways = rotate === 90 || rotate === 270;
   return html`<div ref=${screen} class="camera-screen" data-playing=${connection.state === 'playing'}
-    style=${compact ? null : { aspectRatio: sideways ? `${height} / ${width}` : `${width} / ${height}`,
+    style=${compact ? { '--camera-display-aspect': String(sideways ? height / width : width / height) } : { aspectRatio: sideways ? `${height} / ${width}` : `${width} / ${height}`,
       maxWidth: `min(100%, ${72 * (sideways ? height / width : width / height)}vh)` }}>
     <video class=${compact ? 'inline-camera-video' : 'camera-video'} ref=${video} muted playsInline autoPlay aria-label="鸭子摄像头画面"
       style=${{ width: sideways ? `${100 / ratio}%` : '100%', height: sideways ? `${100 * ratio}%` : '100%', transform: `translate(-50%, -50%) rotate(${rotate}deg)` }}></video>
@@ -249,10 +249,11 @@ export function InlineCamera({ api, active = false }) {
   return html`<section ref=${card} class="board pd-card inline-camera" aria-labelledby="inline-camera-title">
     <div class="inline-camera-head"><h3 id="inline-camera-title">摄像头</h3>
       <span class="sensor-pill inline-camera-status" role="status" data-state=${connection.state}>${CAMERA_STATES[connection.state] || '等待画面'}</span>
-      <button class="btn-light inline-camera-retry" type="button" onClick=${reconnect} disabled=${['loading', 'connecting', 'signaling', 'negotiating', 'receiving'].includes(connection.state)}>重新检测</button>
+      <div class="inline-camera-actions"><a class="inline-camera-expand" href="#/camera">放大查看</a>
+        <button class="btn-light inline-camera-retry" type="button" onClick=${reconnect} disabled=${['loading', 'connecting', 'signaling', 'negotiating', 'receiving'].includes(connection.state)}>重新检测</button></div>
     </div>
     <${CameraScreen} connection=${connection} video=${video} compact />
-    <div class="inline-camera-meta"><span class="inline-camera-source">${config ? source.label : '鸭子前方的画面'}</span><a href="#/camera">打开摄像头页 ›</a></div>
+    <div class="inline-camera-meta"><span class="inline-camera-source">${config ? source.label : '鸭子前方的画面'}</span></div>
   </section>`;
 }
 
