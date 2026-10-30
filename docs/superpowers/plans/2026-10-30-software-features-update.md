@@ -10,7 +10,7 @@
 
 - [x] Create `release/software-features-20261030` from latest public `origin/master` (`577af8a`) outside the canonical checkout.
 - [x] Cherry-pick the SSH guide, mapping/clear and camera in-place zoom commits, preserving the root README/Alipay and existing music player.
-- [ ] Native owner fixes proof and synthetic fixture using the actual flattened busStatus wire format, merges the media unit fix in a separate release worktree, and freezes a new ARM64 binary plus provenance.
+- [x] Native owner fixes proof and synthetic fixture using the actual flattened busStatus wire format, merges the media unit fix, and freezes source `665613a`. Independent a/b ARM builds match (`dc1c7043…`, 3,522,648 bytes); Linux padd 113 tests, host/QEMU process status and ELF/GLIBC checks passed. Hardware and coordinated-install acceptance remain separate.
 - [x] Studio owner replaces configuration-policy checks with fresh runtime evidence, restores realistic policy-enabled browser fixtures, observes red/green and commits only its scoped source/tests (`2cabc46`).
 - [x] Independent reviewer checks the real serializer fixture and native/Studio wire changes. Native 113-test Linux evidence predates the WSL failure; full bundle permission/socket validation is still pending.
 

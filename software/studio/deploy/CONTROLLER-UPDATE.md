@@ -91,9 +91,13 @@ owned runtime is handled. Failed/incomplete restoration keeps legacy exclusion.
 
 ## Release status
 
-The corrected padd ARM identity is deliberately unset until a new reviewed build
-is available. `validate_bundle` fails closed and status reports unavailable while
-pins are unset. Windows filesystem/service and browser fixtures do not establish
+The corrected padd ARM identity is frozen from source
+`665613ac628fdc9b1b71f324809f0c16ce2795f2`: 3,522,648 bytes, SHA256
+`dc1c7043a108964583fc09a11e3d6f87a25e259c346f7ce9154e77500a0881ec`.
+Two independent builds are byte-identical and passed actual QEMU process/status
+checks; the source's 113 padd tests passed on Linux. See the dated native-input
+verification record. A fixed binary identity alone does not publish a release.
+Windows filesystem/service and browser fixtures do not establish
 real Linux systemd/UID behavior, ARM execution, original-27 installer acceptance,
 physical-controller behavior or device deployment. See the dated verification
 record for completed checks and pending release gates.

@@ -20,10 +20,10 @@ ROBOTD_SHA256='725b74cd93660a312970a44879abe5b75e8becf108499a1b8798961e48ca5f00'
 ROBOTD_SIZE=5606976
 ROBOTD_SOURCE='931ce978f2efb27c157b7a583ee402793131a0d2'
 ROBOTD_BUILD='0791fcd-feetech-qinmo-control.47'
-# Deliberately unavailable until the release owner freezes corrected inputs.
-PADD_SHA256=None
-PADD_SIZE=None
-PADD_SOURCE=None
+# Frozen from two independent, byte-identical builds and actual QEMU status.
+PADD_SHA256='dc1c7043a108964583fc09a11e3d6f87a25e259c346f7ce9154e77500a0881ec'
+PADD_SIZE=3522648
+PADD_SOURCE='665613ac628fdc9b1b71f324809f0c16ce2795f2'
 SUPPORTED_PADD_SHA256=('85fc8051df2ce496abf32bbb5eba3c94c44d875365a8f33a2f53f90facba90db',)
 ROBOTD='/opt/robot/feetech-ft5-r5/robotd'
 PADD='/opt/robot/feetech-ft5-r5/padd'
