@@ -147,3 +147,27 @@ audio-status thread AF_UNIX AttributeError is retained in the log. This broad
 baseline is not evidence that the subsequent review fixes passed all 1461 tests;
 only the fresh affected regression above applies to those fixes. Final independent
 review and Linux/ARM/old-27 release gates remain outstanding.
+
+## Final independent Windows/source review, 2026-10-31
+
+Frozen production/test logic: `11a31e06f652c4823ca9f76a41670582a760bfd7`.
+The independent reviewer completed specification review followed by quality and
+safety review: remaining Critical=0, Important=0, Minor=0 in the reviewed change.
+The original five reproduction scripts were replayed independently, including
+the actual older `c677546` helper refusing bus-take while v2 completion remained
+pending. First and repeated unpublished preparation, all-controller stop
+attempts after multiple failures, access-denied voice protection and inactive
+unknown media refusal all passed.
+
+The reviewer independently ran the four affected modules: 65 total,
+0 failures/errors, 3 POSIX skips (62 executed), 33.837s, including the real
+NativeHttp/build_app plus controller recovery self-lock case. Node UI passed.
+Root separately reran controller_bundle plus updates_native: 52 total,
+0 failures/errors, 3 skips (49 executed), 32.243s; evidence is
+`root-controller-review-fixes-20261031.log` under the same artifact root.
+
+These results close the local implementation review. They do not close the
+pending real Linux UID/systemd/fsync tests, ARM input freeze, signed final
+artifact or original-27 direct software rollback plus voice compatibility
+acceptance. No package was signed/published, no image was rebuilt and no device
+was deployed by this stage. Later plan/review-record commits contain only docs.
