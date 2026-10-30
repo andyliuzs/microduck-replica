@@ -28,7 +28,7 @@ def runtime_path(name):
         rel=name[len('software/studio/'):]
         allowed=(rel=='run.py' or rel.startswith(('studio/','web/','deps/','deploy/')))
         if allowed and not rel.endswith(('.pyc','.pyo','.key','.pem','.log')): return 'studio/'+rel
-    if name.startswith('software/duck-echo/') and name.rsplit('/',1)[-1] in VOICE:
+    if name.startswith('software/duck-echo/') and len(parts)==3 and parts[-1] in VOICE:
         return 'duck-echo/'+name.rsplit('/',1)[-1]
     return None
 

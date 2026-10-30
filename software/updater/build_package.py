@@ -89,6 +89,7 @@ def build(repo, ref, version, output, signing_key, public_key, minisign='minisig
                 if not item.isfile():
                     if item.isdir(): continue
                     raise ValueError('runtime whitelist contains a non-regular file')
+                if name in files:raise ValueError('duplicate runtime target in frozen source: '+name)
                 data=source.extractfile(item).read(); files[name]=hashlib.sha256(data).hexdigest()
                 if name in NATIVE_MEMBERS: raise ValueError('native payload must only come from the explicit publisher input')
                 info=tarfile.TarInfo(name); info.size=len(data); info.mode=0o755 if name.endswith('microduck-helper') else 0o644

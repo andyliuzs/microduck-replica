@@ -155,5 +155,21 @@ def validate_bundle(robotd,padd,manifest,version):
             with self.subTest(value=declaration),self.assertRaises(ValueError):
                 self.build(voice_source=b'PADD_MAPPING_CONTRACT = '+declaration+b'\n')
 
+    def test_nested_legacy_voice_cannot_replace_declared_root_consumer(self):
+        voice=b'PADD_MAPPING_CONTRACT = 1\n'
+        files=self.build(voice_source=voice,extra={
+            'software/duck-echo/legacy/duck_echo.py':b'LEGACY = True\n',
+            'software/duck-echo/legacy/pad_mapping.py':b'# legacy reader\n'})
+        self.assertEqual(files['duck-echo/duck_echo.py'],voice)
+        self.assertEqual(files['duck-echo/pad_mapping.py'],b'# synthetic reader boundary\n')
+
+    def test_duplicate_runtime_target_is_refused_before_signing(self):
+        buffer=io.BytesIO(self.frozen(extra={'software/studio/web/app.js':b'first'}))
+        with tarfile.open(fileobj=buffer,mode='a') as archive:
+            info=tarfile.TarInfo('software/studio/web/app.js');info.size=6
+            archive.addfile(info,io.BytesIO(b'second'))
+        with mock.patch.object(self,'frozen',return_value=buffer.getvalue()),self.assertRaises(ValueError):
+            self.build()
+
 
 if __name__=='__main__':unittest.main()
