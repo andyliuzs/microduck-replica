@@ -15,19 +15,22 @@ import build_package as B
 
 
 class NativePackage(unittest.TestCase):
-    def frozen(self,native_source=None,*,bundle_source=None,extra=None):
+    def frozen(self,native_source=None,*,bundle_source=None,extra=None,voice_source=None,reader=True):
         if native_source is None:
             native_source=(Path(__file__).resolve().parents[2]/'studio/deploy/native_update.py').read_bytes()
         buffer=io.BytesIO()
         members={'software/studio/deploy/microduck-helper':b'helper','software/studio/deploy/native_update.py':native_source}
         if bundle_source is not None:members['software/studio/deploy/controller_bundle.py']=bundle_source
+        if bundle_source is not None or voice_source is not None:
+            members['software/duck-echo/duck_echo.py']=voice_source if voice_source is not None else b'PADD_MAPPING_CONTRACT = 1\n'
+            if reader:members['software/duck-echo/pad_mapping.py']=b'# synthetic reader boundary\n'
         members.update(extra or {})
         with tarfile.open(fileobj=buffer,mode='w') as archive:
             for name,data in members.items():
                 info=tarfile.TarInfo(name);info.size=len(data);archive.addfile(info,io.BytesIO(data))
         return buffer.getvalue()
 
-    def build(self,native=None,*,native_source=None,padd=None,bundle_source=None,extra=None):
+    def build(self,native=None,*,native_source=None,padd=None,bundle_source=None,extra=None,voice_source=None,reader=True):
         self.assertIn('native_robotd',__import__('inspect').signature(B.build).parameters,'missing optional native publisher input')
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);binary=root/'native';binary.write_bytes(native or b'')
@@ -38,7 +41,7 @@ class NativePackage(unittest.TestCase):
             def run(argv,**kwargs):
                 if argv[0]=='fake-zstd': kwargs['stdout'].write(kwargs['input'])
                 if '-S' in argv: Path(argv[argv.index('-x')+1]).write_bytes(b'signature')
-            with mock.patch.object(B.subprocess,'check_output',side_effect=['a'*40,self.frozen(native_source,bundle_source=bundle_source,extra=extra)]), mock.patch.object(B.subprocess,'run',side_effect=run), mock.patch.object(B.shutil,'which',return_value='fake-zstd'):
+            with mock.patch.object(B.subprocess,'check_output',side_effect=['a'*40,self.frozen(native_source,bundle_source=bundle_source,extra=extra,voice_source=voice_source,reader=reader)]), mock.patch.object(B.subprocess,'run',side_effect=run), mock.patch.object(B.shutil,'which',return_value='fake-zstd'):
                 B.build(root,'HEAD','2026.10.30',root,'secret','public',zstd='fake-zstd',native_robotd=binary if native else None,**kwargs)
             with tarfile.open(root/'2026.10.30.tar.zst') as archive:
                 return {item.name:archive.extractfile(item).read() for item in archive}
@@ -121,6 +124,7 @@ def validate_bundle(robotd,padd,manifest,version):
         manifest=json.loads(files['studio/deploy/native/controller-manifest.json'])
         suite=json.loads(files['suite-version.json'])
         self.assertEqual(manifest['frozen_marker'],'fixture-only')
+        self.assertEqual(suite.get('contracts'),{'padd_mapping':1})
         self.assertEqual(files['studio/deploy/native/padd'],padd)
         for name in ('robotd','manifest.json','padd','controller-manifest.json'):
             path='studio/deploy/native/'+name
@@ -133,6 +137,23 @@ def validate_bundle(robotd,padd,manifest,version):
     def test_companion_cannot_be_injected_by_git_archive_without_explicit_input(self):
         with self.assertRaises(ValueError):
             self.build(extra={'software/studio/deploy/native/padd':b'foreign'})
+
+    def test_new_voice_contract_survives_future_software_only_update(self):
+        files=self.build(voice_source=b'PADD_MAPPING_CONTRACT = 1\n')
+        self.assertEqual(json.loads(files['suite-version.json']).get('contracts'),{'padd_mapping':1})
+
+    def test_companion_requires_explicit_voice_contract_and_reader(self):
+        padd,source=self.bundle_fixture()
+        for kwargs in ({'voice_source':b'# legacy voice\n'},{'reader':False}):
+            with self.subTest(kwargs=kwargs),self.assertRaises(ValueError):
+                self.build(self.reviewed_binary(),padd=padd,bundle_source=source,**kwargs)
+
+    def test_voice_contract_is_strict_and_never_executes_voice_module(self):
+        files=self.build(voice_source=b'PADD_MAPPING_CONTRACT = 1\nraise RuntimeError("must not execute voice")\n')
+        self.assertEqual(json.loads(files['suite-version.json']).get('contracts'),{'padd_mapping':1})
+        for declaration in (b'True',b'2',b'get_contract()'):
+            with self.subTest(value=declaration),self.assertRaises(ValueError):
+                self.build(voice_source=b'PADD_MAPPING_CONTRACT = '+declaration+b'\n')
 
 
 if __name__=='__main__':unittest.main()

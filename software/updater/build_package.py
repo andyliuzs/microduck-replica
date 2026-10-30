@@ -1,5 +1,6 @@
 """Build a frozen Git runtime whitelist and sign using publisher's minisign CLI."""
 import argparse
+import ast
 import hashlib
 import io
 import json
@@ -11,6 +12,30 @@ import types
 from package import runtime_path, valid_version
 
 NATIVE_MEMBERS=frozenset('studio/deploy/native/'+name for name in ('robotd','manifest.json','padd','controller-manifest.json'))
+
+def frozen_voice_contract(archive):
+    """Read an explicit consumer declaration without importing the audio daemon."""
+    with tarfile.open(fileobj=io.BytesIO(archive)) as source:
+        members=list(source)
+        voices=[item for item in members if item.name=='software/duck-echo/duck_echo.py']
+        if not voices:return {}
+        if len(voices)!=1 or not voices[0].isfile() or not 0<voices[0].size<=2*1024*1024:
+            raise ValueError('invalid frozen voice consumer source')
+        try:tree=ast.parse(source.extractfile(voices[0]).read())
+        except (SyntaxError,ValueError):raise ValueError('invalid frozen voice consumer source') from None
+        values=[]
+        for node in tree.body:
+            targets=node.targets if isinstance(node,ast.Assign) else [node.target] if isinstance(node,ast.AnnAssign) else []
+            if any(isinstance(target,ast.Name) and target.id=='PADD_MAPPING_CONTRACT' for target in targets):
+                try:values.append(ast.literal_eval(node.value))
+                except (ValueError,TypeError):raise ValueError('voice mapping contract must be a literal integer') from None
+        if not values:return {}
+        if len(values)!=1 or type(values[0]) is not int or values[0]!=1:
+            raise ValueError('unsupported voice mapping contract')
+        readers=[item for item in members if item.name=='software/duck-echo/pad_mapping.py']
+        if len(readers)!=1 or not readers[0].isfile() or not 0<readers[0].size<=2*1024*1024:
+            raise ValueError('voice mapping contract requires the frozen reader')
+        return {'padd_mapping':1}
 
 def frozen_manifest_module(archive, filename):
     """Publisher metadata must come from the same frozen tree as the payload."""
@@ -31,6 +56,9 @@ def build(repo, ref, version, output, signing_key, public_key, minisign='minisig
         raise ValueError('controller bundle requires an explicit matching robotd input')
     revision=subprocess.check_output(['git','-C',str(repo),'rev-parse','--verify',ref+'^{commit}'],text=True).strip()
     frozen=subprocess.check_output(['git','-C',str(repo),'archive','--format=tar',revision,'software/studio','software/duck-echo'])
+    contracts=frozen_voice_contract(frozen)
+    if native_padd is not None and contracts!={'padd_mapping':1}:
+        raise ValueError('controller bundle requires the declared voice mapping contract')
     native_files={}
     if native_robotd is not None:
         path=Path(native_robotd)
@@ -72,7 +100,9 @@ def build(repo, ref, version, output, signing_key, public_key, minisign='minisig
                 files[name]=hashlib.sha256(data).hexdigest()
                 info=tarfile.TarInfo(name);info.size=len(data);info.mode=0o755 if name.rsplit('/',1)[-1] in ('robotd','padd') else 0o644
                 dest.addfile(info,io.BytesIO(data))
-        provenance=json.dumps({'version':version,'source_revision':revision,'files':files},sort_keys=True,indent=2).encode()
+        metadata={'version':version,'source_revision':revision,'files':files}
+        if contracts:metadata['contracts']=contracts
+        provenance=json.dumps(metadata,sort_keys=True,indent=2).encode()
         info=tarfile.TarInfo('suite-version.json'); info.size=len(provenance); info.mode=0o644
         dest.addfile(info,io.BytesIO(provenance))
     with artifact.open('wb') as stream:
