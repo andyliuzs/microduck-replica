@@ -3814,10 +3814,10 @@
           "number": 506,
           "title": "robotd-params: the mic records from `default` as written, not `default,0`",
           "state": "open",
-          "draft": true,
+          "draft": false,
           "merged_at": null,
           "created_at": "2026-10-30T22:13:22Z",
-          "updated_at": "2026-10-30T22:13:22Z",
+          "updated_at": "2026-10-31T01:08:10Z",
           "merge_commit_sha": "358be798730d28c438a213d932fa347258405193",
           "url": "https://github.com/pollen-robotics/microduck/pull/506",
           "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
@@ -3886,9 +3886,28 @@
               "tests_rerun": false,
               "code_or_image_or_device_changed": false
             },
-            "release_status": "Draft PR only; not merged; no formal or matching development release observed."
+            "release_status": "Open ready-for-review PR (draft=false); not merged; no formal or matching development release observed. Same fixed source and author body as initial draft.",
+            "status_checked_at_utc": "2026-10-31T01:14:08.687167+00:00",
+            "status_only_update": {
+              "draft_before": true,
+              "draft_now": false,
+              "head_sha_changed": false,
+              "author_body_changed": false,
+              "reviews": 0,
+              "issue_comments": 0,
+              "check_runs": 0,
+              "new_test_execution_claimed_by_tracker": false
+            }
           },
-          "review_history": []
+          "review_history": [
+            {
+              "checked_at_utc": "2026-10-30T23:16:01.893501+00:00",
+              "state": "open",
+              "draft": true,
+              "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+              "scope": "Initial draft/source review; source and test claims remain unchanged after ready-for-review transition."
+            }
+          ]
         }
       ],
       "previous_stable_releases": [
@@ -5108,7 +5127,7 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-30T23:16:01.893501+00:00",
+  "checked_at_utc": "2026-10-31T01:14:08.687167+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
@@ -5117,12 +5136,16 @@
     "stable_assets_changed": false,
     "stable_asset_count": 8,
     "previous_tracked_prs_merged": false,
-    "new_pull_requests": {
-      "pollen-robotics/microduck": [
-        506
-      ]
+    "new_pull_requests": {},
+    "updated_pull_requests": {
+      "506": {
+        "draft_before": true,
+        "draft_now": false,
+        "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+        "source_code_changed": false,
+        "merged": false
+      }
     },
-    "updated_pull_requests": {},
     "new_development_releases": [],
     "moved_development_tags": [],
     "retired_development_tags": [],
@@ -5135,7 +5158,7 @@
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "New draftPR506 atcbe0a9f: conditional native capture-device ,0 fix; fixed two-file patch and relevant context read only. Author Linux/PulseAudio reports are separate from replica acceptance. Existing local0182/3a696c7 still has old append rule; no integration/test/environment operation. Official stable/default heads/dev refs/otherPRs/models/blog and own31software release unchanged."
+    "notes": "PR506 moved from draft to ready for review, still open at the exact cbe0a9f source. Author body/test claims unchanged; no reviews/comments/check-runs observed. Status correction only, no new implementation/release/replica validation. All four heads/stable assets/dev tags/other PRs/models/blog unchanged; no runtime, test or environment operation."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
