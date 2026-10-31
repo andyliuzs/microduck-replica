@@ -214,10 +214,10 @@
           "verification": "Read2fixedsourcepatches including4mappingtests; no execution, published nudge-weight download, new training or physical input/motion validation.",
           "same_source_as_ground_grasp_x": false,
           "ground_grasp_source_relationship": {
-            "checked_at_utc": "2026-10-30T12:08:18.791615+00:00",
+            "checked_at_utc": "2026-10-31T11:26:14.967287+00:00",
             "previously_identical_at_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
-            "ground_grasp_now_at_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
-            "note": "Precision-pad tag remains614acd6; ground-grasp-x additionally has phase/WAV and new CSV beak track code."
+            "ground_grasp_now_at_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "note": "Precision-pad unchanged; ground-grasp-x retains phase/WAV/CSV and adds guarded skill interruption and Start one-shot sound stop."
           },
           "ground_grasp_relationship_history": [
             {
@@ -225,6 +225,12 @@
               "previously_identical_at_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
               "ground_grasp_now_at_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
               "note": "Precision-pad tag did not move; ground-grasp-x added one phase/sound skill commit."
+            },
+            {
+              "checked_at_utc": "2026-10-30T12:08:18.791615+00:00",
+              "previously_identical_at_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
+              "ground_grasp_now_at_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+              "note": "Precision-pad tag remains614acd6; ground-grasp-x additionally has phase/WAV and new CSV beak track code."
             }
           ]
         },
@@ -1466,12 +1472,12 @@
         {
           "tag": "daemon-dev-ground-grasp-x",
           "url": "https://github.com/pollen-robotics/microduck/releases/tag/daemon-dev-ground-grasp-x",
-          "published_at": "2026-10-30T11:28:54Z",
-          "head_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+          "published_at": "2026-10-31T10:57:52Z",
+          "head_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
           "prerelease": true,
-          "change": "One commit/five files adds optional local CSV mouth track to configurable skills, CLI --mouth and editor persistence, driving-time mouth priority and flap statistics; keeps prior phase/WAV features. No track/model/audio asset delivered.",
-          "replica_integration": "not_integrated; requires HD-1910 policy/contract and mouth-ownership review",
-          "priority": "medium",
+          "change": "Two commits/seven files add per-skill fall_safety, default on for phase/off otherwise; existing fall/pick-up verdicts cut guarded skills and request native one-shot sound stop. Start/drive-stop also requests sound stop while busy. Prior phase/WAV/CSV retained; no new weights or media.",
+          "replica_integration": "not_integrated; fixed local0182/3a696c7 lacks SkillDef.fall_safety; no migration, image, device or live-page modification",
+          "priority": "high_reference_for_long_skill_interruption_and_one_shot_audio_stop; isolate contract/IMU/model/HD1910 acceptance before adoption",
           "history": [
             {
               "head_sha": "01a90748823e92295de4220feb4f61ccd0089464",
@@ -1569,38 +1575,110 @@
                 "new_policy_or_WAV_delivered": false,
                 "HD1910_verified": false
               }
+            },
+            {
+              "tag": "daemon-dev-ground-grasp-x",
+              "url": "https://github.com/pollen-robotics/microduck/releases/tag/daemon-dev-ground-grasp-x",
+              "published_at": "2026-10-30T11:28:54Z",
+              "head_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+              "prerelease": true,
+              "change": "One commit/five files adds optional local CSV mouth track to configurable skills, CLI --mouth and editor persistence, driving-time mouth priority and flap statistics; keeps prior phase/WAV features. No track/model/audio asset delivered.",
+              "replica_integration": "not_integrated; requires HD-1910 policy/contract and mouth-ownership review",
+              "priority": "medium",
+              "version": "daemon 0.17.8-dev.1523.fe9ad02 (ground-grasp-x)",
+              "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/ade23e7c16abef90f18d06f01f15a0be502b709f...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+              "version_family": "0.17.8-development, diverged from current main; not PR481/static default nor a stable update",
+              "comparison_to_recorded_main": {
+                "from_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
+                "to_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+                "status": "diverged",
+                "ahead_by": 7,
+                "behind_by": 54,
+                "merge_base_sha": "942e58e3aa6dbb28e7037203fff11866122c7567",
+                "file_count": 19,
+                "fixed_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+                "scope_note": "Older0.17.8/API44 development base; not a current stable package."
+              },
+              "contract_note": "Reserves fourth built-in request bit, shifts configurable mask by4 and reduces MAX_SKILLS29to28. Requires matching config/selection/request/report and mouth ownership, not version-number equivalence.",
+              "verification": "Read5fixed patches,3added test functions (oneORT-dependent ignored) and fixedmodel/IPC constants; no source/test/inference/audio/robot execution.",
+              "previous_head_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+              "latest_increment": {
+                "from_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+                "to_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+                "commit_count": 1,
+                "file_count": 5,
+                "files": [
+                  "robotctl/src/main.rs",
+                  "robotd-params/src/edit.rs",
+                  "robotd-params/src/lib.rs",
+                  "robotd/src/control.rs",
+                  "robotd/src/main.rs"
+                ],
+                "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/ade23e7c16abef90f18d06f01f15a0be502b709f...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+                "new_model_or_audio_bytes": false,
+                "new_CSV_track_asset": false
+              },
+              "phase_clock_skills": {
+                "config": "[[policy.skill]] phase=true and optional sound path; defaults phase=false/sound=None",
+                "holding_command": "[cos(2*pi*phi),sin(2*pi*phi),0] with phi clamped0..1 over positive duration",
+                "ordinary_and_unwind": "Plain skills keep constant command; unwind phase uses existing unwind command.",
+                "audio": "voice.play_file invoked only after start_skill returns Ok(true), from configured localWAV if voice exists; no new play on Ok(false) or refusal. Not a measured acoustic alignment guarantee.",
+                "CLI_options": [
+                  "--phase",
+                  "--sound",
+                  "--action-scale"
+                ],
+                "CLI_phase_conflicts_with_constant_command": true,
+                "action_scale_precedence": "Explicit CLI flag, then manifest action_scale; not automatic dynamics adaptation.",
+                "persistence": "File editor writes phase/sound only when set. robot.setSkill preserves these from the existing entry; new fields are not added to that RPC wire contract.",
+                "new_policy_or_WAV_delivered": false,
+                "HD1910_verified": false
+              },
+              "api_version": 44,
+              "mouth_track": {
+                "configuration": "SkillDef mouth optional path / robotctl policy add --mouth CSV; robot.setSkill preserves an existing file key but has no new mouth-track wire parameter.",
+                "format": "t,mouth CSV: seconds and radians, finite values and strictly increasing times. Blank/comment lines skipped; pre-data header/non-number rows skipped; extra cells not consumed.",
+                "evaluation": "Linear interpolation, hold first/last endpoints, official-model clamp from-5deg to+30deg. Skill time is duration-remaining; unwinding holds endpoint.",
+                "priority": "Overrides trigger/idle/instrument/grasp mouth only while driving with active tracked skill; stopped/finished skill returns ownership.",
+                "missing_or_invalid_file": "Warns and runs skill without mouth track; not a successful mouth replay.",
+                "clock": "Read after controller step, documented one tick ahead of leg clock. Existing WAV trigger is not measured audio/video/servo synchronization.",
+                "tests": "CSV interpolation/clamp and TOML roundtrip sources plus an ignored ORT>=1.23 ownership test; not run by tracker.",
+                "HD1910": "Review mouth direction, physical travel, angle units and ownership; no new BAM/training or physical mouth/sound acceptance."
+              }
             }
           ],
-          "version": "daemon 0.17.8-dev.1523.fe9ad02 (ground-grasp-x)",
-          "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/ade23e7c16abef90f18d06f01f15a0be502b709f...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+          "version": "daemon 0.17.8-dev.1530.a5912e8 (ground-grasp-x)",
+          "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/fe9ad02a408cc4578c4bc300ce635bbd9fc5d151...a5912e80502cd3a02ee37f592931612ad63afc1e",
           "version_family": "0.17.8-development, diverged from current main; not PR481/static default nor a stable update",
           "comparison_to_recorded_main": {
-            "from_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
-            "to_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+            "from_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+            "to_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
             "status": "diverged",
-            "ahead_by": 7,
-            "behind_by": 54,
+            "ahead_by": 9,
+            "behind_by": 64,
             "merge_base_sha": "942e58e3aa6dbb28e7037203fff11866122c7567",
             "file_count": 19,
-            "fixed_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
-            "scope_note": "Older0.17.8/API44 development base; not a current stable package."
+            "fixed_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "scope_note": "Old 0.17.8/API44 source, ahead9/behind64 vs formal0.18.3; not a stable-plus-feature package."
           },
-          "contract_note": "Reserves fourth built-in request bit, shifts configurable mask by4 and reduces MAX_SKILLS29to28. Requires matching config/selection/request/report and mouth ownership, not version-number equivalence.",
-          "verification": "Read5fixed patches,3added test functions (oneORT-dependent ignored) and fixedmodel/IPC constants; no source/test/inference/audio/robot execution.",
-          "previous_head_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
+          "contract_note": "Reserves fourth built-in request bit, shifts configurable mask by4 and reduces MAX_SKILLS29to28. Requires matching config/selection/request/report and mouth ownership, not version-number equivalence. fall_safety is a local SkillDef file key. RPC constructor copies an existing value, but the persistence writer omits the key; no new remote parameter; API44 does not identify this configuration/behavior contract.",
+          "verification": "Read all7 fixed patches and relevant control/main/Sound/params/IPC/Cargo context. Two added test functions; controller regression is ignored and requires ORT>=1.23. No tracker build/test/inference/audio/hardware execution; threshold rationale is author simulation. Also read fixed editor: static write-omission finding, not an executed reproduction.",
+          "previous_head_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
           "latest_increment": {
-            "from_sha": "ade23e7c16abef90f18d06f01f15a0be502b709f",
-            "to_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
-            "commit_count": 1,
-            "file_count": 5,
+            "from_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+            "to_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "commit_count": 2,
+            "file_count": 7,
             "files": [
+              "docs/design/policy-channel-design.md",
+              "docs/design/robotd-design.md",
+              "docs/robot/cheatsheet.md",
               "robotctl/src/main.rs",
-              "robotd-params/src/edit.rs",
               "robotd-params/src/lib.rs",
               "robotd/src/control.rs",
               "robotd/src/main.rs"
             ],
-            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/ade23e7c16abef90f18d06f01f15a0be502b709f...fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/fe9ad02a408cc4578c4bc300ce635bbd9fc5d151...a5912e80502cd3a02ee37f592931612ad63afc1e",
             "new_model_or_audio_bytes": false,
             "new_CSV_track_asset": false
           },
@@ -1630,6 +1708,44 @@
             "clock": "Read after controller step, documented one tick ahead of leg clock. Existing WAV trigger is not measured audio/video/servo synchronization.",
             "tests": "CSV interpolation/clamp and TOML roundtrip sources plus an ignored ORT>=1.23 ownership test; not run by tracker.",
             "HD1910": "Review mouth direction, physical travel, angle units and ownership; no new BAM/training or physical mouth/sound acceptance."
+          },
+          "guarded_skill_reflexes": {
+            "checked_at_utc": "2026-10-31T11:26:14.967287+00:00",
+            "configuration": "SkillDef.fall_safety optional bool; guarded() resolves explicit value, else phase flag.",
+            "default_phase_skill": true,
+            "default_other_skills": false,
+            "built_in_kick_and_roulade_defaults": "unchanged/unguarded",
+            "remote_RPC": "No new SkillParams field. Constructor copies existing value, but edit::put_skill omits fall_safety when replacing the table; durable preservation is not established.",
+            "fall_conditions": "Existing limp_fall enabled, was_driving, not already fallen, no shutdown/power-off, fresh/ready IMU and controller.reflexes_on; not sitting.",
+            "skill_fall_gate": {
+              "gravity_z_greater_than": -0.643,
+              "source_interpretation_degrees": 50,
+              "meaning": "Only admits a sample to FallPredictor, not a stand-alone stop verdict. Ineligible/blind/gate-false resets pending debounce.",
+              "rationale": "Author dance simulation; not HD1910 physical calibration."
+            },
+            "pickup_conditions": "Existing watcher/model in walk mode; enabled/ready/IMU and no limp/shutdown/power-off; confirmed Pause edge cuts guarded skill.",
+            "on_verdict": "stop_moves plus Sound.stop; existing limp or pickup handling continues.",
+            "local0182_fall_safety_field_present": false,
+            "new_models_or_assets": false,
+            "HD1910_physical_acceptance": false
+          },
+          "start_stop_sound": {
+            "source_commit": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "behavior": "After reset (which does not clear active moves), busy controller requests Sound.stop before stop_moves on Start/drive-stop.",
+            "scope": "Native one-shot child only when ride==Off; existing ride/theremin/chorale ownership exceptions remain. Not the independent Studio music-player API.",
+            "tracker_execution": false
+          },
+          "persistence_review": {
+            "head_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "editor_blob_sha": "ee621e7051fcb407e7ab1b447a17a0a5ab642667",
+            "editor_source": "robotd-params/src/edit.rs",
+            "editor_lines": "396-460",
+            "RPC_source": "robotd/src/main.rs",
+            "RPC_lines": "4900-4918",
+            "observation": "put_skill builds a new table, writes known fields including phase/sound/mouth but no fall_safety, then replaces the existing same-name table. set_skill_request copies the existing fall_safety into SkillDef but then calls edit::set_skill.",
+            "inference": "Saving an existing manually overridden entry through CLI/RPC can omit the override and revert to phase-derived defaults on reload. Constructor preservation is not durable-write proof.",
+            "execution_reproduction": false,
+            "before_adoption": "Add persistence roundtrip and interruption regressions in the independent migration line; heartbeat does not change runtime or execute tests."
           }
         },
         {
@@ -5196,7 +5312,7 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-31T08:17:11.753350+00:00",
+  "checked_at_utc": "2026-10-31T11:26:14.967287+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
@@ -5206,29 +5322,23 @@
     "stable_asset_count": 8,
     "previous_tracked_prs_merged": false,
     "new_pull_requests": {},
-    "updated_pull_requests": {
-      "449": {
-        "head_sha": "80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
-        "api_before": 47,
-        "api_now": 48,
-        "archived_main_import": true,
-        "new_phase_behavior": false,
-        "merged": false
-      }
-    },
+    "updated_pull_requests": {},
     "new_development_releases": [],
-    "moved_development_tags": [],
+    "moved_development_tags": [
+      "daemon-dev-ground-grasp-x"
+    ],
     "retired_development_tags": [],
     "official_blog_new_articles": false,
     "official_blog_article_count": 3,
     "official_blog_latest_on": "2026-10-23",
     "local_migration_record_changed": false,
-    "local_public_software_release_recorded": false,
+    "local_public_software_release_recorded": true,
+    "local_public_software_release_tag": "microduck-software-v2026.10.3101",
     "runtime_code_changed_by_heartbeat": false,
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "UnmergedPR449 imports archived0.18.3main and renumbers phase contract toAPI48; ten feature blobs identical and normalized IPC feature delta unchanged. Author reports narrow checks at new head, not a new whole-workspace replica acceptance. Main/stable remains0.18.3/API47; independent local0182/API47lacks the3phase fields and remains unchanged. Other sources/releases/models/blog unchanged; documentation-only review."
+    "notes": "Old0.17.8/API44ground-grasp-x advances2commits: skill fall_safety and native one-shot audio stop on verdict/Start. Source-only review; not formal0.18.3 or replica integration. Separately record published3101UIrevision with unchanged0.15.1/API42native inputs and inherited31controller evidence. Independent0182unchanged; no runtime/tests/environment/device operation. Static editor review additionally finds fall_safety omitted on table replacement; potential loss of explicit override is recorded as inference, not reproduced acceptance."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
@@ -5565,21 +5675,20 @@
   },
   "replica_public_software": {
     "recorded_on": "2026-10-31",
-    "checked_at_utc": "2026-10-30T19:02:07.552473+00:00",
-    "release_tag": "microduck-software-v2026.10.31",
-    "release_url": "https://github.com/fanhao375/microduck-replica/releases/tag/microduck-software-v2026.10.31",
-    "published_at_utc": "2026-10-30T18:37:12Z",
+    "checked_at_utc": "2026-10-31T11:26:14.967287+00:00",
+    "release_tag": "microduck-software-v2026.10.3101",
+    "release_url": "https://github.com/fanhao375/microduck-replica/releases/tag/microduck-software-v2026.10.3101",
+    "published_at_utc": "2026-10-31T10:57:26Z",
     "prerelease": false,
-    "source_sha": "26150eb61407d3498dc2e2c5d1f9dc3ea130acde",
-    "tag_actual_sha": "26150eb61407d3498dc2e2c5d1f9dc3ea130acde",
-    "documentation_checkpoint_sha": "01a5b537c5c6166cb65831b3850d72deb211b413",
-    "software_version": "2026.10.31",
+    "source_sha": "3952471a8394c8b720817d2160ffd95ce5a54456",
+    "tag_actual_sha": "3952471a8394c8b720817d2160ffd95ce5a54456",
+    "documentation_checkpoint_sha": "e6f0e44c47d63a9ac431cb8fa08b66b7cd37b2c0",
+    "software_version": "2026.10.3101",
     "image_rebuilt": false,
     "GitHub_latest_image_tag": "microduck-replica-image-20261027",
     "features": [
-      "Shared physical-gamepad mapping and stick/trigger calibration for Studio/control/voice buttons",
-      "Camera card in-place enlargement and aspect-ratio display, without a capture-driver/FOV/calibration change",
-      "SSH connection guide"
+      "UI-only32head-yaw/34mouth diagram selection/highlight/leader mapping and old cache correction",
+      "Inherits31gamepad mapping, camera enlargement and SSHguide"
     ],
     "runtime_family": "0.15.1",
     "robotd_api": 42,
@@ -5627,24 +5736,24 @@
     "contract_note": "Build suffix .47 is not API47. This released0.15.1/API42 software/controller delivery is separate from local0.18.2/API47 migration and official0.18.3/API47 telemetry.",
     "asset_inventory": [
       {
-        "name": "2026.10.31.manifest.json",
-        "size": 806,
-        "digest": "sha256:c760798aa981646be9b0dd973b9e586cc810db3964195d8c6236302febff91c9"
+        "name": "2026.10.3101.manifest.json",
+        "size": 811,
+        "digest": "sha256:fa984f24d404db3f296c68fb658bc7bca33aa83ed075932ba4b9af5af60f907f"
       },
       {
-        "name": "2026.10.31.manifest.json.minisig",
-        "size": 319,
-        "digest": "sha256:464ff1ac4b6bd9d6e1367e42a0970c09d9a2e09bfdef45988e324ba71780d363"
+        "name": "2026.10.3101.manifest.json.minisig",
+        "size": 321,
+        "digest": "sha256:7ddeeb39c3d658e51a4f6c788312e530851d5bb8562d38166378228ee02be83e"
       },
       {
-        "name": "2026.10.31.software-update.tar",
+        "name": "2026.10.3101.software-update.tar",
         "size": 9287680,
-        "digest": "sha256:5f6a597abe27d9c4af8e137841c9dcab4b6c4b378f44c8f88f4c7b4f6ae09204"
+        "digest": "sha256:0502c452e7062aa29286f6a82c046ed4ceaaf8beecaa6d98958341a80c95ea77"
       },
       {
-        "name": "2026.10.31.software-update.tar.sha256",
-        "size": 97,
-        "digest": "sha256:61fc0cccef0583f5d9372523ab10cc222fbd9ea70fa9fa23d0ed0d016b34db35"
+        "name": "2026.10.3101.software-update.tar.sha256",
+        "size": 99,
+        "digest": "sha256:fd1e32b3b32a0b8c7d64a00d9fab2fd36b597348481688e977b9ffebba53e7c5"
       },
       {
         "name": "LICENSE-Apache-2.0.txt",
@@ -5653,23 +5762,23 @@
       },
       {
         "name": "README.txt",
-        "size": 2432,
-        "digest": "sha256:a3b4e018428c3df69db18eb97f2c3677b2bbf88af82aff565561bfc68728c975"
+        "size": 1651,
+        "digest": "sha256:6a5e3c485f33718b84e40d578783de6f9c87dc760f6f3391487369e3b895599f"
       },
       {
         "name": "bootstrap-README.txt",
-        "size": 2205,
-        "digest": "sha256:eed3163e6f2ec129bf179e9bbe4d880c61829104ba6bbde9cebbfdf034f90cb0"
+        "size": 2354,
+        "digest": "sha256:a4e1c12104d59fb0909c431a73bda5d2cb1588f2d154fd6144d08e424d194889"
       },
       {
-        "name": "microduck-bootstrap-2026.10.31.tar.gz",
-        "size": 61425062,
-        "digest": "sha256:8a12c6ee378782d7441b0347c3bd15524ade9c5c69151dcd5121d01f4d4cb6ee"
+        "name": "microduck-bootstrap-2026.10.3101.tar.gz",
+        "size": 61426175,
+        "digest": "sha256:9e0e6e06ff8d7d1522afb67b8ea4fdd454fe15f6031cc2c602e915d30cec5da8"
       },
       {
-        "name": "microduck-bootstrap-2026.10.31.tar.gz.sha256",
-        "size": 104,
-        "digest": "sha256:d7090bda5438ee9b6eafe88174b7eaceae3a115bdd4953c3a36cec942e9683b4"
+        "name": "microduck-bootstrap-2026.10.3101.tar.gz.sha256",
+        "size": 106,
+        "digest": "sha256:3017417ac9eb684fb3ebf0d453fad41aabf615ca02f94a1c62a1b32a67632fd4"
       },
       {
         "name": "microduck-release-20261027.pub",
@@ -5678,48 +5787,215 @@
       },
       {
         "name": "runtime-provenance.json",
-        "size": 6935,
-        "digest": "sha256:4a34fbc44d6c11c3393c0e60d371e75ed62b2fe842aef2d5e5cd6b1a8ca2aa4c"
+        "size": 6849,
+        "digest": "sha256:f84986ae58922e6bd6e37a7b14640caecd367d0483b6f1c643886f8186f1749e"
       }
     ],
     "software_package": {
-      "name": "2026.10.31.software-update.tar",
+      "name": "2026.10.3101.software-update.tar",
       "size": 9287680,
-      "sha256": "5f6a597abe27d9c4af8e137841c9dcab4b6c4b378f44c8f88f4c7b4f6ae09204"
+      "sha256": "0502c452e7062aa29286f6a82c046ed4ceaaf8beecaa6d98958341a80c95ea77"
     },
     "JSON_review": {
       "runtime-provenance.json": {
-        "bytes": 6935,
-        "digest": "sha256:4a34fbc44d6c11c3393c0e60d371e75ed62b2fe842aef2d5e5cd6b1a8ca2aa4c"
+        "size": 6849,
+        "digest": "sha256:f84986ae58922e6bd6e37a7b14640caecd367d0483b6f1c643886f8186f1749e"
       },
-      "2026.10.31.manifest.json": {
-        "bytes": 806,
-        "digest": "sha256:c760798aa981646be9b0dd973b9e586cc810db3964195d8c6236302febff91c9"
+      "2026.10.3101.manifest.json": {
+        "size": 811,
+        "digest": "sha256:fa984f24d404db3f296c68fb658bc7bca33aa83ed075932ba4b9af5af60f907f"
       }
     },
-    "manifest_scope": "Version manifest describes the inner9280151-byte compressed payload; GitHub software-update.tar/provenance describes outer9287680-byte envelope. Do not compare their sizes as the same object.",
+    "manifest_scope": "Manifest describes inner9280453-byte compressed payload; provenance/GitHub software-update.tar describes outer9287680-byte envelope.",
     "reported_verification": {
-      "source": "Committed verification documents and public provenance; no tests rerun by heartbeat",
-      "linux_controller_mapping": 165,
-      "linux_voice_mapping": 13,
-      "actual_unix_socket_probes": 322,
-      "linux_padd": 113,
-      "actual_systemd_scope": "Permissions, UID/groups, persistent directories, real kernel AF_NETLINK enforcement and legacy rollback guards; daemon bodies, hardware input and native file restore include fixtures.",
-      "original27_updater": "Committed original ARM/QEMU signature/install/rollback/health/crash-recovery acceptance; service backend fixture, no hardware installation.",
+      "source": "Committed servo-patch publication record and public r1provenance; no rerun by heartbeat.",
+      "cad_three_cache_regressions": 23,
+      "related_python_regressions": 32,
+      "publisher_tests_run": 32,
+      "publisher_passed": 28,
+      "publisher_Windows_skips": 4,
+      "browser": "Actual browser/WebGL with synthetic device, ID32/34 fixtures; not physical servo movement.",
+      "original27_ARM_engine": "Committed actual ARM/QEMU isolated install/rollback/signature/hash/health/crash checks from27and31software baselines; recording service shims.",
       "limitations": [
-        "The shipped mapping controller bundle has not been installed and accepted on a physical duck during this release verification.",
-        "Actual controller models and USB/Bluetooth modes still require device acceptance, including emergency-stop behavior.",
-        "The genuine systemd proof validates real service permissions and legacy rollback guards with fixture daemon bodies; it is not an end-to-end production native transaction on ARM hardware.",
-        "The native workspace has two inherited robotd test failures documented separately; only the stated padd and focused controller suites are claimed passing.",
-        "Existing 20261027 images are not rebuilt or replaced by this software release. A source-built development card may require one-time compatible SSH bootstrap."
+        "No physical device installation in this task.",
+        "Controller hardware acceptance remains the separately documented31 limitation.",
+        "Bootstrap inputs are verified, not a new physical bootstrap install acceptance."
       ]
     },
     "hardware_acceptance": false,
     "independent_0182_acceptance_changed": false,
     "deployed_by_heartbeat": false,
-    "fixed_verification_url": "https://github.com/fanhao375/microduck-replica/blob/01a5b537c5c6166cb65831b3850d72deb211b413/docs/superpowers/verification/2026-10-31-controller-linux.md",
-    "operation_document": "docs/功能软件升级-20261030.md",
-    "priority": "For existing0.15 installations, use31 instructions and separate component/device acceptance. Continue the independent0.18.2 Linux/consumer/ORT/ARM/image/device checklist; do not replace it with these older-line results.",
-    "heartbeat_verification": "Checked formal release/direct tag,11asset metadata entries, SHA256+size of only2smallJSONfiles, fixed public source/doc commit reachability and public Cargo0.15.1. No software/bootstrap archive download, signatures rerun, build, tests, install, WSL recovery, robot or live-page access."
+    "fixed_verification_url": "https://github.com/fanhao375/microduck-replica/blob/e6f0e44c47d63a9ac431cb8fa08b66b7cd37b2c0/docs/superpowers/verification/2026-10-31-servo-patch-release.md",
+    "operation_document": "docs/软件修订-20261031-r1.md",
+    "priority": "UI correction for current0.15software; native inputs unchanged. Independent0182Linux/consumer/ORT/ARM/device gates remain separate.",
+    "heartbeat_verification": "Read fixed published docs/source identity,11asset metadata and only2smallJSONsize/digests. Native hashes match31. No software/bootstrap archive download, signature rerun, build/tests/install/environment/robot/live-page operation.",
+    "history": [
+      {
+        "recorded_on": "2026-10-31",
+        "checked_at_utc": "2026-10-30T19:02:07.552473+00:00",
+        "release_tag": "microduck-software-v2026.10.31",
+        "release_url": "https://github.com/fanhao375/microduck-replica/releases/tag/microduck-software-v2026.10.31",
+        "published_at_utc": "2026-10-30T18:37:12Z",
+        "prerelease": false,
+        "source_sha": "26150eb61407d3498dc2e2c5d1f9dc3ea130acde",
+        "tag_actual_sha": "26150eb61407d3498dc2e2c5d1f9dc3ea130acde",
+        "documentation_checkpoint_sha": "01a5b537c5c6166cb65831b3850d72deb211b413",
+        "software_version": "2026.10.31",
+        "image_rebuilt": false,
+        "GitHub_latest_image_tag": "microduck-replica-image-20261027",
+        "features": [
+          "Shared physical-gamepad mapping and stick/trigger calibration for Studio/control/voice buttons",
+          "Camera card in-place enlargement and aspect-ratio display, without a capture-driver/FOV/calibration change",
+          "SSH connection guide"
+        ],
+        "runtime_family": "0.15.1",
+        "robotd_api": 42,
+        "robotd_build": "0791fcd-feetech-qinmo-control.47",
+        "model_api": 2,
+        "padd_mapping_protocol": 1,
+        "native_inputs": {
+          "repository": "https://github.com/fanhao375/Microduck-kissqy",
+          "robotd": {
+            "source_commit": "931ce978f2efb27c157b7a583ee402793131a0d2",
+            "size": 5606976,
+            "sha256": "725b74cd93660a312970a44879abe5b75e8becf108499a1b8798961e48ca5f00",
+            "build": "0791fcd-feetech-qinmo-control.47",
+            "api": 42,
+            "model": 2
+          },
+          "padd": {
+            "source_commit": "665613ac628fdc9b1b71f324809f0c16ce2795f2",
+            "source_archive_sha256": "19d477da39233009377f6653dff317ba16457534e9e2436545adf40385b02f38",
+            "size": 3522648,
+            "sha256": "dc1c7043a108964583fc09a11e3d6f87a25e259c346f7ce9154e77500a0881ec",
+            "embedded_build_time": "2026-10-30T23:17:10+09:00",
+            "target": "aarch64-unknown-linux-gnu.2.31",
+            "maximum_glibc_symbol_version": "2.30",
+            "independent_builds_byte_identical": true,
+            "mapping_protocol": 1,
+            "linux_padd_tests_executed_passed": 113,
+            "actual_arm_process_and_status_under_qemu": true,
+            "hardware_acceptance": false
+          },
+          "public_source_export": {
+            "commit": "27d7921dbcb280bd7d6ba3e9937624f1e2e61d23",
+            "url": "https://github.com/fanhao375/Microduck-kissqy/tree/27d7921dbcb280bd7d6ba3e9937624f1e2e61d23",
+            "sole_parent_public_baseline": "e376346723e1670a649b2a00e4dcec0f3d2a46cd",
+            "historical_embedded_build_source": "665613ac628fdc9b1b71f324809f0c16ce2795f2",
+            "historical_build_commit_public_reachability_claimed": false,
+            "program_and_build_inputs_equal_historical_frozen_source": true,
+            "program_input_file_count": 1331,
+            "protected_console_changes_and_local_history_excluded": true,
+            "public_source_recipe_syntax_checked": true,
+            "public_source_rebuild_executed": false,
+            "frozen_binary_changed": false
+          }
+        },
+        "contract_note": "Build suffix .47 is not API47. This released0.15.1/API42 software/controller delivery is separate from local0.18.2/API47 migration and official0.18.3/API47 telemetry.",
+        "asset_inventory": [
+          {
+            "name": "2026.10.31.manifest.json",
+            "size": 806,
+            "digest": "sha256:c760798aa981646be9b0dd973b9e586cc810db3964195d8c6236302febff91c9"
+          },
+          {
+            "name": "2026.10.31.manifest.json.minisig",
+            "size": 319,
+            "digest": "sha256:464ff1ac4b6bd9d6e1367e42a0970c09d9a2e09bfdef45988e324ba71780d363"
+          },
+          {
+            "name": "2026.10.31.software-update.tar",
+            "size": 9287680,
+            "digest": "sha256:5f6a597abe27d9c4af8e137841c9dcab4b6c4b378f44c8f88f4c7b4f6ae09204"
+          },
+          {
+            "name": "2026.10.31.software-update.tar.sha256",
+            "size": 97,
+            "digest": "sha256:61fc0cccef0583f5d9372523ab10cc222fbd9ea70fa9fa23d0ed0d016b34db35"
+          },
+          {
+            "name": "LICENSE-Apache-2.0.txt",
+            "size": 11358,
+            "digest": "sha256:c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c"
+          },
+          {
+            "name": "README.txt",
+            "size": 2432,
+            "digest": "sha256:a3b4e018428c3df69db18eb97f2c3677b2bbf88af82aff565561bfc68728c975"
+          },
+          {
+            "name": "bootstrap-README.txt",
+            "size": 2205,
+            "digest": "sha256:eed3163e6f2ec129bf179e9bbe4d880c61829104ba6bbde9cebbfdf034f90cb0"
+          },
+          {
+            "name": "microduck-bootstrap-2026.10.31.tar.gz",
+            "size": 61425062,
+            "digest": "sha256:8a12c6ee378782d7441b0347c3bd15524ade9c5c69151dcd5121d01f4d4cb6ee"
+          },
+          {
+            "name": "microduck-bootstrap-2026.10.31.tar.gz.sha256",
+            "size": 104,
+            "digest": "sha256:d7090bda5438ee9b6eafe88174b7eaceae3a115bdd4953c3a36cec942e9683b4"
+          },
+          {
+            "name": "microduck-release-20261027.pub",
+            "size": 113,
+            "digest": "sha256:0878853a92b10c9196c5b63e02087664923c576e6bc2e064d3bbdcc1be056bf5"
+          },
+          {
+            "name": "runtime-provenance.json",
+            "size": 6935,
+            "digest": "sha256:4a34fbc44d6c11c3393c0e60d371e75ed62b2fe842aef2d5e5cd6b1a8ca2aa4c"
+          }
+        ],
+        "software_package": {
+          "name": "2026.10.31.software-update.tar",
+          "size": 9287680,
+          "sha256": "5f6a597abe27d9c4af8e137841c9dcab4b6c4b378f44c8f88f4c7b4f6ae09204"
+        },
+        "JSON_review": {
+          "runtime-provenance.json": {
+            "bytes": 6935,
+            "digest": "sha256:4a34fbc44d6c11c3393c0e60d371e75ed62b2fe842aef2d5e5cd6b1a8ca2aa4c"
+          },
+          "2026.10.31.manifest.json": {
+            "bytes": 806,
+            "digest": "sha256:c760798aa981646be9b0dd973b9e586cc810db3964195d8c6236302febff91c9"
+          }
+        },
+        "manifest_scope": "Version manifest describes the inner9280151-byte compressed payload; GitHub software-update.tar/provenance describes outer9287680-byte envelope. Do not compare their sizes as the same object.",
+        "reported_verification": {
+          "source": "Committed verification documents and public provenance; no tests rerun by heartbeat",
+          "linux_controller_mapping": 165,
+          "linux_voice_mapping": 13,
+          "actual_unix_socket_probes": 322,
+          "linux_padd": 113,
+          "actual_systemd_scope": "Permissions, UID/groups, persistent directories, real kernel AF_NETLINK enforcement and legacy rollback guards; daemon bodies, hardware input and native file restore include fixtures.",
+          "original27_updater": "Committed original ARM/QEMU signature/install/rollback/health/crash-recovery acceptance; service backend fixture, no hardware installation.",
+          "limitations": [
+            "The shipped mapping controller bundle has not been installed and accepted on a physical duck during this release verification.",
+            "Actual controller models and USB/Bluetooth modes still require device acceptance, including emergency-stop behavior.",
+            "The genuine systemd proof validates real service permissions and legacy rollback guards with fixture daemon bodies; it is not an end-to-end production native transaction on ARM hardware.",
+            "The native workspace has two inherited robotd test failures documented separately; only the stated padd and focused controller suites are claimed passing.",
+            "Existing 20261027 images are not rebuilt or replaced by this software release. A source-built development card may require one-time compatible SSH bootstrap."
+          ]
+        },
+        "hardware_acceptance": false,
+        "independent_0182_acceptance_changed": false,
+        "deployed_by_heartbeat": false,
+        "fixed_verification_url": "https://github.com/fanhao375/microduck-replica/blob/01a5b537c5c6166cb65831b3850d72deb211b413/docs/superpowers/verification/2026-10-31-controller-linux.md",
+        "operation_document": "docs/功能软件升级-20261030.md",
+        "priority": "For existing0.15 installations, use31 instructions and separate component/device acceptance. Continue the independent0.18.2 Linux/consumer/ORT/ARM/image/device checklist; do not replace it with these older-line results.",
+        "heartbeat_verification": "Checked formal release/direct tag,11asset metadata entries, SHA256+size of only2smallJSONfiles, fixed public source/doc commit reachability and public Cargo0.15.1. No software/bootstrap archive download, signatures rerun, build, tests, install, WSL recovery, robot or live-page access."
+      }
+    ],
+    "revision_meaning": "2026-10-31 revision01; formal three-part version compatible with original27 catalog",
+    "native_binaries_changed_or_recompiled": false,
+    "inherited_controller_verification": {
+      "version": "2026.10.31",
+      "provenance_url": "https://github.com/fanhao375/microduck-replica/releases/download/microduck-software-v2026.10.31/runtime-provenance.json",
+      "note": "Native113 tests, A/B builds, genuine-systemd fixture and Linux controller checks are prior unchanged-controller evidence, not rerun for this UI-only revision."
+    }
   }
 }
