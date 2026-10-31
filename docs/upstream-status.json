@@ -4181,6 +4181,88 @@
             "release_status": "Open unmerged PR only; no formal or matching development release observed."
           },
           "review_history": []
+        },
+        {
+          "number": 510,
+          "title": "policy: community policies read the owner's layer, not just /etc",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-31T12:48:07Z",
+          "updated_at": "2026-10-31T12:48:07Z",
+          "merge_commit_sha": "974bc8c0c6e48d15c13bbe06a5e91ce61dc676cc",
+          "url": "https://github.com/pollen-robotics/microduck/pull/510",
+          "head_sha": "7414d4d045e82558ed8513d4785741a563b4aa62",
+          "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+          "review": {
+            "checked_at_utc": "2026-10-31T13:27:46.441590+00:00",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...7414d4d045e82558ed8513d4785741a563b4aa62",
+            "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+            "head_sha": "7414d4d045e82558ed8513d4785741a563b4aa62",
+            "commits": 1,
+            "files": [
+              {
+                "path": "robotd-params/src/lib.rs",
+                "blob_sha": "6f763335de6a616e2792bdaf8ba642de17747325",
+                "additions": 49,
+                "deletions": 8
+              }
+            ],
+            "source_version": "0.18.3",
+            "api_version": 47,
+            "wire_contract_changed": false,
+            "change": "PolicyParams.community_allowed now uses the same layered TOML text read as other small readers; owner values override the provisioned base. Extracts private layered_text_in for injectable test paths.",
+            "provisioned_paths": {
+              "base": "/etc/robot/robotd.toml",
+              "owner": "/var/lib/robot/robotd.toml"
+            },
+            "read_timing": "updaterd engine reads DEFAULT_PATH before each policy.fetch. Applies to the next download gate without restarting; does not change an already running model.",
+            "custom_path_scope": "user_layer_for returns None for a non-default path; that helper reads the named file alone. This does not promise updaterd dynamically follows robotd custom --config paths.",
+            "upstream_failure_semantics": {
+              "read_error_or_invalid_base_TOML_or_no_boolean_permission": false,
+              "malformed_owner_TOML": "Owner layer ignored; base permission retained, including true.",
+              "valid_TOML_but_other_invalid_Params_values": "Only the merged policy.allow_community boolean is read; no full Params loading/validation in this reader.",
+              "blanket_fail_closed_claim_valid": false
+            },
+            "verification": {
+              "new_test_functions": 1,
+              "new_test_scenarios": 4,
+              "scenarios": [
+                "Owner true over base unset =>true",
+                "Owner false over base true =>false",
+                "Missing owner retains base true",
+                "Malformed owner ignored, base true retained"
+              ],
+              "author_reported": "New regression fails the old main reader on owner opt-in. No new whole-workspace or replica/device pass is asserted here.",
+              "tracker": "Read complete fixed patch, layer helper and policy-fetch engine call site; verified0.18.3/API47 constants. Read fixed local implementation and existing regression definitions only; no test execution, strategy fetch, install or environment operation."
+            },
+            "replica_integration": {
+              "status": "Equivalent valid-owner-layer functionality already implemented independently; this PR source is not newly copied.",
+              "fixed_runtime_sha": "3a696c711b78d63e4e8dcb65420e192bbe588c2e",
+              "implementation": "community_allowed_in_layers uses Params::load_layered and user_layer_rejected.is_none; non-layered path uses Params::load_one.",
+              "failure_difference": "Rejected/malformed owner layer denies community downloads even if startup falls back to an allowing base; known invalid control.hz=0 also denies. Unknown future extension sections remain allowed by the existing loader.",
+              "existing_test_definitions_read": [
+                "community_allowed_requires_valid_config_and_defaults_to_no",
+                "community_permission_uses_the_validated_effective_layer",
+                "a_semantically_invalid_owner_opt_out_never_reenables_downloads_from_the_base",
+                "a_malformed_owner_opt_out_never_reenables_downloads_from_the_base"
+              ],
+              "new_test_pass_or_integration_claim": false,
+              "source_and_verification_checkpoints_changed": false
+            },
+            "priority": "High conditional review for community policies and owner-layer settings. Preserve local rejection semantics and compare effective paths/overrides/failures before future upstream integration.",
+            "domain_impacts": {
+              "model_management": "Download opt-in reading only; no new model, automatic selection or HD1910 fit claim",
+              "HD1910_BAM": "No change",
+              "camera": "No change",
+              "ToF": "No change",
+              "training": "No change",
+              "actions": "No change",
+              "sound": "No change"
+            },
+            "release_status": "Open unmerged PR; no formal or matching development release observed."
+          },
+          "review_history": []
         }
       ],
       "previous_stable_releases": [
@@ -5400,7 +5482,7 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-31T12:23:16.022175+00:00",
+  "checked_at_utc": "2026-10-31T13:27:46.441590+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
@@ -5411,7 +5493,7 @@
     "previous_tracked_prs_merged": false,
     "new_pull_requests": {
       "pollen-robotics/microduck": [
-        508
+        510
       ]
     },
     "updated_pull_requests": {},
@@ -5427,7 +5509,7 @@
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "New unmerged PR508 prioritizes relay answers and coalesces3snapshot methods. Existing notification budget/drop and slow-POST/channel limits remain; new Outbox has no independent cap. Author fake-service and real-rendezvous duck-sim timings are separate from replica acceptance. Fixed0182still has arrival-order loop. Source-only review, no runtime/testing/environment changes."
+    "notes": "New PR510 reads owner-layer community policy opt-in, but ignores malformed owner TOML and may retain base opt-in. Fixed local0182already implements effective-layer reading with rejected-owner denial and Params validation; not a new integration/test result. Preserve that behavior before adopting upstream helper. All default heads/releases/dev tags/otherPRs/models/blog unchanged; documentation-only source review."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
