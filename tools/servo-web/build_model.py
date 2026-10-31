@@ -21,6 +21,27 @@ JOINT_IDS = {
     "neck_pitch": 30, "head_pitch": 31, "head_yaw": 32, "head_roll": 33, "mouth": 34,
     "right_hip_yaw": 10, "right_hip_roll": 11, "right_hip_pitch": 12, "right_knee": 13, "right_ankle": 14,
 }
+
+
+def bind_head_servos(bodies):
+    """Keep the two nearby head housings tied to their actual CAD actuators.
+
+    A housing center's distance to an output-axis origin is not its joint ID:
+    the mouth housing sits 25.5mm along its shaft from the synthetic jaw pivot.
+    Geom positions are in the named CAD body's local coordinates.
+    """
+    bindings = [
+        ("yaw_roll_motion", (0.0, 0.0, 0.0145), "head_yaw"),
+        ("jaw_soft", (0.003, 0.0255, -0.018), "mouth"),
+    ]
+    for body_name, position, joint in bindings:
+        matches = [g for b in bodies if b["name"] == body_name for g in b["geoms"]
+                   if g["mesh"] == "xl330" and all(abs(a - v) < 1e-8 for a, v in zip(g["pos"], position))]
+        if len(matches) != 1:
+            raise ValueError(f"Expected one CAD servo housing for {joint}; got {len(matches)}")
+        matches[0]["servo_joint"] = joint
+
+
 # 壳子里看不见的东西，不进网页
 SKIP_DEFAULT = "pcb__raspberry_pi_zero_2_w,elec_rpi_robot_hat_pcb,seeed_bearing__configuration__22x16x4,seeed_bearing__configuration_default,speaker,m12_lens_holder,banana_pcb_locker,upper_leg_rigidity_plate,motor_support,power_support"
 
@@ -110,6 +131,8 @@ def main():
                        "geoms": jaw_geoms})
         notes.append("嘴 34 的铰链是补的（原模型没有），位置估的，只为显示")
         break
+
+    bind_head_servos(bodies)
 
     # 质量和质心：从官方 robot_walk.xml 的 inertial 取，按关节名对应（两份模型 body 名字不一样）
     if a.official and os.path.exists(a.official):

@@ -3673,8 +3673,8 @@
           "title": "Phase-encoded policies can run as skills",
           "state": "open",
           "merged_at": null,
-          "updated_at": "2026-10-30T09:12:03Z",
-          "head_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+          "updated_at": "2026-10-31T08:15:53Z",
+          "head_sha": "80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
           "draft": false,
           "history": [
             {
@@ -3686,28 +3686,97 @@
               "updated_at": "2026-10-24T20:43:00Z",
               "head_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
               "draft": false
+            },
+            {
+              "number": 449,
+              "url": "https://github.com/pollen-robotics/microduck/pull/449",
+              "title": "Phase-encoded policies can run as skills",
+              "state": "open",
+              "merged_at": null,
+              "updated_at": "2026-10-30T09:12:03Z",
+              "head_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+              "draft": false,
+              "previous_head_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
+              "base_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
+              "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+              "latest_increment": {
+                "from_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
+                "to_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+                "commit_count": 55,
+                "file_count": 67,
+                "scope_note": "Known upstream synchronization; isolated base-relative feature comparison reviewed separately, not55new features."
+              },
+              "feature_review": {
+                "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+                "file_count": 11,
+                "change": "10of11files have identical nonblank added/removed feature lines; IPC difference only renumbers oldAPI44->45 extension against newAPI46->47, including corresponding comments.",
+                "api_version": 47,
+                "state": "still_unmerged; not_in0.18.2",
+                "validation_scope": "PR body and its test claims unchanged; no tracker test or simulation execution, no new HD1910 validation.",
+                "replica_integration": "not_integrated; local0.17.9 checkpoint and published replica image/online services unchanged",
+                "contract": "SkillParams encoding/period_s/end_phase phase-clock extension. API47 does not imply footsteps or raw-servo diagnostic contract compatibility; no per-run tempo override, new weights or voice model."
+              }
             }
           ],
-          "previous_head_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
-          "base_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
-          "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+          "previous_head_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+          "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+          "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
           "latest_increment": {
-            "from_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
-            "to_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
-            "commit_count": 55,
-            "file_count": 67,
-            "scope_note": "Known upstream synchronization; isolated base-relative feature comparison reviewed separately, not55new features."
+            "from_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+            "to_sha": "80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
+            "commit_count": 11,
+            "file_count": 17,
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1...80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
+            "scope_note": "Imports already archived0.18.3main telemetry/SSHcache/release commits, then moves phase extension toAPI48; not11new features."
           },
           "feature_review": {
-            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+            "checked_at_utc": "2026-10-31T08:17:11.753350+00:00",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
             "file_count": 11,
-            "change": "10of11files have identical nonblank added/removed feature lines; IPC difference only renumbers oldAPI44->45 extension against newAPI46->47, including corresponding comments.",
-            "api_version": 47,
-            "state": "still_unmerged; not_in0.18.2",
-            "validation_scope": "PR body and its test claims unchanged; no tracker test or simulation execution, no new HD1910 validation.",
-            "replica_integration": "not_integrated; local0.17.9 checkpoint and published replica image/online services unchanged",
-            "contract": "SkillParams encoding/period_s/end_phase phase-clock extension. API47 does not imply footsteps or raw-servo diagnostic contract compatibility; no per-run tempo override, new weights or voice model."
-          }
+            "base_relative_commit_count": 3,
+            "change": "Same11phase feature files;10have identical full Git blobs to95bbc. IPC added/removed feature lines equal after only documented API46->47base,47->48extension and corresponding v46->v47comments normalization. Phase behavior unchanged.",
+            "source_version": "0.18.3",
+            "api_version": 48,
+            "previous_api_version": 47,
+            "stable_main_api_version": 47,
+            "state": "still_unmerged; not_in0.18.3; no new formal or matching development release observed",
+            "contract": "SkillParams encoding/period_s/end_phase phase-clock extension now usesAPI48 because mainAPI47is telemetry. Number equality does not establish compatibility with other branches or local diagnostic/motionAPI47. No per-run tempo override or new weights/voice model.",
+            "verification": {
+              "author_new_comment_url": "https://github.com/pollen-robotics/microduck/pull/449#issuecomment-6541040443",
+              "author_new_comment_created_at_utc": "2026-10-31T08:15:53Z",
+              "author_reported_checks": [
+                "cargo test -p duck-ipc-proto",
+                "cargo test -p robotd-params",
+                "cargo fmt --all --check",
+                "clippy on these crates plus robotctl",
+                "robotctl and robotd builds"
+              ],
+              "author_workspace_body_claim": "Historical PR-body report; not promoted to a new whole-workspace run at80e6bd1.",
+              "tracker": "Read fixed incremental and isolated feature patches; compare10fullfileblobIDs and normalize only known IPC annotation/version changes. Read fixed local0182SkillParams/API. No implementation/test/build/simulation execution."
+            },
+            "replica_integration": {
+              "status": "not_integrated",
+              "fixed_runtime_sha": "3a696c711b78d63e4e8dcb65420e192bbe588c2e",
+              "local_api_version": 47,
+              "local_SkillParams_phase_fields_present": {
+                "encoding": false,
+                "period_s": false,
+                "end_phase": false
+              },
+              "source_and_validation_checkpoints_changed": false
+            },
+            "priority": "High contract check before any future integration; phase-skill functionality remains medium optional reference.",
+            "incremental_domain_impacts": {
+              "HD1910_BAM": "No new bus or dynamics implementation",
+              "camera": "No change",
+              "ToF": "No change",
+              "model_management": "Same phase import/manifest behavior; consumer contract nowAPI48",
+              "training": "No new weights/training change",
+              "actions": "Phase behavior unchanged; per-run tempo override still deferred",
+              "sound": "No new sound material or music-sync implementation"
+            }
+          },
+          "merge_commit_sha": "c06acd54716fb52c51fd192bdd84f1e1e3a4699e"
         },
         {
           "number": 448,
@@ -5127,7 +5196,7 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-31T01:14:08.687167+00:00",
+  "checked_at_utc": "2026-10-31T08:17:11.753350+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
@@ -5138,11 +5207,12 @@
     "previous_tracked_prs_merged": false,
     "new_pull_requests": {},
     "updated_pull_requests": {
-      "506": {
-        "draft_before": true,
-        "draft_now": false,
-        "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
-        "source_code_changed": false,
+      "449": {
+        "head_sha": "80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
+        "api_before": 47,
+        "api_now": 48,
+        "archived_main_import": true,
+        "new_phase_behavior": false,
         "merged": false
       }
     },
@@ -5158,7 +5228,7 @@
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "PR506 moved from draft to ready for review, still open at the exact cbe0a9f source. Author body/test claims unchanged; no reviews/comments/check-runs observed. Status correction only, no new implementation/release/replica validation. All four heads/stable assets/dev tags/other PRs/models/blog unchanged; no runtime, test or environment operation."
+    "notes": "UnmergedPR449 imports archived0.18.3main and renumbers phase contract toAPI48; ten feature blobs identical and normalized IPC feature delta unchanged. Author reports narrow checks at new head, not a new whole-workspace replica acceptance. Main/stable remains0.18.3/API47; independent local0182/API47lacks the3phase fields and remains unchanged. Other sources/releases/models/blog unchanged; documentation-only review."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
