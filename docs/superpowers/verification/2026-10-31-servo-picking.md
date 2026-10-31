@@ -40,6 +40,7 @@ Local evidence: `artifacts/servo-picking-20261031/` contains the before-mapping
 audit, red/cache-red/green logs, Python regression log, browser result/screenshots
 and replay scripts. Disposable browser profiles were removed after the checks.
 
-This fixes the current local demo and source. The already published signed 31
-package remains unchanged; this correction needs inclusion in a subsequent
-software package. No image or physical servo ID was rewritten.
+This fixes the current local demo and source. The original signed 2026.10.31
+package remains unchanged; the correction is now separately published as
+[2026.10.3101](2026-10-31-servo-patch-release.md), with public old-client download
+and signature acceptance. No image or physical servo ID was rewritten.
