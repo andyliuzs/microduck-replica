@@ -4263,6 +4263,109 @@
             "release_status": "Open unmerged PR; no formal or matching development release observed."
           },
           "review_history": []
+        },
+        {
+          "number": 512,
+          "title": "updater: a daemon update waits for an os update to finish",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-31T14:21:34Z",
+          "updated_at": "2026-10-31T14:21:34Z",
+          "merge_commit_sha": "9e628761a073de30d8fa7301a237a3fb3bc23455",
+          "url": "https://github.com/pollen-robotics/microduck/pull/512",
+          "head_sha": "ae08189e1789dd24da4e80f2ae9060b7e011ea67",
+          "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+          "review": {
+            "checked_at_utc": "2026-10-31T14:24:18.953809+00:00",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...ae08189e1789dd24da4e80f2ae9060b7e011ea67",
+            "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+            "head_sha": "ae08189e1789dd24da4e80f2ae9060b7e011ea67",
+            "commits": 1,
+            "files": [
+              {
+                "path": "docs/design/updater-design.md",
+                "blob_sha": "7f65a5c24b093dfdd2732b639ab1f00ca252e8dd",
+                "additions": 4,
+                "deletions": 1
+              },
+              {
+                "path": "updater/src/ipc.rs",
+                "blob_sha": "4ce067e8bc33fe97a8ee46eb2fe05ec690b46ffa",
+                "additions": 37,
+                "deletions": 3
+              },
+              {
+                "path": "updater/src/os.rs",
+                "blob_sha": "3327b2602c0badd41996a9582a91fa0f550c8fb5",
+                "additions": 1,
+                "deletions": 1
+              },
+              {
+                "path": "updater/tests/ipc.rs",
+                "blob_sha": "c94bbec6bbde06b37bd4199d9413c3f9dc3c5b70",
+                "additions": 89,
+                "deletions": 0
+              }
+            ],
+            "source_version": "0.18.3",
+            "api_version": 47,
+            "wire_schema_changed": false,
+            "runtime_update_behavior_changed": true,
+            "change": "After taking the engine mutex, run_mutating and apply_unattended check the active OS update unit. Scheduler checks first to defer rather than log a failed update. Server retains shared OS Tools, also injectable for tests.",
+            "guarded_operations": [
+              "apply",
+              "rollback",
+              "select",
+              "reset-to-golden",
+              "unattended apply"
+            ],
+            "OS_unit": "microduck-osupdate-apply.service",
+            "running_states": [
+              "active",
+              "activating",
+              "deactivating"
+            ],
+            "manual_behavior": "Return existing BUSY code with an OS-update retry message; no queued wait until OS completion.",
+            "scheduler_behavior": "Hold the candidate until a later scheduled check; unattended install rechecks under engine lock. Not an immediate OS-completion wakeup.",
+            "lock_scope": "Blocks an os.apply through the same engine lock between the held-lock probe and daemon swap.",
+            "limitations": {
+              "8090_race": "Author explicitly leaves the 8090 page OS-start path outside engine lock, so it can start an OS update during a daemon swap. Not all-entry bidirectional exclusion.",
+              "probe_failure": "os::running returns false on systemctl/query error; unknown/unavailable is not fail-closed.",
+              "board_scope": "Requires an applicable official OS unit/layout. Does not establish that the replica image supports OS OTA.",
+              "API_number": "API47 unchanged does not establish identical update scheduling/BUSY behavior across sources or local extensions."
+            },
+            "verification": {
+              "new_test_functions": 2,
+              "test_type": "Unix tokio IPC regressions with stub systemctl active/inactive controlled by a temp file",
+              "cases": [
+                "Manual apply refused while active then succeeds after inactive",
+                "Mandatory candidate remains on old version while active and installs on next check after inactive"
+              ],
+              "author_reported": "Both tests fail without the new check. No full-workspace/replica/device acceptance is asserted here.",
+              "tracker": "Read all 4 fixed patches and relevant engine-lock/OS state code; verify source blobs and 0.18.3/API47. No target tests, systemctl, systemd, OS writes/reboot, install, environment or robot operation."
+            },
+            "priority": "High conditional reference where the official OS update unit is present. Audit all start paths, retry semantics, probe failure and the 8090 race before isolated adoption; existing 0.15 software transactions require their own assessment.",
+            "replica_integration": {
+              "status": "not_integrated",
+              "fixed_runtime_sha": "3a696c711b78d63e4e8dcb65420e192bbe588c2e",
+              "existing_engine_mutex": true,
+              "new_OS_running_probe_in_IPC": false,
+              "persistent_OS_Tools_field": false,
+              "source_and_verification_checkpoints_changed": false
+            },
+            "domain_impacts": {
+              "HD1910_BAM": "No change",
+              "camera": "No change",
+              "ToF": "No change",
+              "model_management": "Update workflow timing only; no policy import/weights change",
+              "training": "No change",
+              "actions": "No change",
+              "sound": "No change"
+            },
+            "release_status": "Open unmerged PR; no formal or matching development release observed."
+          },
+          "review_history": []
         }
       ],
       "previous_stable_releases": [
@@ -5482,7 +5585,7 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-31T13:27:46.441590+00:00",
+  "checked_at_utc": "2026-10-31T14:24:18.953809+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
@@ -5493,7 +5596,7 @@
     "previous_tracked_prs_merged": false,
     "new_pull_requests": {
       "pollen-robotics/microduck": [
-        510
+        512
       ]
     },
     "updated_pull_requests": {},
@@ -5509,7 +5612,7 @@
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "New PR510 reads owner-layer community policy opt-in, but ignores malformed owner TOML and may retain base opt-in. Fixed local0182already implements effective-layer reading with rejected-owner denial and Params validation; not a new integration/test result. Preserve that behavior before adopting upstream helper. All default heads/releases/dev tags/otherPRs/models/blog unchanged; documentation-only source review."
+    "notes": "New unmerged PR512 returns BUSY for daemon mutations while the OS unit is running and defers auto apply; no new schema/API number. The 8090 race and false-on-probe-error remain. Fixed local 0.18.2 has an engine mutex but lacks this new OS-active IPC check. Tests are stub-based source read only, not executed. Other heads/releases/dev tags/PRs/models/blog unchanged; migration/public software records preserved."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
