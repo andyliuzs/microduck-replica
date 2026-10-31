@@ -3809,6 +3809,105 @@
           "updated_at": "2026-10-23T15:13:40Z",
           "head_sha": "6bab33387831e9cc7fb3b463ff5c7085ab78f241",
           "draft": false
+        },
+        {
+          "number": 506,
+          "title": "robotd-params: the mic records from `default` as written, not `default,0`",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-30T22:13:22Z",
+          "updated_at": "2026-10-31T01:08:10Z",
+          "merge_commit_sha": "358be798730d28c438a213d932fa347258405193",
+          "url": "https://github.com/pollen-robotics/microduck/pull/506",
+          "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+          "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+          "review": {
+            "checked_at_utc": "2026-10-30T23:16:01.893501+00:00",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+            "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+            "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+            "commits": 1,
+            "files": [
+              {
+                "path": "deploy/robotd.toml",
+                "blob_sha": "e38b5cfbbc2589321d2e8b7090106fcdec79ca2a",
+                "additions": 2,
+                "deletions": 1
+              },
+              {
+                "path": "robotd-params/src/lib.rs",
+                "blob_sha": "c8e96ffeb9aebef51f4ab4437fcf0bde8cf83c0b",
+                "additions": 36,
+                "deletions": 3
+              }
+            ],
+            "version": "0.18.3",
+            "api_version": 47,
+            "API_contract_changed": false,
+            "change": "AudioParams.capture_device only appends ,0 for hw:/plughw: names without a comma. Other PCM names are used verbatim, fixing configured default becoming invalid default,0 and the mic worker restart loop reported in duck-sim with pet_detect enabled.",
+            "examples": {
+              "plughw:aic3104": "plughw:aic3104,0",
+              "plughw:aic3104,0": "plughw:aic3104,0",
+              "hw:1": "hw:1,0",
+              "default": "default",
+              "speaker": "speaker",
+              "pulse": "pulse",
+              "dmix:aic3104": "dmix:aic3104",
+              "default:CARD=facemic": "default:CARD=facemic"
+            },
+            "unchanged_defaults": {
+              "device": "plughw:aic3104",
+              "pet_detect_resolved_default": false,
+              "missing_named_card_fallback": "default for playback and capture; existing behavior, not a newly added fallback"
+            },
+            "verification": {
+              "author_reported": "Linux real pet worker with resolved duck-sim-style configuration and PulseAudio-injected clap: old main restarts arecord/no event; new source emits Noise; silence no events; fmt/clippy/cargo test --workspace reported passing. Not replica device or ASR validation.",
+              "new_regression_functions": 1,
+              "PCM_names_in_new_regression": 5,
+              "additional_existing_regression_case": "hw:1",
+              "tracker": "Read complete fixed two-file patch and relevant parameter/default/resolution/test source context; verified actual source blobs and unchanged0.18.3/API47 constants. No code/test/import/dependency/audio execution."
+            },
+            "domain_impacts": {
+              "HD1910_and_BAM": "No servo bus/dynamics change",
+              "camera": "No change",
+              "ToF": "No change",
+              "model_management": "No change",
+              "training": "No change",
+              "actions": "No motion implementation change",
+              "sound": "Capture-device naming for native mic/pet worker only; no new ASR, AI dialogue, bank, weights or sound material"
+            },
+            "priority": "Medium conditional reference for simulation/custom PCM capture failure; low for unchanged default HAT device. Evaluate in isolated migration software acceptance, not by replacing the running image.",
+            "replica_integration": {
+              "status": "not_integrated",
+              "fixed_runtime_sha": "3a696c711b78d63e4e8dcb65420e192bbe588c2e",
+              "read_scope": "robotd-params/src/lib.rs at committed local0.18.2 source",
+              "observed": "capture_device still appends ,0 to every name lacking a comma",
+              "tests_rerun": false,
+              "code_or_image_or_device_changed": false
+            },
+            "release_status": "Open ready-for-review PR (draft=false); not merged; no formal or matching development release observed. Same fixed source and author body as initial draft.",
+            "status_checked_at_utc": "2026-10-31T01:14:08.687167+00:00",
+            "status_only_update": {
+              "draft_before": true,
+              "draft_now": false,
+              "head_sha_changed": false,
+              "author_body_changed": false,
+              "reviews": 0,
+              "issue_comments": 0,
+              "check_runs": 0,
+              "new_test_execution_claimed_by_tracker": false
+            }
+          },
+          "review_history": [
+            {
+              "checked_at_utc": "2026-10-30T23:16:01.893501+00:00",
+              "state": "open",
+              "draft": true,
+              "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+              "scope": "Initial draft/source review; source and test claims remain unchanged after ready-for-review transition."
+            }
+          ]
         }
       ],
       "previous_stable_releases": [
@@ -5028,7 +5127,7 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-30T19:02:07.552473+00:00",
+  "checked_at_utc": "2026-10-31T01:14:08.687167+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
@@ -5039,9 +5138,12 @@
     "previous_tracked_prs_merged": false,
     "new_pull_requests": {},
     "updated_pull_requests": {
-      "504": {
-        "head_sha": "f28005581936cb794aaea089708474f8ca24dfab",
-        "status": "open; imports archived main only; plotter/tests unchanged"
+      "506": {
+        "draft_before": true,
+        "draft_now": false,
+        "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+        "source_code_changed": false,
+        "merged": false
       }
     },
     "new_development_releases": [],
@@ -5051,13 +5153,12 @@
     "official_blog_article_count": 3,
     "official_blog_latest_on": "2026-10-23",
     "local_migration_record_changed": false,
-    "local_public_software_release_recorded": true,
-    "local_public_software_release_tag": "microduck-software-v2026.10.31",
+    "local_public_software_release_recorded": false,
     "runtime_code_changed_by_heartbeat": false,
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "No new substantive upstream change. Record already separately published own2026.10.31software at26150eb:0.15.1/API42, not an0.18.2migration release. Read committed Linux/systemd scopes and fixed public sources; verified11asset metadata and2smallJSONhashes only. Independent0182checkpoint and acceptance unchanged; no test/environment/robot/online-page operation."
+    "notes": "PR506 moved from draft to ready for review, still open at the exact cbe0a9f source. Author body/test claims unchanged; no reviews/comments/check-runs observed. Status correction only, no new implementation/release/replica validation. All four heads/stable assets/dev tags/other PRs/models/blog unchanged; no runtime, test or environment operation."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
