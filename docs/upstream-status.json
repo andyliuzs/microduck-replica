@@ -4093,6 +4093,94 @@
               "scope": "Initial draft/source review; source and test claims remain unchanged after ready-for-review transition."
             }
           ]
+        },
+        {
+          "number": 508,
+          "title": "relay: answers go ahead of a stream that outruns the service",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-31T11:26:54Z",
+          "updated_at": "2026-10-31T11:26:54Z",
+          "merge_commit_sha": "2842965e40eb0543cf5d1855ca4d5cf9cd47a9b7",
+          "url": "https://github.com/pollen-robotics/microduck/pull/508",
+          "head_sha": "4a8a6b290987f12446b26b91e4e776312d8f078a",
+          "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+          "review": {
+            "checked_at_utc": "2026-10-31T12:23:16.022175+00:00",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...4a8a6b290987f12446b26b91e4e776312d8f078a",
+            "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+            "head_sha": "4a8a6b290987f12446b26b91e4e776312d8f078a",
+            "commits": 1,
+            "files": [
+              {
+                "path": "docs/design/remote-access-design.md",
+                "blob_sha": "a764c00e15edc7fcf529cccec392d2840a4f6b85",
+                "additions": 5,
+                "deletions": 0
+              },
+              {
+                "path": "mediad/src/relay.rs",
+                "blob_sha": "5fb76e2cab9fe48ead8ce853f3a428eb55a7a487",
+                "additions": 245,
+                "deletions": 11
+              }
+            ],
+            "source_version": "0.18.3",
+            "api_version": 47,
+            "wire_contract_changed": false,
+            "scope": "Official authenticated rendezvous relay JSON-RPC control lane, not direct LAN/HID or camera encoding.",
+            "change": "Before each sequential POST, drain already queued session lines into Outbox. Non-null-id answers are FIFO ahead of notifications; replace a queued full snapshot in its first position with the newest of that method.",
+            "snapshot_methods": [
+              "robot.state",
+              "tof.frame",
+              "head_imu.frame"
+            ],
+            "events": "pad.report, update.progress, null-id refusals and other notifications are not coalesced; enqueue order is retained but Budget can still drop notifications.",
+            "bounds": {
+              "session_channel_lines": 256,
+              "notification_allowance": 400,
+              "notification_window_seconds": 60,
+              "outbox_independent_capacity_limit": null,
+              "in_flight_POST_preempted": false,
+              "ToF_stream_rate_parameter_added": false
+            },
+            "limitations": [
+              "A long in-flight POST still prevents draining the256-line session channel.",
+              "Outbox event/answer queues have no new independent size cap.",
+              "Events are not merged but are not guaranteed delivered: the existing400per60seconds notification budget still drops excess; responses are exempt.",
+              "No guaranteed real-time response deadline is established."
+            ],
+            "verification": {
+              "new_test_functions": 2,
+              "new_tests": [
+                "Outbox ordering/snapshot/event/null-id refusal unit test",
+                "Async relay test with50msfakePOST and2msstate stream; answer asserted below1s"
+              ],
+              "author_reported_fake_service": "Old main response approximately4.3s; new assertion below1s in the stated fixture.",
+              "author_reported_real_rendezvous": "Author duck-sim/account: approximately0.5-1.7s across state/ToF conditions; old main calls timed out at25s. Not replica hardware measurements.",
+              "tracker": "Read complete fixed two-file patch, Budget and sending loop; verified source blobs and unchanged0.18.3/API47 constants. No test/build, rendezvous login, remote session, robot or online-page access."
+            },
+            "priority": "High conditional reference when using official relay with status/ToF streams; low for LAN-only users. Review slow POST, event budget, queue and disconnect behavior before adoption.",
+            "replica_integration": {
+              "status": "not_integrated",
+              "fixed_runtime_sha": "3a696c711b78d63e4e8dcb65420e192bbe588c2e",
+              "local_Outbox_present": false,
+              "old_arrival_order_loop_present": true,
+              "migration_source_and_verification_changed": false
+            },
+            "domain_impacts": {
+              "HD1910_BAM": "No bus/dynamics change",
+              "camera": "No encoding/capture change",
+              "ToF": "Latest-frame relay queuing only; no sensor sampling or rate parameter change",
+              "model_management": "No change",
+              "training": "No change",
+              "actions": "No motion implementation change",
+              "sound": "No sound implementation/material change"
+            },
+            "release_status": "Open unmerged PR only; no formal or matching development release observed."
+          },
+          "review_history": []
         }
       ],
       "previous_stable_releases": [
@@ -5312,7 +5400,7 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-31T11:26:14.967287+00:00",
+  "checked_at_utc": "2026-10-31T12:23:16.022175+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
@@ -5321,24 +5409,25 @@
     "stable_assets_changed": false,
     "stable_asset_count": 8,
     "previous_tracked_prs_merged": false,
-    "new_pull_requests": {},
+    "new_pull_requests": {
+      "pollen-robotics/microduck": [
+        508
+      ]
+    },
     "updated_pull_requests": {},
     "new_development_releases": [],
-    "moved_development_tags": [
-      "daemon-dev-ground-grasp-x"
-    ],
+    "moved_development_tags": [],
     "retired_development_tags": [],
     "official_blog_new_articles": false,
     "official_blog_article_count": 3,
     "official_blog_latest_on": "2026-10-23",
     "local_migration_record_changed": false,
-    "local_public_software_release_recorded": true,
-    "local_public_software_release_tag": "microduck-software-v2026.10.3101",
+    "local_public_software_release_recorded": false,
     "runtime_code_changed_by_heartbeat": false,
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "Old0.17.8/API44ground-grasp-x advances2commits: skill fall_safety and native one-shot audio stop on verdict/Start. Source-only review; not formal0.18.3 or replica integration. Separately record published3101UIrevision with unchanged0.15.1/API42native inputs and inherited31controller evidence. Independent0182unchanged; no runtime/tests/environment/device operation. Static editor review additionally finds fall_safety omitted on table replacement; potential loss of explicit override is recorded as inference, not reproduced acceptance."
+    "notes": "New unmerged PR508 prioritizes relay answers and coalesces3snapshot methods. Existing notification budget/drop and slow-POST/channel limits remain; new Outbox has no independent cap. Author fake-service and real-rendezvous duck-sim timings are separate from replica acceptance. Fixed0182still has arrival-order loop. Source-only review, no runtime/testing/environment changes."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
