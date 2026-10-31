@@ -1739,9 +1739,9 @@
           "draft": false,
           "merged_at": null,
           "created_at": "2026-10-30T12:43:31Z",
-          "updated_at": "2026-10-30T14:11:44Z",
-          "head_sha": "2b379204fa7dfcbc566db8fd4057eb1d0c9d8392",
-          "base_sha": "4fc912ff57d96ecffdb83adff4dff925a50b842f",
+          "updated_at": "2026-10-30T16:44:38Z",
+          "head_sha": "f28005581936cb794aaea089708474f8ca24dfab",
+          "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
           "review": {
             "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/4fc912ff57d96ecffdb83adff4dff925a50b842f...2b379204fa7dfcbc566db8fd4057eb1d0c9d8392",
             "commit_count": 6,
@@ -1774,6 +1774,14 @@
               "commits": 5,
               "files": 4,
               "note": "Includes main PR505 import; endurance-specific delta2files22+13changedlines."
+            },
+            "subsequent_main_sync": {
+              "checked_at_utc": "2026-10-30T19:02:07.552473+00:00",
+              "head_sha": "f28005581936cb794aaea089708474f8ca24dfab",
+              "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/2b379204fa7dfcbc566db8fd4057eb1d0c9d8392...f28005581936cb794aaea089708474f8ca24dfab",
+              "plotter_and_tests_changed": false,
+              "substantive_feature_change": false,
+              "merged": false
             }
           },
           "review_history": [
@@ -1802,9 +1810,17 @@
               },
               "priority": "medium_high_for_future_endurance_report_integrity; no change to current motion/enable acceptance",
               "replica_integration": "not_integrated; do not relabel synthetic fixtures or upstream plots as this project physical endurance"
+            },
+            {
+              "checked_at_utc": "2026-10-30T19:02:07.552473+00:00",
+              "previous_head_sha": "2b379204fa7dfcbc566db8fd4057eb1d0c9d8392",
+              "head_sha": "f28005581936cb794aaea089708474f8ca24dfab",
+              "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+              "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/2b379204fa7dfcbc566db8fd4057eb1d0c9d8392...f28005581936cb794aaea089708474f8ca24dfab",
+              "change": "Main import only: 9 commits/15 files bring already archived telemetry and0.18.3 release changes; endurance plotter/test files unchanged. Still open; no new runtime or offline analytics behavior."
             }
           ],
-          "merge_commit_sha": "afba136c0052a558a8620724612c72c13cc76c0c"
+          "merge_commit_sha": "6a3a18f9fdc2278e2c2121103c0dbd486727f4d0"
         },
         {
           "number": 502,
@@ -3657,8 +3673,8 @@
           "title": "Phase-encoded policies can run as skills",
           "state": "open",
           "merged_at": null,
-          "updated_at": "2026-10-30T09:12:03Z",
-          "head_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+          "updated_at": "2026-10-31T08:15:53Z",
+          "head_sha": "80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
           "draft": false,
           "history": [
             {
@@ -3670,28 +3686,97 @@
               "updated_at": "2026-10-24T20:43:00Z",
               "head_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
               "draft": false
+            },
+            {
+              "number": 449,
+              "url": "https://github.com/pollen-robotics/microduck/pull/449",
+              "title": "Phase-encoded policies can run as skills",
+              "state": "open",
+              "merged_at": null,
+              "updated_at": "2026-10-30T09:12:03Z",
+              "head_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+              "draft": false,
+              "previous_head_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
+              "base_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
+              "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+              "latest_increment": {
+                "from_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
+                "to_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+                "commit_count": 55,
+                "file_count": 67,
+                "scope_note": "Known upstream synchronization; isolated base-relative feature comparison reviewed separately, not55new features."
+              },
+              "feature_review": {
+                "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+                "file_count": 11,
+                "change": "10of11files have identical nonblank added/removed feature lines; IPC difference only renumbers oldAPI44->45 extension against newAPI46->47, including corresponding comments.",
+                "api_version": 47,
+                "state": "still_unmerged; not_in0.18.2",
+                "validation_scope": "PR body and its test claims unchanged; no tracker test or simulation execution, no new HD1910 validation.",
+                "replica_integration": "not_integrated; local0.17.9 checkpoint and published replica image/online services unchanged",
+                "contract": "SkillParams encoding/period_s/end_phase phase-clock extension. API47 does not imply footsteps or raw-servo diagnostic contract compatibility; no per-run tempo override, new weights or voice model."
+              }
             }
           ],
-          "previous_head_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
-          "base_sha": "e1b49bf20c5efcbe187553e7b2210ec3df2cd788",
-          "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+          "previous_head_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+          "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+          "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
           "latest_increment": {
-            "from_sha": "b15d10ead9f3f6dcd1afb4844da167c8965b6cb4",
-            "to_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
-            "commit_count": 55,
-            "file_count": 67,
-            "scope_note": "Known upstream synchronization; isolated base-relative feature comparison reviewed separately, not55new features."
+            "from_sha": "95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+            "to_sha": "80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
+            "commit_count": 11,
+            "file_count": 17,
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1...80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
+            "scope_note": "Imports already archived0.18.3main telemetry/SSHcache/release commits, then moves phase extension toAPI48; not11new features."
           },
           "feature_review": {
-            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/e1b49bf20c5efcbe187553e7b2210ec3df2cd788...95bbc7cb3a9db4e9fdc4c789f6ae3dbd4f553ff1",
+            "checked_at_utc": "2026-10-31T08:17:11.753350+00:00",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
             "file_count": 11,
-            "change": "10of11files have identical nonblank added/removed feature lines; IPC difference only renumbers oldAPI44->45 extension against newAPI46->47, including corresponding comments.",
-            "api_version": 47,
-            "state": "still_unmerged; not_in0.18.2",
-            "validation_scope": "PR body and its test claims unchanged; no tracker test or simulation execution, no new HD1910 validation.",
-            "replica_integration": "not_integrated; local0.17.9 checkpoint and published replica image/online services unchanged",
-            "contract": "SkillParams encoding/period_s/end_phase phase-clock extension. API47 does not imply footsteps or raw-servo diagnostic contract compatibility; no per-run tempo override, new weights or voice model."
-          }
+            "base_relative_commit_count": 3,
+            "change": "Same11phase feature files;10have identical full Git blobs to95bbc. IPC added/removed feature lines equal after only documented API46->47base,47->48extension and corresponding v46->v47comments normalization. Phase behavior unchanged.",
+            "source_version": "0.18.3",
+            "api_version": 48,
+            "previous_api_version": 47,
+            "stable_main_api_version": 47,
+            "state": "still_unmerged; not_in0.18.3; no new formal or matching development release observed",
+            "contract": "SkillParams encoding/period_s/end_phase phase-clock extension now usesAPI48 because mainAPI47is telemetry. Number equality does not establish compatibility with other branches or local diagnostic/motionAPI47. No per-run tempo override or new weights/voice model.",
+            "verification": {
+              "author_new_comment_url": "https://github.com/pollen-robotics/microduck/pull/449#issuecomment-6541040443",
+              "author_new_comment_created_at_utc": "2026-10-31T08:15:53Z",
+              "author_reported_checks": [
+                "cargo test -p duck-ipc-proto",
+                "cargo test -p robotd-params",
+                "cargo fmt --all --check",
+                "clippy on these crates plus robotctl",
+                "robotctl and robotd builds"
+              ],
+              "author_workspace_body_claim": "Historical PR-body report; not promoted to a new whole-workspace run at80e6bd1.",
+              "tracker": "Read fixed incremental and isolated feature patches; compare10fullfileblobIDs and normalize only known IPC annotation/version changes. Read fixed local0182SkillParams/API. No implementation/test/build/simulation execution."
+            },
+            "replica_integration": {
+              "status": "not_integrated",
+              "fixed_runtime_sha": "3a696c711b78d63e4e8dcb65420e192bbe588c2e",
+              "local_api_version": 47,
+              "local_SkillParams_phase_fields_present": {
+                "encoding": false,
+                "period_s": false,
+                "end_phase": false
+              },
+              "source_and_validation_checkpoints_changed": false
+            },
+            "priority": "High contract check before any future integration; phase-skill functionality remains medium optional reference.",
+            "incremental_domain_impacts": {
+              "HD1910_BAM": "No new bus or dynamics implementation",
+              "camera": "No change",
+              "ToF": "No change",
+              "model_management": "Same phase import/manifest behavior; consumer contract nowAPI48",
+              "training": "No new weights/training change",
+              "actions": "Phase behavior unchanged; per-run tempo override still deferred",
+              "sound": "No new sound material or music-sync implementation"
+            }
+          },
+          "merge_commit_sha": "c06acd54716fb52c51fd192bdd84f1e1e3a4699e"
         },
         {
           "number": 448,
@@ -3793,6 +3878,105 @@
           "updated_at": "2026-10-23T15:13:40Z",
           "head_sha": "6bab33387831e9cc7fb3b463ff5c7085ab78f241",
           "draft": false
+        },
+        {
+          "number": 506,
+          "title": "robotd-params: the mic records from `default` as written, not `default,0`",
+          "state": "open",
+          "draft": false,
+          "merged_at": null,
+          "created_at": "2026-10-30T22:13:22Z",
+          "updated_at": "2026-10-31T01:08:10Z",
+          "merge_commit_sha": "358be798730d28c438a213d932fa347258405193",
+          "url": "https://github.com/pollen-robotics/microduck/pull/506",
+          "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+          "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+          "review": {
+            "checked_at_utc": "2026-10-30T23:16:01.893501+00:00",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+            "base_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+            "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+            "commits": 1,
+            "files": [
+              {
+                "path": "deploy/robotd.toml",
+                "blob_sha": "e38b5cfbbc2589321d2e8b7090106fcdec79ca2a",
+                "additions": 2,
+                "deletions": 1
+              },
+              {
+                "path": "robotd-params/src/lib.rs",
+                "blob_sha": "c8e96ffeb9aebef51f4ab4437fcf0bde8cf83c0b",
+                "additions": 36,
+                "deletions": 3
+              }
+            ],
+            "version": "0.18.3",
+            "api_version": 47,
+            "API_contract_changed": false,
+            "change": "AudioParams.capture_device only appends ,0 for hw:/plughw: names without a comma. Other PCM names are used verbatim, fixing configured default becoming invalid default,0 and the mic worker restart loop reported in duck-sim with pet_detect enabled.",
+            "examples": {
+              "plughw:aic3104": "plughw:aic3104,0",
+              "plughw:aic3104,0": "plughw:aic3104,0",
+              "hw:1": "hw:1,0",
+              "default": "default",
+              "speaker": "speaker",
+              "pulse": "pulse",
+              "dmix:aic3104": "dmix:aic3104",
+              "default:CARD=facemic": "default:CARD=facemic"
+            },
+            "unchanged_defaults": {
+              "device": "plughw:aic3104",
+              "pet_detect_resolved_default": false,
+              "missing_named_card_fallback": "default for playback and capture; existing behavior, not a newly added fallback"
+            },
+            "verification": {
+              "author_reported": "Linux real pet worker with resolved duck-sim-style configuration and PulseAudio-injected clap: old main restarts arecord/no event; new source emits Noise; silence no events; fmt/clippy/cargo test --workspace reported passing. Not replica device or ASR validation.",
+              "new_regression_functions": 1,
+              "PCM_names_in_new_regression": 5,
+              "additional_existing_regression_case": "hw:1",
+              "tracker": "Read complete fixed two-file patch and relevant parameter/default/resolution/test source context; verified actual source blobs and unchanged0.18.3/API47 constants. No code/test/import/dependency/audio execution."
+            },
+            "domain_impacts": {
+              "HD1910_and_BAM": "No servo bus/dynamics change",
+              "camera": "No change",
+              "ToF": "No change",
+              "model_management": "No change",
+              "training": "No change",
+              "actions": "No motion implementation change",
+              "sound": "Capture-device naming for native mic/pet worker only; no new ASR, AI dialogue, bank, weights or sound material"
+            },
+            "priority": "Medium conditional reference for simulation/custom PCM capture failure; low for unchanged default HAT device. Evaluate in isolated migration software acceptance, not by replacing the running image.",
+            "replica_integration": {
+              "status": "not_integrated",
+              "fixed_runtime_sha": "3a696c711b78d63e4e8dcb65420e192bbe588c2e",
+              "read_scope": "robotd-params/src/lib.rs at committed local0.18.2 source",
+              "observed": "capture_device still appends ,0 to every name lacking a comma",
+              "tests_rerun": false,
+              "code_or_image_or_device_changed": false
+            },
+            "release_status": "Open ready-for-review PR (draft=false); not merged; no formal or matching development release observed. Same fixed source and author body as initial draft.",
+            "status_checked_at_utc": "2026-10-31T01:14:08.687167+00:00",
+            "status_only_update": {
+              "draft_before": true,
+              "draft_now": false,
+              "head_sha_changed": false,
+              "author_body_changed": false,
+              "reviews": 0,
+              "issue_comments": 0,
+              "check_runs": 0,
+              "new_test_execution_claimed_by_tracker": false
+            }
+          },
+          "review_history": [
+            {
+              "checked_at_utc": "2026-10-30T23:16:01.893501+00:00",
+              "state": "open",
+              "draft": true,
+              "head_sha": "cbe0a9fd7de96ef53dcd84b90322f84515756a8c",
+              "scope": "Initial draft/source review; source and test claims remain unchanged after ready-for-review transition."
+            }
+          ]
         }
       ],
       "previous_stable_releases": [
@@ -5012,31 +5196,39 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-30T16:01:59.583522+00:00",
+  "checked_at_utc": "2026-10-31T08:17:11.753350+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
     "stable_release_tag": "daemon-v0.18.3",
     "stable_release_actual_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
-    "stable_assets_changed": true,
+    "stable_assets_changed": false,
     "stable_asset_count": 8,
     "previous_tracked_prs_merged": false,
     "new_pull_requests": {},
-    "updated_pull_requests": {},
+    "updated_pull_requests": {
+      "449": {
+        "head_sha": "80e6bd19c2f1efb979e16fa8fb75fc259fc0be9b",
+        "api_before": 47,
+        "api_now": 48,
+        "archived_main_import": true,
+        "new_phase_behavior": false,
+        "merged": false
+      }
+    },
     "new_development_releases": [],
-    "moved_development_tags": [
-      "daemon-dev-main"
-    ],
+    "moved_development_tags": [],
     "retired_development_tags": [],
     "official_blog_new_articles": false,
     "official_blog_article_count": 3,
     "official_blog_latest_on": "2026-10-23",
     "local_migration_record_changed": false,
+    "local_public_software_release_recorded": false,
     "runtime_code_changed_by_heartbeat": false,
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "Stable0.18.3nowhas8assets; bothsmallJSONmanifestbytes/digests agreewithb2b source and15,056,230-bytepackage metadata. Noarchives/bootstrapdownload,minisignverificationorinstall. dev-main nowb2b/API47sameformalsource. Allfourheads,PRs,modelmetadataandblogunchanged. Independent18.2andknownenvironmentissue notmodified/retested."
+    "notes": "UnmergedPR449 imports archived0.18.3main and renumbers phase contract toAPI48; ten feature blobs identical and normalized IPC feature delta unchanged. Author reports narrow checks at new head, not a new whole-workspace replica acceptance. Main/stable remains0.18.3/API47; independent local0182/API47lacks the3phase fields and remains unchanged. Other sources/releases/models/blog unchanged; documentation-only review."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
@@ -5370,5 +5562,164 @@
         }
       }
     }
+  },
+  "replica_public_software": {
+    "recorded_on": "2026-10-31",
+    "checked_at_utc": "2026-10-30T19:02:07.552473+00:00",
+    "release_tag": "microduck-software-v2026.10.31",
+    "release_url": "https://github.com/fanhao375/microduck-replica/releases/tag/microduck-software-v2026.10.31",
+    "published_at_utc": "2026-10-30T18:37:12Z",
+    "prerelease": false,
+    "source_sha": "26150eb61407d3498dc2e2c5d1f9dc3ea130acde",
+    "tag_actual_sha": "26150eb61407d3498dc2e2c5d1f9dc3ea130acde",
+    "documentation_checkpoint_sha": "01a5b537c5c6166cb65831b3850d72deb211b413",
+    "software_version": "2026.10.31",
+    "image_rebuilt": false,
+    "GitHub_latest_image_tag": "microduck-replica-image-20261027",
+    "features": [
+      "Shared physical-gamepad mapping and stick/trigger calibration for Studio/control/voice buttons",
+      "Camera card in-place enlargement and aspect-ratio display, without a capture-driver/FOV/calibration change",
+      "SSH connection guide"
+    ],
+    "runtime_family": "0.15.1",
+    "robotd_api": 42,
+    "robotd_build": "0791fcd-feetech-qinmo-control.47",
+    "model_api": 2,
+    "padd_mapping_protocol": 1,
+    "native_inputs": {
+      "repository": "https://github.com/fanhao375/Microduck-kissqy",
+      "robotd": {
+        "source_commit": "931ce978f2efb27c157b7a583ee402793131a0d2",
+        "size": 5606976,
+        "sha256": "725b74cd93660a312970a44879abe5b75e8becf108499a1b8798961e48ca5f00",
+        "build": "0791fcd-feetech-qinmo-control.47",
+        "api": 42,
+        "model": 2
+      },
+      "padd": {
+        "source_commit": "665613ac628fdc9b1b71f324809f0c16ce2795f2",
+        "source_archive_sha256": "19d477da39233009377f6653dff317ba16457534e9e2436545adf40385b02f38",
+        "size": 3522648,
+        "sha256": "dc1c7043a108964583fc09a11e3d6f87a25e259c346f7ce9154e77500a0881ec",
+        "embedded_build_time": "2026-10-30T23:17:10+09:00",
+        "target": "aarch64-unknown-linux-gnu.2.31",
+        "maximum_glibc_symbol_version": "2.30",
+        "independent_builds_byte_identical": true,
+        "mapping_protocol": 1,
+        "linux_padd_tests_executed_passed": 113,
+        "actual_arm_process_and_status_under_qemu": true,
+        "hardware_acceptance": false
+      },
+      "public_source_export": {
+        "commit": "27d7921dbcb280bd7d6ba3e9937624f1e2e61d23",
+        "url": "https://github.com/fanhao375/Microduck-kissqy/tree/27d7921dbcb280bd7d6ba3e9937624f1e2e61d23",
+        "sole_parent_public_baseline": "e376346723e1670a649b2a00e4dcec0f3d2a46cd",
+        "historical_embedded_build_source": "665613ac628fdc9b1b71f324809f0c16ce2795f2",
+        "historical_build_commit_public_reachability_claimed": false,
+        "program_and_build_inputs_equal_historical_frozen_source": true,
+        "program_input_file_count": 1331,
+        "protected_console_changes_and_local_history_excluded": true,
+        "public_source_recipe_syntax_checked": true,
+        "public_source_rebuild_executed": false,
+        "frozen_binary_changed": false
+      }
+    },
+    "contract_note": "Build suffix .47 is not API47. This released0.15.1/API42 software/controller delivery is separate from local0.18.2/API47 migration and official0.18.3/API47 telemetry.",
+    "asset_inventory": [
+      {
+        "name": "2026.10.31.manifest.json",
+        "size": 806,
+        "digest": "sha256:c760798aa981646be9b0dd973b9e586cc810db3964195d8c6236302febff91c9"
+      },
+      {
+        "name": "2026.10.31.manifest.json.minisig",
+        "size": 319,
+        "digest": "sha256:464ff1ac4b6bd9d6e1367e42a0970c09d9a2e09bfdef45988e324ba71780d363"
+      },
+      {
+        "name": "2026.10.31.software-update.tar",
+        "size": 9287680,
+        "digest": "sha256:5f6a597abe27d9c4af8e137841c9dcab4b6c4b378f44c8f88f4c7b4f6ae09204"
+      },
+      {
+        "name": "2026.10.31.software-update.tar.sha256",
+        "size": 97,
+        "digest": "sha256:61fc0cccef0583f5d9372523ab10cc222fbd9ea70fa9fa23d0ed0d016b34db35"
+      },
+      {
+        "name": "LICENSE-Apache-2.0.txt",
+        "size": 11358,
+        "digest": "sha256:c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c"
+      },
+      {
+        "name": "README.txt",
+        "size": 2432,
+        "digest": "sha256:a3b4e018428c3df69db18eb97f2c3677b2bbf88af82aff565561bfc68728c975"
+      },
+      {
+        "name": "bootstrap-README.txt",
+        "size": 2205,
+        "digest": "sha256:eed3163e6f2ec129bf179e9bbe4d880c61829104ba6bbde9cebbfdf034f90cb0"
+      },
+      {
+        "name": "microduck-bootstrap-2026.10.31.tar.gz",
+        "size": 61425062,
+        "digest": "sha256:8a12c6ee378782d7441b0347c3bd15524ade9c5c69151dcd5121d01f4d4cb6ee"
+      },
+      {
+        "name": "microduck-bootstrap-2026.10.31.tar.gz.sha256",
+        "size": 104,
+        "digest": "sha256:d7090bda5438ee9b6eafe88174b7eaceae3a115bdd4953c3a36cec942e9683b4"
+      },
+      {
+        "name": "microduck-release-20261027.pub",
+        "size": 113,
+        "digest": "sha256:0878853a92b10c9196c5b63e02087664923c576e6bc2e064d3bbdcc1be056bf5"
+      },
+      {
+        "name": "runtime-provenance.json",
+        "size": 6935,
+        "digest": "sha256:4a34fbc44d6c11c3393c0e60d371e75ed62b2fe842aef2d5e5cd6b1a8ca2aa4c"
+      }
+    ],
+    "software_package": {
+      "name": "2026.10.31.software-update.tar",
+      "size": 9287680,
+      "sha256": "5f6a597abe27d9c4af8e137841c9dcab4b6c4b378f44c8f88f4c7b4f6ae09204"
+    },
+    "JSON_review": {
+      "runtime-provenance.json": {
+        "bytes": 6935,
+        "digest": "sha256:4a34fbc44d6c11c3393c0e60d371e75ed62b2fe842aef2d5e5cd6b1a8ca2aa4c"
+      },
+      "2026.10.31.manifest.json": {
+        "bytes": 806,
+        "digest": "sha256:c760798aa981646be9b0dd973b9e586cc810db3964195d8c6236302febff91c9"
+      }
+    },
+    "manifest_scope": "Version manifest describes the inner9280151-byte compressed payload; GitHub software-update.tar/provenance describes outer9287680-byte envelope. Do not compare their sizes as the same object.",
+    "reported_verification": {
+      "source": "Committed verification documents and public provenance; no tests rerun by heartbeat",
+      "linux_controller_mapping": 165,
+      "linux_voice_mapping": 13,
+      "actual_unix_socket_probes": 322,
+      "linux_padd": 113,
+      "actual_systemd_scope": "Permissions, UID/groups, persistent directories, real kernel AF_NETLINK enforcement and legacy rollback guards; daemon bodies, hardware input and native file restore include fixtures.",
+      "original27_updater": "Committed original ARM/QEMU signature/install/rollback/health/crash-recovery acceptance; service backend fixture, no hardware installation.",
+      "limitations": [
+        "The shipped mapping controller bundle has not been installed and accepted on a physical duck during this release verification.",
+        "Actual controller models and USB/Bluetooth modes still require device acceptance, including emergency-stop behavior.",
+        "The genuine systemd proof validates real service permissions and legacy rollback guards with fixture daemon bodies; it is not an end-to-end production native transaction on ARM hardware.",
+        "The native workspace has two inherited robotd test failures documented separately; only the stated padd and focused controller suites are claimed passing.",
+        "Existing 20261027 images are not rebuilt or replaced by this software release. A source-built development card may require one-time compatible SSH bootstrap."
+      ]
+    },
+    "hardware_acceptance": false,
+    "independent_0182_acceptance_changed": false,
+    "deployed_by_heartbeat": false,
+    "fixed_verification_url": "https://github.com/fanhao375/microduck-replica/blob/01a5b537c5c6166cb65831b3850d72deb211b413/docs/superpowers/verification/2026-10-31-controller-linux.md",
+    "operation_document": "docs/功能软件升级-20261030.md",
+    "priority": "For existing0.15 installations, use31 instructions and separate component/device acceptance. Continue the independent0.18.2 Linux/consumer/ORT/ARM/image/device checklist; do not replace it with these older-line results.",
+    "heartbeat_verification": "Checked formal release/direct tag,11asset metadata entries, SHA256+size of only2smallJSONfiles, fixed public source/doc commit reachability and public Cargo0.15.1. No software/bootstrap archive download, signatures rerun, build, tests, install, WSL recovery, robot or live-page access."
   }
 }
