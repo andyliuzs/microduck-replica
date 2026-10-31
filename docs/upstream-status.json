@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "recorded_on": "2026-10-31",
+  "recorded_on": "2026-11-01",
   "display_timezone": "Asia/Tokyo",
   "scope": "Upstream documentation tracking; this snapshot does not certify integration into the replica image.",
   "repositories": {
@@ -214,10 +214,10 @@
           "verification": "Read2fixedsourcepatches including4mappingtests; no execution, published nudge-weight download, new training or physical input/motion validation.",
           "same_source_as_ground_grasp_x": false,
           "ground_grasp_source_relationship": {
-            "checked_at_utc": "2026-10-31T11:26:14.967287+00:00",
+            "checked_at_utc": "2026-10-31T15:28:49.939818+00:00",
             "previously_identical_at_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
-            "ground_grasp_now_at_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
-            "note": "Precision-pad unchanged; ground-grasp-x retains phase/WAV/CSV and adds guarded skill interruption and Start one-shot sound stop."
+            "ground_grasp_now_at_sha": "abc903c7dc0610718756f2e05d421a340fee18c9",
+            "note": "Precision-pad tag unchanged; ground-grasp-x adds relax/reboot one-shot sound-stop calls and a personal Select mapping explicitly kept off main/PRs."
           },
           "ground_grasp_relationship_history": [
             {
@@ -231,6 +231,12 @@
               "previously_identical_at_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
               "ground_grasp_now_at_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
               "note": "Precision-pad tag remains614acd6; ground-grasp-x additionally has phase/WAV and new CSV beak track code."
+            },
+            {
+              "checked_at_utc": "2026-10-31T11:26:14.967287+00:00",
+              "previously_identical_at_sha": "614acd6eac926931f5bd4ea22ca5910246c89355",
+              "ground_grasp_now_at_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+              "note": "Precision-pad unchanged; ground-grasp-x retains phase/WAV/CSV and adds guarded skill interruption and Start one-shot sound stop."
             }
           ]
         },
@@ -1472,12 +1478,12 @@
         {
           "tag": "daemon-dev-ground-grasp-x",
           "url": "https://github.com/pollen-robotics/microduck/releases/tag/daemon-dev-ground-grasp-x",
-          "published_at": "2026-10-31T10:57:52Z",
-          "head_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+          "published_at": "2026-10-31T15:18:07Z",
+          "head_sha": "abc903c7dc0610718756f2e05d421a340fee18c9",
           "prerelease": true,
-          "change": "Two commits/seven files add per-skill fall_safety, default on for phase/off otherwise; existing fall/pick-up verdicts cut guarded skills and request native one-shot sound stop. Start/drive-stop also requests sound stop while busy. Prior phase/WAV/CSV retained; no new weights or media.",
-          "replica_integration": "not_integrated; fixed local0182/3a696c7 lacks SkillDef.fall_safety; no migration, image, device or live-page modification",
-          "priority": "high_reference_for_long_skill_interruption_and_one_shot_audio_stop; isolate contract/IMU/model/HD1910 acceptance before adoption",
+          "change": "Two commits/four files: relax and motor-reboot handling request native one-shot sound stop before forgetting a busy controller; separate explicitly personal Select mapping reboots motors on short release and requests shutdown at a held 3 s threshold. No new weights or media.",
+          "replica_integration": "not_integrated; fixed local 0182/3a696c7 lacks the two relax/reboot Sound.stop calls and retains 2-4 s rest/4 s shutdown Select mapping. No migration, image, robot or live-page change.",
+          "priority": "Reference the relax/reboot one-shot sound-stop fix separately; do not adopt the explicitly personal Select mapping as a default update. Isolated HD1910 torque/reboot/gain restoration and button-boundary acceptance remain required.",
           "history": [
             {
               "head_sha": "01a90748823e92295de4220feb4f61ccd0089464",
@@ -1645,40 +1651,157 @@
                 "tests": "CSV interpolation/clamp and TOML roundtrip sources plus an ignored ORT>=1.23 ownership test; not run by tracker.",
                 "HD1910": "Review mouth direction, physical travel, angle units and ownership; no new BAM/training or physical mouth/sound acceptance."
               }
+            },
+            {
+              "tag": "daemon-dev-ground-grasp-x",
+              "url": "https://github.com/pollen-robotics/microduck/releases/tag/daemon-dev-ground-grasp-x",
+              "published_at": "2026-10-31T10:57:52Z",
+              "head_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+              "prerelease": true,
+              "change": "Two commits/seven files add per-skill fall_safety, default on for phase/off otherwise; existing fall/pick-up verdicts cut guarded skills and request native one-shot sound stop. Start/drive-stop also requests sound stop while busy. Prior phase/WAV/CSV retained; no new weights or media.",
+              "replica_integration": "not_integrated; fixed local0182/3a696c7 lacks SkillDef.fall_safety; no migration, image, device or live-page modification",
+              "priority": "high_reference_for_long_skill_interruption_and_one_shot_audio_stop; isolate contract/IMU/model/HD1910 acceptance before adoption",
+              "version": "daemon 0.17.8-dev.1530.a5912e8 (ground-grasp-x)",
+              "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/fe9ad02a408cc4578c4bc300ce635bbd9fc5d151...a5912e80502cd3a02ee37f592931612ad63afc1e",
+              "version_family": "0.17.8-development, diverged from current main; not PR481/static default nor a stable update",
+              "comparison_to_recorded_main": {
+                "from_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
+                "to_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+                "status": "diverged",
+                "ahead_by": 9,
+                "behind_by": 64,
+                "merge_base_sha": "942e58e3aa6dbb28e7037203fff11866122c7567",
+                "file_count": 19,
+                "fixed_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...a5912e80502cd3a02ee37f592931612ad63afc1e",
+                "scope_note": "Old 0.17.8/API44 source, ahead9/behind64 vs formal0.18.3; not a stable-plus-feature package."
+              },
+              "contract_note": "Reserves fourth built-in request bit, shifts configurable mask by4 and reduces MAX_SKILLS29to28. Requires matching config/selection/request/report and mouth ownership, not version-number equivalence. fall_safety is a local SkillDef file key. RPC constructor copies an existing value, but the persistence writer omits the key; no new remote parameter; API44 does not identify this configuration/behavior contract.",
+              "verification": "Read all7 fixed patches and relevant control/main/Sound/params/IPC/Cargo context. Two added test functions; controller regression is ignored and requires ORT>=1.23. No tracker build/test/inference/audio/hardware execution; threshold rationale is author simulation. Also read fixed editor: static write-omission finding, not an executed reproduction.",
+              "previous_head_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+              "latest_increment": {
+                "from_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+                "to_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+                "commit_count": 2,
+                "file_count": 7,
+                "files": [
+                  "docs/design/policy-channel-design.md",
+                  "docs/design/robotd-design.md",
+                  "docs/robot/cheatsheet.md",
+                  "robotctl/src/main.rs",
+                  "robotd-params/src/lib.rs",
+                  "robotd/src/control.rs",
+                  "robotd/src/main.rs"
+                ],
+                "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/fe9ad02a408cc4578c4bc300ce635bbd9fc5d151...a5912e80502cd3a02ee37f592931612ad63afc1e",
+                "new_model_or_audio_bytes": false,
+                "new_CSV_track_asset": false
+              },
+              "phase_clock_skills": {
+                "config": "[[policy.skill]] phase=true and optional sound path; defaults phase=false/sound=None",
+                "holding_command": "[cos(2*pi*phi),sin(2*pi*phi),0] with phi clamped0..1 over positive duration",
+                "ordinary_and_unwind": "Plain skills keep constant command; unwind phase uses existing unwind command.",
+                "audio": "voice.play_file invoked only after start_skill returns Ok(true), from configured localWAV if voice exists; no new play on Ok(false) or refusal. Not a measured acoustic alignment guarantee.",
+                "CLI_options": [
+                  "--phase",
+                  "--sound",
+                  "--action-scale"
+                ],
+                "CLI_phase_conflicts_with_constant_command": true,
+                "action_scale_precedence": "Explicit CLI flag, then manifest action_scale; not automatic dynamics adaptation.",
+                "persistence": "File editor writes phase/sound only when set. robot.setSkill preserves these from the existing entry; new fields are not added to that RPC wire contract.",
+                "new_policy_or_WAV_delivered": false,
+                "HD1910_verified": false
+              },
+              "api_version": 44,
+              "mouth_track": {
+                "configuration": "SkillDef mouth optional path / robotctl policy add --mouth CSV; robot.setSkill preserves an existing file key but has no new mouth-track wire parameter.",
+                "format": "t,mouth CSV: seconds and radians, finite values and strictly increasing times. Blank/comment lines skipped; pre-data header/non-number rows skipped; extra cells not consumed.",
+                "evaluation": "Linear interpolation, hold first/last endpoints, official-model clamp from-5deg to+30deg. Skill time is duration-remaining; unwinding holds endpoint.",
+                "priority": "Overrides trigger/idle/instrument/grasp mouth only while driving with active tracked skill; stopped/finished skill returns ownership.",
+                "missing_or_invalid_file": "Warns and runs skill without mouth track; not a successful mouth replay.",
+                "clock": "Read after controller step, documented one tick ahead of leg clock. Existing WAV trigger is not measured audio/video/servo synchronization.",
+                "tests": "CSV interpolation/clamp and TOML roundtrip sources plus an ignored ORT>=1.23 ownership test; not run by tracker.",
+                "HD1910": "Review mouth direction, physical travel, angle units and ownership; no new BAM/training or physical mouth/sound acceptance."
+              },
+              "guarded_skill_reflexes": {
+                "checked_at_utc": "2026-10-31T11:26:14.967287+00:00",
+                "configuration": "SkillDef.fall_safety optional bool; guarded() resolves explicit value, else phase flag.",
+                "default_phase_skill": true,
+                "default_other_skills": false,
+                "built_in_kick_and_roulade_defaults": "unchanged/unguarded",
+                "remote_RPC": "No new SkillParams field. Constructor copies existing value, but edit::put_skill omits fall_safety when replacing the table; durable preservation is not established.",
+                "fall_conditions": "Existing limp_fall enabled, was_driving, not already fallen, no shutdown/power-off, fresh/ready IMU and controller.reflexes_on; not sitting.",
+                "skill_fall_gate": {
+                  "gravity_z_greater_than": -0.643,
+                  "source_interpretation_degrees": 50,
+                  "meaning": "Only admits a sample to FallPredictor, not a stand-alone stop verdict. Ineligible/blind/gate-false resets pending debounce.",
+                  "rationale": "Author dance simulation; not HD1910 physical calibration."
+                },
+                "pickup_conditions": "Existing watcher/model in walk mode; enabled/ready/IMU and no limp/shutdown/power-off; confirmed Pause edge cuts guarded skill.",
+                "on_verdict": "stop_moves plus Sound.stop; existing limp or pickup handling continues.",
+                "local0182_fall_safety_field_present": false,
+                "new_models_or_assets": false,
+                "HD1910_physical_acceptance": false
+              },
+              "start_stop_sound": {
+                "source_commit": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+                "behavior": "After reset (which does not clear active moves), busy controller requests Sound.stop before stop_moves on Start/drive-stop.",
+                "scope": "Native one-shot child only when ride==Off; existing ride/theremin/chorale ownership exceptions remain. Not the independent Studio music-player API.",
+                "tracker_execution": false
+              },
+              "persistence_review": {
+                "head_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+                "editor_blob_sha": "ee621e7051fcb407e7ab1b447a17a0a5ab642667",
+                "editor_source": "robotd-params/src/edit.rs",
+                "editor_lines": "396-460",
+                "RPC_source": "robotd/src/main.rs",
+                "RPC_lines": "4900-4918",
+                "observation": "put_skill builds a new table, writes known fields including phase/sound/mouth but no fall_safety, then replaces the existing same-name table. set_skill_request copies the existing fall_safety into SkillDef but then calls edit::set_skill.",
+                "inference": "Saving an existing manually overridden entry through CLI/RPC can omit the override and revert to phase-derived defaults on reload. Constructor preservation is not durable-write proof.",
+                "execution_reproduction": false,
+                "before_adoption": "Add persistence roundtrip and interruption regressions in the independent migration line; heartbeat does not change runtime or execute tests."
+              }
             }
           ],
-          "version": "daemon 0.17.8-dev.1530.a5912e8 (ground-grasp-x)",
-          "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/fe9ad02a408cc4578c4bc300ce635bbd9fc5d151...a5912e80502cd3a02ee37f592931612ad63afc1e",
+          "version": "daemon 0.17.8-dev.1531.abc903c (ground-grasp-x)",
+          "fixed_incremental_diff_url": "https://github.com/pollen-robotics/microduck/compare/a5912e80502cd3a02ee37f592931612ad63afc1e...abc903c7dc0610718756f2e05d421a340fee18c9",
           "version_family": "0.17.8-development, diverged from current main; not PR481/static default nor a stable update",
           "comparison_to_recorded_main": {
             "from_sha": "b2b0d213a402caeac492dd662ea891faa17f67c0",
-            "to_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "to_sha": "abc903c7dc0610718756f2e05d421a340fee18c9",
             "status": "diverged",
-            "ahead_by": 9,
+            "ahead_by": 11,
             "behind_by": 64,
             "merge_base_sha": "942e58e3aa6dbb28e7037203fff11866122c7567",
-            "file_count": 19,
-            "fixed_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...a5912e80502cd3a02ee37f592931612ad63afc1e",
-            "scope_note": "Old 0.17.8/API44 source, ahead9/behind64 vs formal0.18.3; not a stable-plus-feature package."
+            "file_count": 20,
+            "fixed_url": "https://github.com/pollen-robotics/microduck/compare/b2b0d213a402caeac492dd662ea891faa17f67c0...abc903c7dc0610718756f2e05d421a340fee18c9",
+            "scope_note": "Old 0.17.8/API44 source, ahead 11/behind 64 versus formal 0.18.3; includes a personal pad preference explicitly kept off main/PRs, not a stable-plus-feature package."
           },
           "contract_note": "Reserves fourth built-in request bit, shifts configurable mask by4 and reduces MAX_SKILLS29to28. Requires matching config/selection/request/report and mouth ownership, not version-number equivalence. fall_safety is a local SkillDef file key. RPC constructor copies an existing value, but the persistence writer omits the key; no new remote parameter; API44 does not identify this configuration/behavior contract.",
-          "verification": "Read all7 fixed patches and relevant control/main/Sound/params/IPC/Cargo context. Two added test functions; controller regression is ignored and requires ORT>=1.23. No tracker build/test/inference/audio/hardware execution; threshold rationale is author simulation. Also read fixed editor: static write-omission finding, not an executed reproduction.",
-          "previous_head_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
+          "verification": "Read all 4 fixed patches plus hold, main, Sound, controller, IPC/Cargo and fixed local source context. One new mapper test definition; no new relax/reboot-audio test in this increment. No tracker tests, builds, inference, audio, servo or environment execution. Earlier fall_safety editor omission remains in identical blob; no new reproduction.",
+          "previous_head_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
           "latest_increment": {
-            "from_sha": "fe9ad02a408cc4578c4bc300ce635bbd9fc5d151",
-            "to_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "from_sha": "a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "to_sha": "abc903c7dc0610718756f2e05d421a340fee18c9",
             "commit_count": 2,
-            "file_count": 7,
+            "file_count": 4,
+            "commits": [
+              {
+                "sha": "8f9d60d45356fa5e9921c81063f82a3057817684",
+                "subject": "robotd: a relax or a motor reboot stops a skill's sound with the skill"
+              },
+              {
+                "sha": "abc903c7dc0610718756f2e05d421a340fee18c9",
+                "subject": "personal (not for main): Select goes limp at once, held 3 s powers off"
+              }
+            ],
             "files": [
-              "docs/design/policy-channel-design.md",
-              "docs/design/robotd-design.md",
-              "docs/robot/cheatsheet.md",
-              "robotctl/src/main.rs",
-              "robotd-params/src/lib.rs",
-              "robotd/src/control.rs",
+              "pad-map/src/hold.rs",
+              "pad-map/src/mapper.rs",
+              "padd/src/main.rs",
               "robotd/src/main.rs"
             ],
-            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/fe9ad02a408cc4578c4bc300ce635bbd9fc5d151...a5912e80502cd3a02ee37f592931612ad63afc1e",
+            "fixed_diff_url": "https://github.com/pollen-robotics/microduck/compare/a5912e80502cd3a02ee37f592931612ad63afc1e...abc903c7dc0610718756f2e05d421a340fee18c9",
             "new_model_or_audio_bytes": false,
             "new_CSV_track_asset": false
           },
@@ -1746,6 +1869,86 @@
             "inference": "Saving an existing manually overridden entry through CLI/RPC can omit the override and revert to phase-derived defaults on reload. Constructor preservation is not durable-write proof.",
             "execution_reproduction": false,
             "before_adoption": "Add persistence roundtrip and interruption regressions in the independent migration line; heartbeat does not change runtime or execute tests."
+          },
+          "relax_reboot_sound_stop": {
+            "checked_at_utc": "2026-10-31T15:28:49.939818+00:00",
+            "introduced_by_commit": "8f9d60d45356fa5e9921c81063f82a3057817684",
+            "fixed_source_sha": "abc903c7dc0610718756f2e05d421a340fee18c9",
+            "relax": "Only after set_torque(false) succeeds, request Sound.stop when controller.busy() and voice exists, then controller.forget(). Failed relax skips this branch.",
+            "motor_reboot": "After torque-off and reboot attempts, including a partial reboot failure, the handler marks limp and requests Sound.stop when controller.busy() and voice exists before forget().",
+            "busy_definition": "ground_pick present, active skill present, or sit rising; this is not a check that this exact sound belongs to the active skill.",
+            "scope": "Sound.stop kills the native one-shot child only when ride == Off; ride/theremin/chorale exceptions remain. Not the replica Studio music player.",
+            "new_regression_tests_for_audio_paths": 0,
+            "local_fixed_runtime_sha": "3a696c711b78d63e4e8dcb65420e192bbe588c2e",
+            "local_calls_in_corresponding_handlers": false,
+            "tracker_execution": false
+          },
+          "personal_select_mapping": {
+            "introduced_by_commit": "abc903c7dc0610718756f2e05d421a340fee18c9",
+            "author_scope": "Commit says personal (not for main), kept off any pull request; source calls it Remi’s own setting.",
+            "short_release": "Before a held sample reaches the 3 s threshold, release sends RobotRebootMotors with default empty IDs: request torque off and reboot every servo without a prior sit. It acts on release, not press-down.",
+            "long_hold": "A held sample reaching 3 s sends RobotShutdown (sit/rest/power off); later release sends no second request.",
+            "mapper_state": "Both requests set mapper.up = false.",
+            "prior_mapping": "Tap does nothing; release between 2 and 4 s requests RobotRest; held 4 s requests RobotShutdown.",
+            "test": "One new mapper test definition covers 150 ms release, no action at 2.9 s, shutdown at 3 s and silent release after long hold; source read only.",
+            "HD1910_physical_acceptance": false,
+            "adopt_as_default": false
+          },
+          "latest_source_blobs": [
+            {
+              "path": "pad-map/src/hold.rs",
+              "blob_sha": "88ee9680668d3abdc27e4d0472276cdb6f85a127",
+              "bytes": 12694
+            },
+            {
+              "path": "pad-map/src/mapper.rs",
+              "blob_sha": "87d4fbcc79954aa33b88e3cd60e2d2f024091fa5",
+              "bytes": 54214
+            },
+            {
+              "path": "padd/src/main.rs",
+              "blob_sha": "83f6e5d37c5d612b11f4a3406b83515d67323dd1",
+              "bytes": 29193
+            },
+            {
+              "path": "robotd/src/main.rs",
+              "blob_sha": "a8f571e4f7c89796517350fe5e54ca303c06c430",
+              "bytes": 450645
+            },
+            {
+              "path": "robotd/src/sound.rs",
+              "blob_sha": "99d891aed1a4be60e9ddfdf6c086abb1a0b122ff",
+              "bytes": 43016
+            },
+            {
+              "path": "robotd/src/control.rs",
+              "blob_sha": "2f8d59e0effa8285a6ff84a8b8e00a9d1e635dd6",
+              "bytes": 59956
+            },
+            {
+              "path": "duck-ipc-proto/src/lib.rs",
+              "blob_sha": "d67f040bbf921de3dcb11125bae2d524920fa76a",
+              "bytes": 337281
+            },
+            {
+              "path": "Cargo.toml",
+              "blob_sha": "7645337967bbbf03cbcc48cbc38b064f18bd57c1",
+              "bytes": 6640
+            },
+            {
+              "path": "robotd-params/src/edit.rs",
+              "blob_sha": "ee621e7051fcb407e7ab1b447a17a0a5ab642667",
+              "bytes": 68815
+            }
+          ],
+          "domain_impacts": {
+            "HD1910_BAM": "No servo implementation/BAM changes; altered pad request semantics require separate torque-off, bus reboot and gain-restoration checks on HD1910 before any adoption.",
+            "camera": "No change",
+            "ToF": "No change",
+            "model_management": "No change",
+            "training": "No change",
+            "actions": "Personal Select sends immediate-limp/reboot request on short release rather than rest; held threshold becomes 3 s. Keep separate from default controls.",
+            "sound": "Busy-skill relax/reboot additionally requests native one-shot stop; no new WAV/CSV/model assets."
           }
         },
         {
@@ -5585,7 +5788,7 @@
       "status": "Existing official article newly indexed in this snapshot; contact odometry and official validation are not replica hardware validation."
     }
   ],
-  "checked_at_utc": "2026-10-31T14:24:18.953809+00:00",
+  "checked_at_utc": "2026-10-31T15:28:49.939818+00:00",
   "latest_review": {
     "default_branch_changes": false,
     "new_stable_release": false,
@@ -5594,14 +5797,12 @@
     "stable_assets_changed": false,
     "stable_asset_count": 8,
     "previous_tracked_prs_merged": false,
-    "new_pull_requests": {
-      "pollen-robotics/microduck": [
-        512
-      ]
-    },
+    "new_pull_requests": {},
     "updated_pull_requests": {},
     "new_development_releases": [],
-    "moved_development_tags": [],
+    "moved_development_tags": [
+      "daemon-dev-ground-grasp-x"
+    ],
     "retired_development_tags": [],
     "official_blog_new_articles": false,
     "official_blog_article_count": 3,
@@ -5612,7 +5813,7 @@
     "models_replaced": false,
     "robot_connected": false,
     "image_built_or_published": false,
-    "notes": "New unmerged PR512 returns BUSY for daemon mutations while the OS unit is running and defers auto apply; no new schema/API number. The 8090 race and false-on-probe-error remain. Fixed local 0.18.2 has an engine mutex but lacks this new OS-active IPC check. Tests are stub-based source read only, not executed. Other heads/releases/dev tags/PRs/models/blog unchanged; migration/public software records preserved."
+    "notes": "Ground-grasp-x actual source advances to abc903: two commits/four files, old 0.17.8/API44 ahead 11/behind 64 versus stable 0.18.3. Relax/reboot one-shot stop fix and explicitly personal Select behavior must be assessed separately. One mapper test definition only, no tests run. Local 0182 and published 0.15 software records preserved; all other heads/releases/dev tags/PRs/model metadata/blog unchanged."
   },
   "replica_migration": {
     "recorded_on": "2026-10-31",
