@@ -1379,9 +1379,12 @@ class DriveMixin:
         try:return getattr(self,'update_guard',lambda:False)() is True
         except Exception:return True
 
-    def _base_block(self, now):
+    def _base_block(self, now, *, ignore_mapping=False):
         """跟姿势无关、什么动作都不能做的情况（声音也挡：调试模式下主程序只读，fork main.rs:5379-5396）。"""
         if self._update_blocked():return '软件 / 主程序更新保护仍在'
+        mapping = getattr(self, 'mapping', None)
+        if not ignore_mapping and mapping is not None and mapping.blocked:
+            return '手柄映射／回中确认中，动作输出已暂停，网页卸力仍可使用'
         r = self._robot or {}
         if self._robot_at is None or now - self._robot_at > 3:
             return "Studio 还没收到主程序的状态"

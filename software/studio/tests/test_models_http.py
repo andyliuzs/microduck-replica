@@ -53,8 +53,9 @@ class ModelsHttp(unittest.IsolatedAsyncioTestCase):
         self.fake_server, port = await self.fake.serve_tcp()
         self.rd = Robotd(f'tcp:127.0.0.1:{port}', f'tcp:127.0.0.1:{port}', self.log)
         self.models = ModelService()
+        self.pad=self.make_pad()
         app = build_app(auth=self.auth, robotd=self.rd, log=self.log, web_dir=WEB,
-                        duck={'label': '测试鸭'}, state_dir=self.tmp.name, models=self.models)
+                        duck={'label': '测试鸭'}, state_dir=self.tmp.name, models=self.models,pad=self.pad)
         config = uvicorn.Config(app, host='127.0.0.1', port=0, ws='wsproto', http='h11',
                                 lifespan='on', log_level='critical')
         self.server = uvicorn.Server(config)
@@ -81,6 +82,8 @@ class ModelsHttp(unittest.IsolatedAsyncioTestCase):
 
     async def call(self, *args, **kwargs):
         return await asyncio.to_thread(request_raw, self.port, *args, **kwargs)
+
+    def make_pad(self):return None
 
     async def test_session_required_for_library_and_mutations(self):
         for method, path, body in [('GET', '/api/models', None),
@@ -156,3 +159,26 @@ class ModelsHttp(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status, 400)
         self.assertFalse(payload['ok'])
         self.assertFalse(self.models.operations)
+
+
+class MappingModelsHttp(ModelsHttp):
+    def make_pad(self):
+        from tests.test_pad import P,FakeConfigd,FakeBt,FakeTap,FakeRobot,FAST
+        return P.PadOps(self.log,configd=FakeConfigd(),bt=FakeBt(),tap=FakeTap(),robot=FakeRobot(),
+                       waits=FAST,read_text=lambda path:'',exists=lambda path:False,state_dir=self.tmp.name)
+
+    async def test_mapping_blocks_model_writes_and_imports_but_allows_library_reads(self):
+        with self.pad.mapping._lk:self.pad.mapping._state={'output_blocked':True}
+        for path,body in [('/api/models/op',{'op':'select','id':'x','slot':'walk'}),
+                          ('/api/models/import?filename=a.zip',b'archive')]:
+            status,_,payload=await self.call('POST',path,body,self.headers)
+            self.assertEqual(status,409,payload);self.assertFalse(payload['ok'])
+        self.assertFalse(self.models.operations or self.models.imports)
+        status,_,_=await self.call('GET','/api/models',headers=self.headers);self.assertEqual(status,200)
+
+    async def test_model_transaction_blocks_mapping_before_native_begin(self):
+        from studio.pad_mapping import MappingError
+        self.models._lock=asyncio.Lock()
+        async with self.models._lock:
+            with self.assertRaises(MappingError):self.pad.mapping_guard()
+        self.pad.mapping_guard()

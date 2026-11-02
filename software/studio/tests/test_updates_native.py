@@ -59,6 +59,7 @@ class NativeBridge(unittest.IsolatedAsyncioTestCase):
         self.assertFalse((await self.updates.native_status())['current'])
         self.state['running_verified'] = True
         self.assertTrue((await self.updates.native_status())['current'])
+        with self.assertRaises(UpdateError):await self.updates.request('rollback')
 
     async def test_private_preparing_task_is_not_a_motion_or_readiness_guard(self):
         self.hold.clear()
@@ -106,6 +107,18 @@ class NativeBridge(unittest.IsolatedAsyncioTestCase):
         results=await asyncio.gather(*(self.updates.native_request('install',confirmed=True) for _ in range(2)),return_exceptions=True)
         self.assertEqual(sum(isinstance(row,UpdateError) for row in results),1,results)
 
+    async def test_bundle_current_requires_complete_component_vector_and_explicit_restore(self):
+        self.state.update(installed_sha256=NEW,bundle_schema='microduck-controller-payload/1',bundle_current=False,
+            restorable=False,components={'robotd':{'installed_sha256':NEW},'padd':{'installed_sha256':OLD}})
+        result=await self.updates.native_status()
+        self.assertFalse(result['current'],'robotd .47 alone is not a current controller bundle')
+        self.assertIn('padd',result['components'])
+        self.state.update(bundle_current=True,restorable=True)
+        self.assertTrue((await self.updates.native_status())['current'])
+        await self.updates.native_request('restore',confirmed=True)
+        await self.updates.native_task
+        self.assertIn(('Studio','restore',{'confirmed':True}),self.calls)
+
 
 class NativeHttp(unittest.IsolatedAsyncioTestCase):
     call = http.AiHttp.call
@@ -119,7 +132,12 @@ class NativeHttp(unittest.IsolatedAsyncioTestCase):
             self.native_calls.append((by,action,kwargs))
             return True, 'native_status', dict(self.native)
         self.updates = Updates(native_call=call, native_state=lambda:dict(self.native))
-        with mock.patch('studio.app.Updates', return_value=self.updates):
+        original_build=http.build_app
+        def build(*args,**kwargs):
+            from studio.servo import ServoSession
+            self.servo=ServoSession(kwargs['log'],sim=True)
+            return original_build(*args,servo=self.servo,**kwargs)
+        with mock.patch('studio.app.Updates', return_value=self.updates),mock.patch.object(http,'build_app',build):
             await http.AiHttp.asyncSetUp(self)
 
     async def test_fixed_native_http_schema_and_authentication(self):
@@ -159,6 +177,16 @@ class NativeHttp(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(result['ok'],name=='relax',result)
         finally: client.close()
 
+    async def test_bundle_restore_requires_auth_csrf_and_boolean_confirmation(self):
+        for body in ({'op':'native_restore'},{'op':'native_restore','confirmed':1}):
+            status,_,_=await self.call('POST','/api/updates',body,self.headers);self.assertEqual(status,400)
+        status,_,_=await self.call('POST','/api/updates',{'op':'native_restore','confirmed':True},{})
+        self.assertEqual(status,401)
+        status,_,_=await self.call('POST','/api/updates',{'op':'native_restore','confirmed':True},self.headers)
+        self.assertEqual(status,200)
+        await self.updates.native_task
+        self.assertIn(('Studio','restore',{'confirmed':True}),self.native_calls)
+
     async def test_real_prejournal_battery_refusal_reaches_helper_bridge_and_http(self):
         from tests.test_native_update import NativeTest,H,STATE
         fixture=NativeTest();fixture.setUp();self.addCleanup(fixture.doCleanups)
@@ -194,6 +222,43 @@ class NativeHttp(unittest.IsolatedAsyncioTestCase):
         for op in ('install','rollback'):
             status,_,result=await self.call('POST','/api/updates',{'op':op},self.headers)
             self.assertEqual(status,409,result)
+
+    async def test_unpublished_recovery_uses_real_app_readiness_without_self_deadlock(self):
+        from tests.test_controller_bundle import BundleTransaction,C
+        from tests.test_native_update import N,H
+        fixture=BundleTransaction();fixture.setUp();self.addCleanup(fixture.doCleanups)
+        class PowerLoss(BaseException):pass
+        write=C.BundleTransaction.write
+        def die(transaction,path,*args,**kwargs):
+            result=write(transaction,path,*args,**kwargs)
+            if path==C.PREPARED:raise PowerLoss()
+            return result
+        with mock.patch.object(C.BundleTransaction,'write',die),self.assertRaises(PowerLoss):fixture.update()
+        self.updates.native_state=lambda:helper.native_update_state(root=fixture.tmp)
+        self.updates.marker=Path(self.tmp.name)/'software-installing'
+        callback=self.updates.readiness_snapshot
+        self.assertFalse(callback()['ready'],'ordinary software readiness must keep the guard')
+        original=fixture.socket
+        def root_socket(path,payload):
+            if path.endswith('/microduck-studio/update.sock'):
+                return callback(native_transaction=payload['transaction_id']) if payload.get('op')=='native-recovery-readiness' else callback()
+            return original(path,payload)
+        with mock.patch.object(N,'json_socket',side_effect=root_socket):
+            try:result=fixture.update('recover')
+            except H.Stop as error:self.fail('own prepared guard blocked recovery: '+error.reason)
+        self.assertEqual(result,0)
+        self.assertTrue(callback()['ready'])
+        intent={'schema':'microduck-controller-update/1','bundle_schema':C.PAYLOAD_SCHEMA,'active':True,
+                'phase':'prepared','transaction_id':'a'*32,'restore_pending':False,'cleanup_pending':False}
+        fixture.w.path(C.PREPARED).write_text(json.dumps(intent),encoding='utf-8')
+        self.assertFalse(callback()['ready'])
+        self.assertFalse(callback(native_transaction='b'*32)['ready'])
+        self.assertTrue(callback(native_transaction='a'*32)['ready'])
+        self.servo.state='opening'
+        self.assertFalse(callback(native_transaction='a'*32)['ready'],'real servo activity remains a refusal')
+        self.servo.state='closed'
+        self.updates.marker.touch()
+        self.assertFalse(callback(native_transaction='a'*32)['ready'],'software marker is never ignored')
 
     @unittest.skipUnless(os.name=='posix','real Linux root/app readiness socket')
     async def test_actual_readiness_socket_before_journal_and_after_guard(self):

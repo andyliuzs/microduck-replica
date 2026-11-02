@@ -4,7 +4,7 @@
 // - 表达「现在」：关节角来自状态流，机身按 IMU 的重力方向倾斜；不自转。
 // - 能拖着转，转到哪停在哪（用户 10-18：不要自己弹回去）；点「回正」才回默认机位。
 // - 点一下舵机就选中它（点击选中、加深，不需要放大）：
-//   模型里 15 个 xl330 零件就是 15 颗舵机的外壳，按「离哪个关节转轴最近」一一配上；
+//   模型里 15 个 xl330 零件就是 15 颗舵机的外壳。先使用模型的明确绑定，其余按距离一一配上；
 //   点到的不是舵机（腿、壳），就选带动这个零件的那颗。按下到松开挪了 6 像素以上算拖动，不算点。
 // - 只在有变化时重画：模型 40 多万面，一直按 60 帧画会把笔记本风扇吹起来、手机发烫。
 // - 数据旧了由外面给 canvas 加 .stale（去色、半透明），这里不管。
@@ -62,7 +62,7 @@ function loadInWorker(base) {
 async function loadModel(base) {
   if (!modelCache) {
     modelCache = loadInWorker(base).catch(() => (async () => {
-      const mj = await (await fetch(base + 'model.json')).json();
+      const mj = await (await fetch(base + 'model.json', { cache: 'no-cache' })).json();
       const bin = await (await fetch(base + 'meshes.bin')).arrayBuffer();
       const geoms = {};
       for (const [name, m] of Object.entries(mj.meshes)) {
@@ -171,6 +171,7 @@ export class Duck3D {
         const mesh = new THREE.Mesh(geoms[g.mesh], materialFor(g.rgba));
         mesh.userData.jointOf = jointOf[jointOf.length - 1];
         mesh.userData.servo = g.mesh === 'xl330';
+        if (mesh.userData.servo && g.servo_joint) mesh.userData.servoJoint = g.servo_joint;
         mesh.position.set(...g.pos); mesh.quaternion.copy(mjq(g.quat)); inner.add(mesh);
       }
       objs.push({ inner });
@@ -228,11 +229,25 @@ export class Duck3D {
 
   setView(view) { this.view = view; this._frame(); }
 
-  // 舵机外壳 ↔ 关节：在零位（刚加载完，关节都是 0）按「外壳中心离转轴多近」从近到远一一配对
+  // 明确的 CAD 绑定优先，避免嘴部外壳与偏航轴原点靠近而串号；其余保持既有配对。
   _mapServos() {
     this.scene.updateMatrixWorld(true);
     const servos = [];
     this.content.traverse((o) => { if (o.isMesh && o.userData.servo) servos.push(o); });
+    const usedM = new Set(), usedJ = new Set();
+    const bind = (m, name) => {
+      usedM.add(m); usedJ.add(name);
+      m.userData.joint = name;
+      m.userData.baseColor = m.material.color.clone();
+      this.servoOf[name] = m;
+    };
+    this.servoOf = {};
+    for (const m of servos) {
+      const name = m.userData.servoJoint;
+      if (!name) continue;
+      if (!this.joints[name] || usedJ.has(name)) throw new Error(`模型舵机绑定无效或重复：${name}`);
+      bind(m, name);
+    }
     const pairs = [];
     for (const m of servos) {
       const c = new THREE.Box3().setFromObject(m).getCenter(new THREE.Vector3());
@@ -241,13 +256,9 @@ export class Duck3D {
       }
     }
     pairs.sort((a, b) => a[0] - b[0]);
-    const usedM = new Set(), usedJ = new Set();
     for (const [, m, name] of pairs) {
       if (usedM.has(m) || usedJ.has(name)) continue;
-      usedM.add(m); usedJ.add(name);
-      m.userData.joint = name;
-      m.userData.baseColor = m.material.color.clone();
-      this.servoOf[name] = m;
+      bind(m, name);
     }
   }
 

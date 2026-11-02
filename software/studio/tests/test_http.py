@@ -702,6 +702,40 @@ class PadHttpTest(HttpTest):
         return default_pad(log, configd_addr=f"tcp:127.0.0.1:{configd_port}", robotd_addr=f"tcp:127.0.0.1:{robotd_port}",
                            tap_addr="tcp:127.0.0.1:9", state_dir=self.tmp.name)
 
+    async def test_mapping_readiness_uses_current_servo_state_before_robot_poll(self):
+        from studio.pad_mapping import MappingError
+        self.servo.state='opening'
+        try:
+            self.assertTrue(callable(getattr(self.pad,'mapping_guard',None)))
+            with self.assertRaises(MappingError):self.pad.mapping_guard()
+        finally:self.servo.state='closed'
+        self.pad.mapping_guard()
+
+    async def test_mapping_begin_and_servo_open_same_packet_are_mutually_exclusive(self):
+        from tests.test_pad_mapping import Native
+        class SlowStatus(Native):
+            def call(inner,request):
+                if request['op']=='status':time.sleep(.15)
+                return super().call(request)
+        self.pad.mapping.client=SlowStatus()
+        self.fake.policies['enabled']=True
+        self.fake.set_posture('holding')
+        token,_=await self.login()
+        c=WsClient(self.port,origin=self.origin,cookie=token);await c.open()
+        await c.send({'t':'hb','visible':True,'route':'/pad','pad_visible':True})
+        await c.pump(until=lambda:((self.pad._robot or {}).get('bus') or {}).get('policy_enabled') is False
+                     and ((self.pad._robot or {}).get('policies') or {}).get('enabled') is True,timeout=4)
+        c.w.write(b''.join(c.ws.send(TextMessage(json.dumps(message))) for message in (
+            {'t':'cmd','id':'map','name':'pad.op','args':{'op':'mapping','action':'begin'}},
+            {'t':'cmd','id':'servo','name':'servo.open','args':{}})))
+        await c.w.drain()
+        await c.pump(until=lambda:sum(m.get('id') in ('map','servo') for m in c.msgs)>=2,timeout=5)
+        result={m['id']:m for m in c.msgs if m.get('id') in ('map','servo')}
+        self.assertEqual(set(result),{'map','servo'})
+        self.assertEqual(sum(result[k]['ok'] for k in ('map','servo')),1,result)
+        if result['map']['ok']:self.assertEqual(self.servo.state,'closed')
+        c.close()
+
     async def music_client(self):
         self.fake.set_posture("policy")
         class Audio:

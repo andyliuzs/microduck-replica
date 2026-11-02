@@ -37,6 +37,7 @@ from . import helper as helper_api
 from .estop import STARTING_PHASES, relaxed, torque_off
 from .pad_combo import Refused
 from .motion_studio import MotionStudio, _digest
+from .pad_mapping import MappingClient, MappingError, PadMapping
 from .pad_drive import (DRIVING, FAST_WORKERS, MAX_V, MAX_W, RELAX_CLEAR_DELAY_S, RELAX_GUARD_S,  # noqa: F401 —— MAX_V / MAX_W 给别处 import
                         DriveMixin, parse_speed_limits)
 from .rpc import LINE_LIMIT, RpcError, Timeout, Unreachable, parse_addr
@@ -362,7 +363,7 @@ def _torque_on(bus):
 class PadOps(DriveMixin):
     def __init__(self, log, configd=None, bt=None, tap=None, robot=None, *, helper=None, clock=time.monotonic,
                  exists=os.path.exists, read_text=None, robotd_toml=ROBOTD_TOML, weird_ble=WEIRD_BLE, waits=None,
-                 state_dir=None, audio=None):
+                 state_dir=None, audio=None, mapping_client=None):
         self.log = log
         self.configd, self.bt, self.tap, self.robot = configd, bt, tap, robot
         self.audio = audio
@@ -418,6 +419,7 @@ class PadOps(DriveMixin):
         self._pad_config = robotd_toml       # padd 读 [netpad]、[pad_imu_head_control] 的文件：padd.service 的 --config（_refresh_files）
         self._drive_init(state_dir)
         self.motion_studio = MotionStudio(self)
+        self.mapping = PadMapping(mapping_client, guard=self._mapping_guard, clock=clock)
         # move / sticks / keys / stop 走自己的小线程池，不跟 configd、蓝牙、一次性请求这些慢调用挤（审查二 一般 4）；
         # 第三轮多了摇杆、按键、模式的心跳，开到 4 条，「停」和回正不用排队（三 V13）
         self._fast_pool = concurrent.futures.ThreadPoolExecutor(max_workers=FAST_WORKERS, thread_name_prefix="pad-fast")
@@ -428,6 +430,36 @@ class PadOps(DriveMixin):
         self._drive_start()
 
     # ================= 对外 =================
+
+    def _mapping_guard(self):
+        with self._lk:
+            reason = self._base_block(self.clock(), ignore_mapping=True)
+            if reason:
+                raise MappingError(reason)
+            # robot.policies.enabled is the configured model-loading switch,
+            # not the live controller state. BusDynamic is flattened on wire.
+            bus=self._robot.get('bus') or {}
+            pose=self._robot.get('posture')
+            native=bus.get('native') or {}
+            guard=bus.get('home_start_guard')
+            stable=(pose=='limp' and native.get('torque_state_confirmed') is False) or (
+                pose=='holding' and native.get('torque_state_confirmed') is True
+                and bus.get('homed') is True and (guard is None or isinstance(guard,dict) and guard.get('ready') is True))
+            if (bus.get('phase')!='control' or bus.get('policy_enabled') is not False
+                    or bus.get('home_recovery') is not False or bus.get('torque_off_pending') is not False or not stable):
+                raise MappingError('请先点“停下（站好）”，等策略停止并站稳，再开始映射')
+            if self._cmd_busy or self._job_alive() or self.motion_studio.session is not None or self.test.get('state') not in FINAL:
+                raise MappingError('请先结束配对、动作、录制回放和急停测试，再重新映射')
+            if (self._lease_holder(self.clock()) is not None or self._action is not None
+                    or self._modes or any(not item.get('end') and item.get('held') for item in self._keys.values())
+                    or any(self._latch.values())):
+                raise MappingError('网页遥控会话还在，请先松开按键并退出遥控，等头和身体回中后再重新映射')
+            extra=getattr(self,'mapping_guard',None)
+            if extra:extra()
+
+    def mark_gone(self, conn):
+        self.mapping.leave(conn)
+        return super().mark_gone(conn)
 
     def handle(self, args, by=None, conn=None):
         from .updates import safe_during_update
@@ -442,6 +474,19 @@ class PadOps(DriveMixin):
         op = args.get("op")
         if conn is not None and conn in self._gone and op not in ("watch", "stop", "action_stop", "drive"):
             raise Refused("这个页面已经断开了")      # 线程池里晚到的指令（审查二 S1）
+        if op == 'mapping':
+            try:
+                result = self.mapping.handle(args, conn)
+            except MappingError as error:
+                raise Refused(str(error)) from None
+            self._watch_until = self.clock() + self.w['lease']
+            self._ensure_worker()
+            return result
+        if self.mapping.blocked:
+            safe = op in ('watch','refresh','stop','action_stop') or (op=='drive' and args.get('open') is False)
+            safe = safe or (op=='keys' and not args.get('held')) or (op=='audio' and args.get('listening') is False)
+            if not safe:
+                raise Refused('手柄映射／回中确认中，动作输出已暂停；请先保存或取消并松开手柄，网页卸力仍可使用')
         if op == "motion":
             return self.motion_studio.handle(args, conn, by)
         if op == "audio":
@@ -570,6 +615,13 @@ class PadOps(DriveMixin):
             status = self._status_view(now)
             live = self.live.view(now)
             live.update(state=self.tap_state if self._tap_on else "off", why=self.tap_why)
+            mapping = self.mapping.snapshot(conn)
+            mapped = mapping.get('mapped')
+            if (mapping.get('available') and mapping.get('profile') and mapped
+                    and (mapping.get('device') or {}).get('node') == (live.get('device') or {}).get('node')):
+                live.update(buttons=mapped['buttons'], axes=mapped['axes'], mapping_custom=True)
+                if live.get('device'):
+                    live['device']['keys_unverified'] = False
             wiz = dict(self.wiz)
             if wiz.get("started") is not None and wiz["state"] == "running":
                 wiz["elapsed_s"] = now - wiz["started"]
@@ -600,7 +652,7 @@ class PadOps(DriveMixin):
                     "wizard": wiz, "estop_test": test, "virtual": virtual, "motion": self._motion_view(now),
                     "motion_studio": self.motion_studio.snapshot(conn, now),
                     "audio": self.audio.snapshot() if self.audio is not None else {"available":False,"why":"语音服务尚未配置"},
-                    "bindings": self.bindings}
+                    "bindings": self.bindings, "mapping": mapping}
 
     def safe_snapshot(self, conn=None):
         """app 的发送循环用：出错只记一次日志（同一种错只记一次）、返回 None 跳过这一帧，
@@ -631,6 +683,9 @@ class PadOps(DriveMixin):
         dev = (snap.get("live") or {}).get("device") or {}
         if dev.get("unique"):
             dev["unique"] = _mask_mac(dev["unique"])
+        mapping_dev=(snap.get('mapping') or {}).get('device') or {}
+        if mapping_dev.get('unique'):
+            mapping_dev['unique']=_mask_mac(mapping_dev['unique'])
         return snap
 
     def estop_ok(self):
@@ -675,6 +730,7 @@ class PadOps(DriveMixin):
 
     def close(self):
         self._closing = True
+        self.mapping.close()
         self._cancel.set()
         self._wake.set()
         self._test_evt.set()
@@ -936,6 +992,7 @@ class PadOps(DriveMixin):
                     self._bindings_due = now + self.w["bindings"]
                     self._fetch_bindings()
                 self._tap_lease(watching)
+                self.mapping.poll()
                 self._keys_tick()
                 self._wake.wait(self.w["poll"])
                 self._wake.clear()
@@ -1003,7 +1060,18 @@ class PadOps(DriveMixin):
                     self.log.info(f"padd 打开了手柄：{d.get('name')}（{d.get('node')}）", cat="手柄", dedup=False)
             elif kind == "frame":
                 sel = self.live.frame(rep, now)
-                if sel is not None:
+                mapping = self.mapping.snapshot()
+                bind = ((mapping.get('profile') or {}).get('bindings') or {}).get('select')
+                if bind and (mapping.get('device') or {}).get('node') == (self.live.device or {}).get('node'):
+                    sel = None
+                    for event in rep.get('events') or []:
+                        if event.get('code') != bind.get('code'):
+                            continue
+                        if bind.get('kind') == 'key' and event.get('kind') == EV_KEY and event.get('value') in (0,1):
+                            sel = event['value'] == 1
+                        elif bind.get('kind') == 'axis_button' and event.get('kind') == EV_ABS:
+                            sel = event.get('value') == bind.get('value')
+                if sel is not None and not mapping.get('output_blocked'):
                     self._on_select(sel, now)
             elif kind == "detached":
                 self.live.reset()
@@ -2729,4 +2797,5 @@ def default_pad(log, configd_addr="unix:/run/configd.sock", robotd_addr="unix:/r
     bt = BluetoothCtl(prefix=bt_prefix) if shutil.which("bluetoothctl") else None
     from .audio_interaction import AudioClient
     return PadOps(log, configd=ConfigdPort(configd_addr), bt=bt, tap=PaddTap(tap_addr, log=log),
-                  robot=RobotPort(robotd_addr), state_dir=state_dir, audio=AudioClient())
+                  robot=RobotPort(robotd_addr), state_dir=state_dir, audio=AudioClient(),
+                  mapping_client=MappingClient())

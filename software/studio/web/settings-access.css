@@ -1,0 +1,53 @@
+.ai-ssh-entry { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.ai-ssh-entry > div { flex: 1 1 240px; min-width: 0; }
+.ai-ssh-entry b { font-size: 15px; }
+.ai-ssh-entry p { margin: 3px 0 0; color: var(--text-2); font-size: 13px; line-height: 1.6; }
+.access-button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; max-width: 100%; padding: 9px 16px; border: 1px solid var(--board-edge); border-radius: 10px; background: #F5F5F7; color: var(--text); font-size: 14px; line-height: 1.5; text-align: center; text-decoration: none; }
+.access-button:hover { text-decoration: none; background: #EAEAF0; }
+.access-button.primary { background: var(--blue); border-color: var(--blue); color: white; font-weight: 600; }
+.access-button.primary:hover { filter: brightness(.95); }
+.access-button:disabled { opacity: .45; }
+.access-guide { display: flex; flex-direction: column; gap: 14px; min-width: 0; scroll-margin-top: calc(72px + var(--bar-h, 0px)); }
+.access-intro, .access-step { padding: 20px; min-width: 0; }
+.access-intro h2 { font-size: 23px; line-height: 1.4; margin: 5px 0 10px; letter-spacing: -.4px; }
+.access-eyebrow { font-size: 12px; color: var(--link); font-weight: 600; }
+.access-intro > p { font-size: 14px; margin: 8px 0 0; }
+.access-password-map { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; margin: 16px 0; }
+.access-password-map > div { min-width: 0; padding: 12px; background: #F4F7FB; border-radius: 10px; }
+.access-password-map b { display: block; font-size: 14px; }
+.access-password-map span { font-size: 13px; color: var(--text-2); }
+.access-step-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.access-step-title h3 { display: flex; align-items: baseline; gap: 9px; margin: 0; font-size: 17px; line-height: 1.5; }
+.access-step-number { display: inline-flex; flex: 0 0 24px; width: 24px; height: 24px; align-items: center; justify-content: center; background: #EAF2FC; color: var(--link); border-radius: 50%; font-size: 13px; }
+.access-state { flex-shrink: 0; font-size: 12px; padding: 3px 8px; border-radius: 999px; background: #F2F2F7; color: var(--text-2); }
+.access-state.done { background: #EDF7EF; color: var(--ok); }
+.access-description { font-size: 14px; line-height: 1.7; margin: 10px 0; }
+.access-help { color: var(--text-2); font-size: 13px; line-height: 1.7; margin: 8px 0; overflow-wrap: anywhere; }
+.access-notice { background: #F5F7FA; border-radius: 9px; padding: 10px 12px; font-size: 13px; line-height: 1.7; margin: 12px 0; }
+.access-error { font-size: 13px; line-height: 1.7; color: var(--danger); margin: 10px 0; }
+.access-edit { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px; }
+.access-edit > summary, .access-key-help > summary { cursor: pointer; font-size: 14px; color: var(--link); }
+.access-guide form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.access-guide label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text); }
+.access-guide input, .access-guide textarea { display: block; width: 100%; min-width: 0; min-height: 42px; padding: 10px 12px; border: 1px solid #D1D1D6; border-radius: 9px; background: var(--board); color: var(--text); font: inherit; }
+.access-guide textarea { resize: vertical; font: 13px/1.6 ui-monospace, monospace; }
+.access-guide .access-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+.access-status-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.ssh-now { flex: 1 1 240px; font-size: 13px; line-height: 1.7; margin: 0; }
+.ssh-settings { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ssh-keys { list-style: none; margin: 0; padding: 0; }
+.ssh-keys li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; overflow-wrap: anywhere; }
+.access-fields { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 14px 0; }
+.access-fields div { min-width: 0; }
+.access-fields dt { font-size: 12px; color: var(--text-2); }
+.access-fields dd { margin: 2px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+.access-command { display: block; padding: 12px; border-radius: 9px; background: #F4F5F7; font-size: 13px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.access-copy-fallback { margin-top: 14px; }
+@media (max-width: 440px) {
+  .access-intro, .access-step { padding: 16px; }
+  .access-password-map { grid-template-columns: 1fr; gap: 6px; }
+  .access-password-map > span { text-align: center; line-height: 1; }
+  .access-step-title h3 { font-size: 16px; }
+  .access-state { font-size: 11px; padding: 3px 6px; }
+  .ai-ssh-entry .access-button, .access-actions .access-button { width: 100%; }
+}

@@ -1,7 +1,6 @@
-// 3D 上的舵机标注：编号 + 中文 + 英文，引线指到舵机转轴上。
+// 3D 上的舵机标注：编号 + 中文 + 英文，引线指到实际舵机外壳中心，与点选/高亮共用映射。
 // 用户 10-18：只在舵机页、点「零位」参考姿势时出现；右腿红、左腿蓝、头颈黄（照他给的那张实物标注图的分法）。
-// 看不见的（藏在外壳或别的零件后面）画虚线、空心点：相机到转轴的连线上，前面 3 cm 以外先碰到别的零件就算挡住
-// （转轴本来就在舵机里面，先碰到自己外壳很正常，所以要留 3 cm）。
+// 看不见的（藏在外壳或别的零件后面）画虚线、空心点：相机到舵机中心的连线上，前面 3 cm 以外先碰到别的零件就算挡住。
 import * as THREE from './vendor/three/three.module.js';
 
 export const TAGS = {
@@ -34,10 +33,9 @@ export function drawServoLabels(duck, box) {
     if (!dragging) duck.content.traverse((o) => { if (o.isMesh) meshes.push(o); });
     const pts = [];
     for (const [name, [id, cn, en, side]] of Object.entries(TAGS)) {
-      const j = duck.joints[name];
-      if (!j) continue;
-      const world = new THREE.Vector3();
-      j.pivot.getWorldPosition(world);
+      const servo = duck.servoOf[name];
+      if (!servo) continue;
+      const world = new THREE.Box3().setFromObject(servo).getCenter(new THREE.Vector3());
       // 遮挡判断（射线碰 40 多万面）只在不转的时候做；转动中沿用上一次的，不然拖起来卡
       if (!dragging || !(id in hiddenCache)) {
         const dir = world.clone().sub(duck.camera.position);

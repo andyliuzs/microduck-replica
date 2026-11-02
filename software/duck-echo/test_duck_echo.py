@@ -300,6 +300,7 @@ class TriggerModeTests(unittest.TestCase):
         audio.voice = None
         audio.close = lambda: None
         audio.stop_playback = lambda: None
+        audio.cancel_processing = lambda: None
         bits = iter((True, False))
         records = [echo.INPUT_EVENT.pack(1, 0, 0, 3, 0) + echo.INPUT_EVENT.pack(1, 0, 0, 0, 0)]
         records.append(b'')
@@ -309,7 +310,7 @@ class TriggerModeTests(unittest.TestCase):
         with patch.object(echo, 'devices', return_value=[{'name': 'pad', 'path': 'event0'}]), \
                 patch.object(echo.os, 'O_NONBLOCK', 0, create=True), \
                 patch.object(echo.os, 'open', return_value=4), patch.object(echo.os, 'close'), \
-                patch.object(echo, 'right_pressed', side_effect=lambda fd: next(bits)), \
+                patch.object(echo, 'binding_pressed', side_effect=lambda fd,binding: next(bits) if binding['code']==318 else False), \
                 patch.object(echo.select, 'select', return_value=([4], [], [])), \
                 patch.object(echo.os, 'read', side_effect=records), \
                 patch.object(echo, 'make_button', wraps=echo.make_button) as factory:

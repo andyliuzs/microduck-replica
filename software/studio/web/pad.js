@@ -29,6 +29,7 @@ import { html, useState, useEffect, useRef, useCallback } from './vendor/preact-
 import { Duck3D } from './duck3d.js';
 import { InlineCamera } from './sensors.js';
 import { MotionStudio } from './motion-studio.js';
+import { PadMapping } from './pad-mapping.js';
 import { AudioInteraction } from './audio-interaction.js';
 
 const SEND_MS = 100;        // 摇杆按住时每秒发 10 次；松手发一次 0，鸭子 0.5 秒收不到也会自己停（robotd 的 deadman）
@@ -213,7 +214,7 @@ const SH_Y = 26, SH_H = 24, TR_Y = -10, TR_H = 28;
 
 // ctl：网页手柄控制器（useVpad 给的）。有它，图上的键就能按（跟实体手柄干一样的活）；没有就只是示意图。
 // 镜像（实体手柄连着）时 live 是实体手柄的按键，图只跟着它显示；不镜像时 live 是网页上按着的。
-function GamepadSvg({ kind, live, seen, ctl, keys }) {
+function GamepadSvg({ kind, live, seen, ctl, keys, learn, mappingView }) {
   const k = kindOf(kind);
   const L = LAYOUT[k.layout] || LAYOUT.xbox;
   const b = live?.buttons || {};
@@ -228,9 +229,13 @@ function GamepadSvg({ kind, live, seen, ctl, keys }) {
     const skill = DEFAULT_BIND[ROLE_BIND[role]];
     return SKILL_CN[skill] || skill || '';
   };
-  const noteAt = (text, [x, y, anchor = 'middle'], extra) => html`<text class=${cx('pd-key-note', extra)} x=${x} y=${y} text-anchor=${anchor} aria-hidden="true">${text}</text>`;
+  const noteAt = (text, [x, y, anchor = 'middle'], extra) => mappingView ? null : html`<text class=${cx('pd-key-note', extra)} x=${x} y=${y} text-anchor=${anchor} aria-hidden="true">${text}</text>`;
   // 能按的键：role=button + aria-label（键名 + 作用），按下 / 松开交给 ctl；不能按的加 pd-key-off，<title> 写原因（鼠标放上去就看到）
   const act = (r) => {
+    if (learn) return { info: { ok: true, does: '学习这个输入' }, say: `学习 ${k.names[r] || r}`, props: {
+      role: 'button', tabIndex: 0, 'aria-label': `学习 ${k.names[r] || r}`, 'data-role': r,
+      onClick: () => learn(r), onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); learn(r); } },
+    } };
     if (!ctl) return { info: null, props: {} };
     const info = ctl.info(r);
     const f = FUNC[r];
@@ -253,7 +258,7 @@ function GamepadSvg({ kind, live, seen, ctl, keys }) {
     const a = act(r);
     const side = r === 'ls' ? 'l' : 'r';
     // 图上的摇杆底座：鼠标从哪儿按都行；触屏只认中间圆帽上那块透明的 HTML（pd-ov，下面），底座上起手的是在滚页面（审查 O2）
-    const sp = ctl ? { role: 'button', 'aria-label': a.say, 'data-role': r, onContextMenu: (e) => e.preventDefault(),
+    const sp = learn ? a.props : ctl ? { role: 'button', 'aria-label': a.say, 'data-role': r, onContextMenu: (e) => e.preventDefault(),
       onPointerDown: (e) => ctl.stickDown(side, e, scale(e) * STICK_TRAVEL, false), onPointerMove: (e) => ctl.stickMove(side, e),
       onPointerUp: (e) => ctl.stickUp(side, e), onPointerCancel: (e) => ctl.stickUp(side, e),
       onLostPointerCapture: (e) => ctl.stickUp(side, e) } : {};
@@ -323,8 +328,8 @@ function GamepadSvg({ kind, live, seen, ctl, keys }) {
   };
   const [sx, sy] = L.select;
   return html`<div class="pd-svgbox">
-    <svg class=${cx('pd-svg', ctl && 'pd-svg-live')} viewBox="0 -16 400 266" role=${ctl ? 'group' : 'img'}
-    aria-label=${ctl ? `${k.label}：图上的键能按，跟实体手柄一样` : `${k.label}示意图，按下的键会变黑`} onContextMenu=${ctl ? (e) => e.preventDefault() : undefined}>
+    <svg class=${cx('pd-svg', ctl && 'pd-svg-live')} viewBox="0 -16 400 266" role=${ctl || learn ? 'group' : 'img'}
+    aria-label=${learn ? '点击标准键学习实体手柄输入，只测试，不执行动作' : ctl ? `${k.label}：图上的键能按，跟实体手柄一样` : `${k.label}示意图，按下的键会变黑`} onContextMenu=${ctl ? (e) => e.preventDefault() : undefined}>
     ${trig('lt', 'l')}${trig('rt', 'r')}
     ${shoulder('lb', 'l')}${shoulder('rb', 'r')}
     <path class="pd-body" d=${BODY}></path>
@@ -334,8 +339,8 @@ function GamepadSvg({ kind, live, seen, ctl, keys }) {
     ${stick('rs', L.rs, ax.rx, ax.ry, 'r3')}
     ${dpad(L.dpad)}
     ${face(L.face)}
-    ${small('select', L.select, k.names.select.length > 2 ? '' : k.names.select)}
-    ${small('start', L.start, k.names.start.length > 2 ? '' : k.names.start)}
+    ${small('select', L.select, mappingView ? 'SEL' : k.names.select.length > 2 ? '' : k.names.select)}
+    ${small('start', L.start, mappingView ? 'START' : k.names.start.length > 2 ? '' : k.names.start)}
     ${home()}
     ${noteAt('张嘴', [56, 7, 'end'])}
     ${noteAt('张嘴·嘎', [344, 7, 'start'])}
@@ -1213,6 +1218,7 @@ const TABBAR_PX = 83;       // 手机底栏（styles.css .tabbar）
 export function PadPage({ st, pad, link, api, previewActive = false, live: duckLive = true }) {
   const [msg, setMsg] = useState(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [mappingOpen, setMappingOpen] = useState(false);
   const [kind, setKind] = useState('xbox');
   const [visualFits, setVisualFits] = useState(true);
   const rootRef = useRef(null);
@@ -1323,8 +1329,10 @@ export function PadPage({ st, pad, link, api, previewActive = false, live: duckL
       <h2>手柄</h2>
       <${Summary} pad=${pad} />
       <span class="sv-spacer"></span>
+      <button class="btn-light" type="button" data-map-open onClick=${() => { setMappingOpen(true); requestAnimationFrame(() => document.querySelector('.pad-mapping')?.scrollIntoView({ block: 'start' })); }}>重新映射／校准</button>
       ${!showWizard ? html`<button class="btn-dark" onClick=${() => setWizardOpen(true)}>${connected ? '再配一个手柄' : '配对手柄'}</button>` : null}
     </header>
+    ${mappingOpen ? html`<${PadMapping} mapping=${pad?.mapping} link=${link} active=${previewActive} Diagram=${GamepadSvg} onClose=${() => setMappingOpen(false)} />` : null}
     ${msg ? html`<div class="banner bad" role="alert"><b>${msg}</b><a href="#" onClick=${(e) => { e.preventDefault(); setMsg(null); }}>知道了</a></div>` : null}
     ${s.error && live.state !== 'attached' ? html`<div class="banner warn" role="status"><b>读不到 configd 的手柄状态</b><span class="more">${s.error}</span></div>` : null}
     ${s.netpad ? html`<div class="banner warn" role="status"><b>开着 UDP 手柄（netpad）</b><span class="more">这时 padd 只读电脑发来的 UDP 手柄，蓝牙手柄不管用、急停也不走蓝牙手柄。要用蓝牙手柄，先在配置里关掉 [netpad]。</span></div>` : null}

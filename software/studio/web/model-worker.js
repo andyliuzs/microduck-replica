@@ -13,7 +13,8 @@ const DB = 'studio-model', STORE = 'decoded', VERSION = 3;
 self.onmessage = async (e) => {
   try {
     const base = e.data.base;
-    const text = await (await fetch(base + 'model.json')).text();
+    // 映射清单可能更新；重验已有 HTTP 缓存后，再用内容哈希选择 IndexedDB 几何缓存。
+    const text = await (await fetch(base + 'model.json', { cache: 'no-cache' })).text();
     const key = `v${VERSION}:${text.length}:${hash(text)}`;
     const cached = await idbGet(key);
     if (cached) {

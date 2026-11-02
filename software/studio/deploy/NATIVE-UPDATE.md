@@ -1,15 +1,21 @@
 # Signed native update boundary
 
+The coordinated controller companion format, explicit matching-native restore
+and release-external voice compatibility gate are described in
+[CONTROLLER-UPDATE.md](CONTROLLER-UPDATE.md). The original robotd-only payload
+and recovery contract below remain available for existing published packages.
+
 The existing software update remains the first step. Its stable 20261027 engine
 updates Studio, this helper and duck-echo without restarting robotd or padd. Its
 existing standing/HOME readiness rule is unchanged. The second step is an
 explicit, supported and unloaded native update; it adds no HOME requirement.
 
 The publisher may supply `--native-robotd /reviewed/input/robotd` to
-`software/updater/build_package.py`. Only the reviewed 5,564,672-byte AArch64 ELF
-with SHA256 `febf44e2e5d4e573f4513f25a1ae6480b976c3988dd3d5e7cdfcf84d2a2d5063`
-is accepted. Its source is `bdf494ab3fd74898b5159419fbffe87113b4097c`, build
-`0791fcd-feetech-qinmo-control.45`, official version 0.15.1, model API2 and IPC40.
+`software/updater/build_package.py`. Only the reviewed 5,606,976-byte AArch64 ELF
+with SHA256 `725b74cd93660a312970a44879abe5b75e8becf108499a1b8798961e48ca5f00`
+is accepted as the current payload. Its source is
+`931ce978f2efb27c157b7a583ee402793131a0d2`, build
+`0791fcd-feetech-qinmo-control.47`, official version 0.15.1, model API2 and IPC42.
 The generated `studio/deploy/native/{robotd,manifest.json}` join signed suite
 file hashes. Omitting that option retains the original package behavior and
 reports native update unavailable. No native binary belongs in Git.
@@ -21,8 +27,11 @@ loads only from the current root-owned managed release, after validating all
 parents and the suite hashes of the helper, native module and optional payload
 pair. The release stays pinned throughout the detached operation.
 
-The only binary target is `/opt/robot/feetech-ft5-r5/robotd`. The supported old
-SHA256 is `edf182edb7bf11aeeeedfdab98170ab2ec48a9ec18417f9b68c744b0a60c6d16`.
+The robotd-only binary target is `/opt/robot/feetech-ft5-r5/robotd`. Supported
+predecessors are the exact reviewed .44, .45 and .46 identities listed in
+`native_update.py`; their respective IPC40/40/41 contracts are retained during
+recovery. Historical unfinished .45/.46 transactions require their original
+signed updater. They are never reinterpreted as a new transaction.
 Preflight checks the direct known systemd ExecStart, actual PID/generation,
 `/proc/PID/exe` inode and bytes, exact configuration paths, battery and disk.
 Normal control requires two advancing, fresh, stopped fifteen-joint snapshots,
