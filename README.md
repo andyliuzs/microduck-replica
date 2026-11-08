@@ -4,6 +4,8 @@
 
 基于 [Pollen Robotics Microduck](https://pollen-robotics.com/microduck/) 的第三方整机复刻项目，提供从采购、打印、装配到标定、控制和训练的资料。
 
+**20261104 正式镜像**。整合站姿 IMU 重标、ID 200 独立方向核验、热点恢复，以及手柄映射等此前软件功能。新卡启动、真实换网热点、行走和倒地起身待实机验收。固定安装方向预设留待后续。[下载镜像](https://github.com/fanhao375/microduck-replica/releases/tag/microduck-replica-image-20261104) · [配套测试软件](https://github.com/fanhao375/microduck-replica/releases/tag/microduck-software-v2026.11.4) · [完整更新清单](docs/更新说明-20261104.md)
+
 **飞特 HD-1910 版本已完成整机实机验证：站立、行走、前滚翻后起身均已跑通。** 主线使用 **15 颗飞特 HD-1910 舵机**，提供可烧录的**复刻镜像**和 **Microduck Studio 网页中控**，通过手机或电脑浏览器完成配网、标定和遥控。
 
 **首次上手流程已在实机跑通：** 烧录镜像 → 热点配网 → 舵机与 IMU 标定 → 配手柄、测试急停 → 站立行走。[查看实机验证记录](docs/历史更新.md#最近更新)
@@ -46,12 +48,12 @@
 
 有人在做同样的事，凑了个微信群一起讨论复刻进度、踩过的坑、元件采购。
 
-下面是**鸭子复刻群 14**的二维码（微信群满 200 人后无法扫码加入）。
+下面是**鸭子复刻群 15**的二维码（微信群满 200 人后无法扫码加入）。
 
 <div align="center">
-  <img src="assets/wechat-group-14.png" alt="鸭子复刻群 14 微信二维码" width="280">
+  <img src="assets/wechat-group-15.png" alt="鸭子复刻群 15 微信二维码" width="280">
   <br>
-  <sub><b>鸭子复刻群 14 · 二维码在 2026-11-07 前有效</b>（微信群码 7 天自动失效）<br>
+  <sub><b>鸭子复刻群 15 · 二维码在 2026-11-12 前有效</b>（微信群码 7 天自动失效）<br>
   过期了请开个 <a href="https://github.com/fanhao375/microduck-replica/issues">issue</a> 说一声，我会换上新的</sub>
 </div>
 

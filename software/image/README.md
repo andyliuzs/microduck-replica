@@ -1,5 +1,7 @@
 # Microduck 复刻镜像：构建脚本
 
+> **20261104 测试版：**本轮整合站姿IMU重标、ID200真实方向核验、热点恢复，以及31-r1软件功能；出厂仍未标定、默认兼容旧小板输出。完整四元数需要显式配套设置，不自动烧小板。新镜像烧卡/换网/运动验收边界及旧卡软件升级范围见[本轮更新说明](../../docs/更新说明-20261104.md)。下方既有发行记录保留为历史。
+
 > 用户看这份：[烧录和第一次使用](烧录和第一次使用.md)。下面是做镜像的人看的。
 
 > 热点不出现时，先确认主板是 **Zero 3W 还是无板载 Wi-Fi 的 3E**。热点不依赖舵机 ID；本镜像尚未验证 3E 适配。见[热点与主板型号排查](../../docs/热点与主板型号排查.md)。
@@ -121,6 +123,8 @@ export SOFTWARE_UPDATE_ENGINE_COMMAND_JSON='["qemu-aarch64","-L","/path/to/arm64
 
 以下命令在root构建shell执行时保留上述环境；通过sudo调用时需显式传入这些固定输入，避免sudo清理环境后退回旧版构建。未设置整套组件输入只保留旧镜像构建行为，不包含新的升级/语音套件。最终镜像检查`/usr/share/doc/microduck/software-components.json`、语音资源说明与实际版本文件。
 
+签名软件包含有控制器伴随包时，共享安装器完成后，`controller_factory.py` 从已验证版本树读取并核对冻结的主程序、padd、两份原生清单与语音依赖。镜像 payload 中的两个二进制必须逐字节一致，才会安装声明的四个服务 drop-in、root 所有的语音兼容门及兼容标记，文件均为 0644；清单缺件、哈希不符或目标符号链接均拒绝。支持文件来源和哈希记在 `software-components.json` 的 `controller_bundle` 中。旧软件包没有伴随包时沿用原构建行为。此步骤仅操作离线 ROOT，不启动服务、不复制个人状态，不更改模型、标定或 legacy 协议默认值，也不刷 MCU。
+
 ```sh
 sudo STUDIO_VERSION=<Studio 的提交号> IMAGE_VERSION=<本目录的提交号> \
     sh build-image.sh /path/to/microduck-zero3w-0.15.1-R1-V112.img \
@@ -166,7 +170,7 @@ Windows 上用 `py -3.13 -I -m unittest discover -s tests -v` 也能跑（Git Ba
 - overlay、Studio 的 `deploy/`、`run.py` 里有 Windows 换行（CR）：
   Windows 上 clone 时 `core.autocrlf=true` 会把没后缀的脚本变成 CRLF，开机就跑不起来。
   仓库的 `.gitattributes` 已经给这些目录定了 LF；
-- 镜像里任何文件（包括二进制）还有模型作者的名字（只有 `模型说明.txt` 例外，那里按许可要署名）；
+- 镜像里其他文件（包括二进制）还有旧镜像作者标识；固定的 `模型说明.txt` 署名与 `payload.json` 源码来源记录保留；
 - `etc/systemd`、`udev`、`cron` 里有悬空链接，或者还引用着已删掉的文件；
 - `opt/robot/feetech-ft5-r5` 下还有训练归档（`export-data.zip`、`training-*.json`、`upstream-params`、`*.pt`）；
 - 「待人工确认」里还有普通文件（要先确认不含个人数据，再用 `ALLOW_UNCONFIRMED=1` 放行，清单里会注明）；
@@ -182,7 +186,7 @@ Windows 上用 `py -3.13 -I -m unittest discover -s tests -v` 也能跑（Git Ba
 3. 把交付的 `.img.xz` 解压回来、只读挂载，至少看：sha256 对得上；`e2fsck -fn` 没错；
    主程序和模型的 sha256 跟 payload 一致、`robotd.toml` 引用的模型都在；
    标定模式 drop-in 在；`machine-id` 是空的、没有 SSH 主机钥匙；SSH 只认钥匙；
-   全盘只有 `模型说明.txt` 带模型作者的名字。
+   旧作者标识仅允许存在于固定的 `模型说明.txt` 署名与 `payload.json` 来源清单中。
 4. 记录本版新卡从头走[烧录和第一次使用](烧录和第一次使用.md)的实物验收范围：热点 → 配网 → 上手清单 6 步 → 站起来走。未完成时在发行说明明确标出，不能沿用旧版真机通过结论。20261027由用户授权先发布已核验的软件/镜像，本版实物验收待开机后进行。
 5. 镜像里主程序对应的 fork 提交已经推到 fork 上。
 6. 发布：GitHub Releases 放 `.img.xz`、`.sha256`、`镜像清单.txt` 和三份 txt；
