@@ -496,9 +496,11 @@ def main(argv=None):
             execute_commands=args.voice_mode == 'actions', cue=cue,
             recognize_speech=args.voice_mode != 'off')
     control_server = None
+    bridge = None
     try:
         if toggle_daemon:
             from audio_control import AudioControl, AudioControlServer
+            from dialogue_bridge import DialogueBridge
             from music_feel import MusicFeel
             from music_interaction import MusicInteraction
             feel = MusicFeel(channel=args.channel)
@@ -510,13 +512,21 @@ def main(argv=None):
                     audio.command_cue(lambda _: robot.call('robot.sound', {'tag': tag}) if allowed() else None,
                                       True, duration=sound_lengths.get(tag, 1)+.1, allowed=allowed)
             audio.music = MusicInteraction(lambda: audio.voice.recognizer, feel, reply, channel=args.channel)
+            def dialogue_quack(tag):
+                audio.command_cue(lambda _: robot.call('robot.sound', {'tag': tag}),
+                                  True, duration=sound_lengths.get(tag, 1)+.1)
+            bridge = DialogueBridge(audio, dialogue_quack)
+            audio.dialogue_output = bridge.player
             def observe(raw, timestamp):
                 if audio.music_mode:
                     feel.feed(raw, timestamp)
                     audio.music.feed(raw, timestamp)
+                elif audio.dialogue_mode:
+                    bridge.feed(raw, timestamp)
             audio.observer = observe
-            control_server = AudioControlServer(AudioControl(audio, feel), args.control_socket)
+            control_server = AudioControlServer(AudioControl(audio, feel, bridge), args.control_socket)
             control_server.start()
+            bridge.start()
         if args.action == 'daemon':
             daemon(audio, stopped, args.input, trigger_mode=args.trigger_mode)
             return 0
@@ -533,6 +543,8 @@ def main(argv=None):
     finally:
         if control_server is not None:
             control_server.close()
+        if bridge is not None:
+            bridge.close()
         audio.close()
         if toggle_daemon and audio.music is not None:
             audio.music.close()

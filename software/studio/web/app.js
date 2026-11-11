@@ -681,7 +681,7 @@ function Todo({ st, live }) {
 }
 
 // 总览：（开着热点时最上面是「连 WiFi」）→ 舞台 → 仪表带（5 格）→ 上手清单 → 待办 → 往下一刷就是手柄（总览重排 §1）
-function Overview({ st, live, age, diagnosticElapsed, duck, pd, onSame, tune, sensorsActive }) {
+function Overview({ st, live, age, diagnosticElapsed, duck, pd, onSame, tune, sensorsActive, dialogue }) {
   // 主机名这类英文名后面空一格再接中文：「duck-c51b 站好了」
   const short = duck?.short || '鸭子';
   const name = /[A-Za-z0-9]$/.test(short) ? short + ' ' : short;
@@ -693,7 +693,7 @@ function Overview({ st, live, age, diagnosticElapsed, duck, pd, onSame, tune, se
     <${AiSshEntry} />
     <${Onboard} st=${st} live=${live} />
     <${Todo} st=${st} live=${live} />
-    <${PadPage} st=${st} pad=${pd} link=${link} api=${api} previewActive=${sensorsActive} live=${live} />
+    <${PadPage} st=${st} pad=${pd} link=${link} api=${api} previewActive=${sensorsActive} live=${live} dialogue=${dialogue} />
     <${TuneSection} tune=${tune} />
   </div>`;
 }
@@ -881,6 +881,7 @@ function Main({ duck }) {
   const [imu, setImu] = useState(null);
   const [tune, setTune] = useState(null);
   const [pd, setPd] = useState(null);
+  const [dlg, setDlg] = useState(null);
   const [stAt, setStAt] = useState(0);
   const [imuAt, setImuAt] = useState(0);
   const imuContext = useRef(null);
@@ -906,6 +907,8 @@ function Main({ duck }) {
         setSt((prev) => (m.onboarding_same && prev ? { ...m, onboarding: prev.onboarding } : m));
         setStAt(performance.now());
       }
+      else if (m.t === 'dialogue') setDlg(m.dialogue);
+      else if (m.t === 'hello' && m.dialogue) setDlg(m.dialogue);
       else if (m.t === 'servo') setSv(m);
       else if (m.t === 'imu') { setImu(m); setImuAt(performance.now()); }
       else if (m.t === 'tune') setTune(m);
@@ -948,7 +951,7 @@ function Main({ duck }) {
   // 总览一直挂着、只是藏起来：3D 鸭子不随切页面销毁重建（three.js 每建一次留一份内部对象，
   // 浏览器能同时开的 WebGL 上下文也有限）。手柄那一块也在总览里（#/pad 是它的锚点），一直挂着：
   // 「在不在手柄区」看 padActivity，不看挂没挂上（审查 O1）
-  const overview = html`<div hidden=${!OVERVIEW(route)}><${Overview} st=${st} live=${live} age=${age} diagnosticElapsed=${now - stAt} duck=${duck} pd=${pd} onSame=${onSame} tune=${tune} sensorsActive=${OVERVIEW(route)} /></div>`;
+  const overview = html`<div hidden=${!OVERVIEW(route)}><${Overview} st=${st} live=${live} age=${age} diagnosticElapsed=${now - stAt} duck=${duck} pd=${pd} onSame=${onSame} tune=${tune} sensorsActive=${OVERVIEW(route)} dialogue=${dlg} /></div>`;
   let page = null;
   if (OVERVIEW(route)) page = null;
   else if (route === '/logs') page = html`<${LogsPage} />`;
@@ -1016,4 +1019,20 @@ function App() {
   return html`<${Main} duck=${sess.duck} />`;
 }
 
-render(html`<${App} />`, document.getElementById('app'));
+// 页面渲染出错时把错误摆到屏幕上，不再一片空白（浏览器控制台不是人人会开）
+class Boundary extends Component {
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state && this.state.error) {
+      const detail = String((this.state.error && this.state.error.stack) || this.state.error);
+      return html`<div class="login board" style="padding:20px">
+        <h2>页面渲染出错了</h2>
+        <p>刷新试试；还不行就把下面这段发给开发者。</p>
+        <pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">${detail.slice(0, 1500)}</pre>
+      </div>`;
+    }
+    return this.props.children;
+  }
+}
+
+render(html`<${Boundary}><${App} /><//>`, document.getElementById('app'));

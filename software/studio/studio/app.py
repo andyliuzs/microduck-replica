@@ -45,8 +45,9 @@ from .servo import boot_id, view_from_robotd
 from .sshkeys import BadKey, SshKeys
 from .state import summarize
 from .pad import Refused as PadRefused, robot_view  # 手柄页
-from .ai_connections import AiError
+from .ai_connections import AiError, Connections
 from .ai_service import AiService
+from .realtime_voice import RealtimeVoiceService
 from .updates import Updates, UpdateError, handle as handle_updates, safe_during_update
 
 VERSION = "0.1.0-dev"
@@ -155,12 +156,18 @@ def _bus_give_back(by, servo=None):
 
 
 def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev_autologin=False, servo=None, imu=None, pad=None,
-              onboard=None, battery=None, tune=None, net=None, commit=None, ssh_home=None, models=None, sensors=None, updates=None):
+              onboard=None, battery=None, tune=None, net=None, commit=None, ssh_home=None, models=None, sensors=None, updates=None,
+              realtime=None):
     guard = OriginGuard(names=names)
     ai = AiService(state_dir)
     updates = updates or Updates()
     if pad is not None:
         pad.update_guard=updates.installing
+    # 语音 AI 对话：duck-echo 的音频桥 + 豆包实时语音 WebSocket（F26）
+    realtime = realtime or RealtimeVoiceService(
+        store=Connections(state_dir) if state_dir else None,
+        robotd_addr=getattr(robotd, 'addr', 'unix:/run/robotd.sock'),
+        update_guard=updates.installing, log=log)
     update_commands = set()
     mapping_requests = set()
 
@@ -192,6 +199,16 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
             commit.onboard = onboard                 # 第 1 / 2 步用户标了「已完成」「跳过」：准备情况那两项要知道
     web_dir = Path(web_dir)
     clients = {}           # websocket -> {"visible": bool, "by": str, "hb_at": monotonic}
+
+    # 实时语音对话事件（字幕 / 状态）：只往每条连接自己的队列里放，
+    # 由该连接的 dialogue_forwarder 用带锁的 send() 发——绝不跨任务直接 send_text
+    # （与状态推送并发 send 会打断页面连接）。
+    def _dialogue_broadcast(event):
+        for me in list(clients.values()):
+            queue = me.get("dialogue_q")
+            if queue is not None:
+                queue.put_nowait(event)
+    realtime.broadcast = _dialogue_broadcast
     login_gate = asyncio.Semaphore(1)
     servo_gate = asyncio.Lock()         # 开 / 关舵机总线一次一个
     model_upload_gate = asyncio.Lock()
@@ -679,7 +696,8 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
         await ws.accept()
         by = _client_desc(ws)
         pad_conn = pad.new_conn() if pad is not None else None
-        me = {"visible": True, "by": by, "hb_at": time.monotonic(), "route": None, "pad_visible": None}
+        me = {"visible": True, "by": by, "hb_at": time.monotonic(), "route": None, "pad_visible": None,
+              "dialogue_q": asyncio.Queue()}
         clients[ws] = me
         update_viewers()
         log.info(f"页面连上（{by}，现在 {len(clients)} 个）", cat="连接", dedup=False)
@@ -692,7 +710,10 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
         loop = asyncio.get_running_loop()      # 写主程序在后台线程跑，进度从这里推回页面
 
         async def sender():
-            await send({"t": "hello", "version": VERSION, "duck": duck})
+            hello = {"t": "hello", "version": VERSION, "duck": duck}
+            if realtime is not None:
+                hello["dialogue"] = realtime.snapshot()
+            await send(hello)
             last_check = time.monotonic()
             last_imu = 0.0
             last_tune = 0.0
@@ -1155,6 +1176,15 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
                     if updates.installing() and not safe_during_update(name,args):
                         await send({'t':'result','id':cid,'ok':False,'reason':'软件更新正在进行，请等待完成；急停仍可使用'})
                         continue
+                    # 回答方式（人声 / 鸭叫）是 Studio 自己的状态，不下发 duck-echo
+                    if (realtime is not None and name == 'pad.op' and args.get('op') == 'audio'
+                            and 'reply_mode' in args):
+                        mode = args.pop('reply_mode')
+                        ok = realtime.set_reply_mode(mode)
+                        await send({'t':'result','id':cid,'ok':bool(ok),
+                                    'reason': '' if ok else '回答方式只支持 human / quack'})
+                        if set(args) == {'op'}:
+                            continue
                     if (imu is not None and getattr(imu, 'blocks_updates', lambda: False)()
                             and name in {'pad.op', 'tune.op', 'servo.open', 'servo.op', 'calib.op'}
                             and not safe_during_update(name, args)):
@@ -1259,7 +1289,12 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
                     log.error(f"指令「{name}」在 COMMANDS 里但没有处理分支", cat="系统", hint="这是 Studio 的 bug，导出诊断包发出来")
                     await send({"t": "result", "id": cid, "ok": False, "reason": f"Studio 没写「{name}」怎么处理（bug）"})
 
-        tasks = [asyncio.create_task(f()) for f in (sender, log_forwarder, receiver)]
+        async def dialogue_forwarder():
+            while True:
+                event = await me["dialogue_q"].get()
+                await send(event)
+
+        tasks = [asyncio.create_task(f()) for f in (sender, log_forwarder, dialogue_forwarder, receiver)]
         try:
             done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             for t in done:
@@ -1565,6 +1600,8 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
         bat_task = asyncio.create_task(battery.loop()) if battery is not None else None   # 电量估算 1 Hz（审查 B-R7）
         tune_task = asyncio.create_task(tune.loop()) if tune is not None else None     # 调参卡读文件 2 秒一次（线程里）
         robotd.start()
+        if realtime is not None:
+            await realtime.start()
         if net is not None:
             net.start()
         restore = asyncio.create_task(servo_restore())        # 上次退出时舵机会话开着：接着管（审查 D1）
@@ -1591,6 +1628,8 @@ def build_app(*, auth, robotd, log, web_dir, duck, names=(), state_dir=None, dev
             log.info(f"Studio 退出：舵机会话开着（{n} 颗保持着），不卸力；下次起来会接着管", cat="总线", dedup=False)
         if net is not None:
             await net.stop()
+        if realtime is not None:
+            await realtime.stop()
         await robotd.stop()
         auth.flush()
         log.info("Studio 停止", cat="系统", dedup=False)

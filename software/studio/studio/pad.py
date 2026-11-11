@@ -491,8 +491,8 @@ class PadOps(DriveMixin):
             return self.motion_studio.handle(args, conn, by)
         if op == "audio":
             values = {key:value for key,value in args.items() if key != "op"}
-            if not values or set(values)-{"listening","music"} or any(type(value) is not bool for value in values.values()):
-                raise Refused("语音只支持监听和音乐两个开关")
+            if not values or set(values)-{"listening","music","dialogue"} or any(type(value) is not bool for value in values.values()):
+                raise Refused("语音只支持监听、音乐和对话三个开关")
             if conn is None or conn in self._gone or conn in self._closed:
                 raise Refused("请先回到手柄遥控区操作语音")
             if self.audio is None:

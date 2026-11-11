@@ -16,7 +16,7 @@ def _number(value, lo, hi):
 
 
 def validate_status(value):
-    if not isinstance(value, dict) or set(value)-{'listening','music','rhythm','error','runtime_root','voice_ready'}:
+    if not isinstance(value, dict) or set(value)-{'listening','music','dialogue','rhythm','error','runtime_root','voice_ready'}:
         raise ValueError('invalid audio status fields')
     if 'voice_ready' in value and type(value['voice_ready']) is not bool:
         raise ValueError('invalid voice readiness')
@@ -24,6 +24,8 @@ def validate_status(value):
         raise ValueError('invalid voice runtime')
     if type(value.get('listening')) is not bool or type(value.get('music')) is not bool:
         raise ValueError('invalid audio switches')
+    if 'dialogue' in value and type(value['dialogue']) is not bool:
+        raise ValueError('invalid dialogue switch')
     rhythm = value.get('rhythm')
     if not isinstance(rhythm, dict) or set(rhythm)-{'bpm','confidence','feel','last_beat','age','level'}:
         raise ValueError('invalid rhythm status')
@@ -86,8 +88,8 @@ class AudioClient:
             raise
 
     def set(self, **switches):
-        if not switches or set(switches)-{'listening','music'} or any(type(v) is not bool for v in switches.values()):
-            raise ValueError('监听和音乐开关必须为布尔值')
+        if not switches or set(switches)-{'listening','music','dialogue'} or any(type(v) is not bool for v in switches.values()):
+            raise ValueError('监听、音乐和对话开关必须为布尔值')
         return self._call({'method':'set',**switches})
 
     def snapshot(self):

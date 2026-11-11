@@ -1056,7 +1056,7 @@ function VpadBar({ vp, pad }) {
   <p class="pd-small-p pd-vbar-hint">键盘：点一下手柄图，W / S 前后、A / D 平移、Q / E 转弯（头 / 身体模式下键盘不管用）；空格 = 卸力（急停，整页都管用）· Esc = 全部松开（停下但不卸力）。满杆 ${(lim.v ?? 0.3).toFixed(2)} 米/秒、${(lim.w ?? 1.5).toFixed(1)} 弧度/秒（${lim.src || '官方默认'}），头满杆 ${(v.inputs?.head ?? 2.5).toFixed(1)} rad（${v.inputs?.src || '官方默认'}）。鸭子还没「准备好走」时摇杆不动：先点「站起来」、再点「开始走」（或者按图上的 Start）。</p>`;
 }
 
-function Remote({ st, pad, link, vp }) {
+function Remote({ st, pad, link, vp, dialogue }) {
   const [err, setErr] = useState(null);
   const [busyUntil, setBusyUntil] = useState(0);
   const [busyPose, setBusyPose] = useState(null);
@@ -1136,7 +1136,7 @@ function Remote({ st, pad, link, vp }) {
       ${last ? html`<p class=${cx('pd-small-p', !last.ok && 'pd-bad-t')}>${last.ok ? '✓' : '×'} ${last.what}${last.by ? `（${last.by}）` : ''}：${last.ok ? (last.reason || '主程序收到了') : last.reason}</p>` : null}
     </div>
 
-    <${AudioInteraction} pad=${pad} link=${link} activity=${padActivity} />
+    <${AudioInteraction} pad=${pad} link=${link} activity=${padActivity} dialogue=${dialogue} />
     <${MotionStudio} pad=${pad} link=${link} activity=${padActivity} />
 
     <div class="pd-sec">
@@ -1215,7 +1215,7 @@ const TABBAR_PX = 83;       // 手机底栏（styles.css .tabbar）
 // 总览重排（方案 §1.2、审查 O11）：顺序是 页头 → 手柄图（按键表默认折起）+ 遥控 → 配对向导 / 测急停 / 配过的手柄。
 // 不再有单独的手柄页：#/pad 是总览上的锚点（app.js 打开就滚到这里，id="pad-block"）。
 // 这一块一直挂着，「在不在」看 padActivity（路由 + 页面可见 + 这一块在视口里）：watch、drive open / off、全部松开都挂在它上面
-export function PadPage({ st, pad, link, api, previewActive = false, live: duckLive = true }) {
+export function PadPage({ st, pad, link, api, previewActive = false, live: duckLive = true, dialogue = null }) {
   const [msg, setMsg] = useState(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [mappingOpen, setMappingOpen] = useState(false);
@@ -1355,7 +1355,7 @@ export function PadPage({ st, pad, link, api, previewActive = false, live: duckL
       </section>
       <div class=${cx('pd-left', !visualFits && 'pd-left-overflow')}><${PadDuck} st=${st} pad=${pad} vp=${vp} live=${duckLive} />
         <${InlineCamera} api=${api} active=${previewActive} /></div>
-      <${Remote} st=${st} pad=${pad} link=${link} vp=${vp} />
+      <${Remote} st=${st} pad=${pad} link=${link} vp=${vp} dialogue=${dialogue} />
     </div>
     <div class="pd-more">
       ${showWizard ? html`<${Wizard} w=${w} op=${op} kind=${kind} setKind=${setKind} onClose=${() => { setWizardOpen(false); op({ op: 'wizard_reset' }); }} />` : null}

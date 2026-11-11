@@ -76,6 +76,12 @@ def encode(rid, method, params):
                        ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
 
 
+def encode_notify(method, params):
+    """通知：没有 id，robotd 不回包（robot.head / robot.mouth 用它）。"""
+    return (json.dumps({"jsonrpc": "2.0", "method": method, "params": params or {}},
+                       ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+
+
 async def read_message(reader, timeout):
     """读一行、解成 JSON。超长行、对方关连接都算 Unreachable；乱码返回 None（调用方跳过）。"""
     try:
@@ -155,6 +161,14 @@ class Conn:
             err = msg["error"] if isinstance(msg["error"], dict) else {"message": str(msg["error"])}
             raise RpcError(method, err.get("code"), err.get("message", ""), err.get("data"))
         return msg.get("result")
+
+    async def notify(self, method, params=None):
+        """发一条通知并排进同一把锁：跟在等回包的请求不会交错，也不等答复。"""
+        async with self._lock:
+            if self._w is None:
+                await self._connect()
+            self._w.write(encode_notify(method, params))
+            await self._w.drain()
 
     async def _connect(self):
         self._r, self._w = await open_conn(self.addr)

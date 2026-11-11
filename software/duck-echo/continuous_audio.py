@@ -139,6 +139,10 @@ class ContinuousAudio:
         self.voice = None
         self.music = None
         self.music_mode = False
+        # Dialogue output (streamed cloud TTS through the bridge) must suppress
+        # the microphone exactly like backend playback; aplay runs in the bridge.
+        self.dialogue_output = None
+        self.dialogue_mode = False
         self.activation_cue = None
         self.deactivation_cue = None
         self.deactivation_pending = None
@@ -214,6 +218,8 @@ class ContinuousAudio:
         with self.dispatch_lock:
             with self.condition:
                 self.music_mode = bool(enabled) and self.active and not self.closed
+                if self.music_mode:
+                    self.dialogue_mode = False
                 self.mode_generation += 1
                 self.pending = None
                 self.output_pending = False
@@ -224,6 +230,31 @@ class ContinuousAudio:
                 self.voice.cancel()
             if self.music is not None:
                 self.music.set_enabled(self.music_mode)
+
+    def set_dialogue(self, enabled):
+        """Dialogue and music never run together; the bridge owns utterances."""
+        import traceback
+        LOG.warning('set_dialogue(%s) from:\n%s', enabled,
+                    ''.join(traceback.format_stack()[-5:-1]))
+        if enabled and not self.guard():
+            self.stop(play=False)
+            return
+        with self.dispatch_lock:
+            with self.condition:
+                enabled = bool(enabled) and self.active and not self.closed
+                self.dialogue_mode = enabled
+                if enabled:
+                    self.music_mode = False
+                self.mode_generation += 1
+                self.pending = None
+                self.output_pending = False
+                self.segmenter.reset()
+                self.stop_output = True
+                self.condition.notify_all()
+            if self.voice is not None:
+                self.voice.cancel()
+            if enabled and self.music is not None:
+                self.music.set_enabled(False)
 
     def _invalidate(self):
         self.generation += 1
@@ -257,6 +288,7 @@ class ContinuousAudio:
             was_active = self.active
             self.active = False
             self.music_mode = False
+            self.dialogue_mode = False
             generation = self._invalidate()
             capture_stop = self.capture_stop
             self.stop_output = True
@@ -281,6 +313,8 @@ class ContinuousAudio:
         if self.activation_pending is not None or self.activation_inflight is not None:
             return True
         playing = self.backend.playback_active()
+        if self.dialogue_output is not None and self.dialogue_output.active():
+            playing = True
         if playing or self.output_pending or self.cue_active:
             self.suppress_until = self.clock() + self.tail
             return True
@@ -299,7 +333,7 @@ class ContinuousAudio:
             if self._suppressed():
                 self.segmenter.reset()
                 return
-            if not self.music_mode:
+            if not self.music_mode and not self.dialogue_mode:
                 for phrase in self.segmenter.feed(data):
                     self.pending = ('phrase', self.generation, phrase)
                     self.condition.notify_all()

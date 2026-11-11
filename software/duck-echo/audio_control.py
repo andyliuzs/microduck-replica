@@ -21,8 +21,8 @@ def decode_request(raw):
 
 
 class AudioControl:
-    def __init__(self, audio, feel):
-        self.audio, self.feel = audio, feel
+    def __init__(self, audio, feel, bridge=None):
+        self.audio, self.feel, self.bridge = audio, feel, bridge
         self.lock = threading.RLock()
 
     def status(self):
@@ -32,7 +32,11 @@ class AudioControl:
         error = getattr(interaction, 'error', None)
         if self.audio.failed:
             error = 'microphone capture unavailable; enable listening to retry'
+        dialogue = bool(getattr(self.audio, 'dialogue_mode', False))
+        if self.bridge is not None and dialogue and not self.bridge.status().get('bridge_client'):
+            error = 'dialogue bridge has no studio connection'
         return {'listening': bool(self.audio.active), 'music': bool(self.audio.music_mode),
+                'dialogue': dialogue,
                 'runtime_root':RUNTIME_ROOT,'voice_ready':voice_ready,
                 'rhythm': self.feel.snapshot(), 'error': str(error)[:240] if error else None}
 
@@ -43,18 +47,38 @@ class AudioControl:
             method = request.get('method')
             if method == 'status' and set(request) == {'method'}:
                 return {'ok': True, 'status': self.status()}
-            if (method != 'set' or not {'listening', 'music'} & set(request) or
-                    not set(request) <= {'method', 'listening', 'music'} or
-                    any(type(value) is not bool for key, value in request.items() if key != 'method')):
-                return {'ok': False, 'error': 'allowed methods are status and set with boolean listening/music'}
-            if request.get('listening') is False and request.get('music') is True:
-                return {'ok': False, 'error': 'music requires listening'}
+            switches = {key: value for key, value in request.items() if key != 'method'}
+            if (method != 'set' or not {'listening', 'music', 'dialogue'} & set(switches)
+                    or not set(request) <= {'method', 'listening', 'music', 'dialogue'}
+                    or any(type(value) is not bool for value in switches.values())):
+                return {'ok': False, 'error': 'allowed methods are status and set with boolean listening/music/dialogue'}
+            if switches.get('dialogue') is True and self.bridge is None:
+                return {'ok': False, 'error': 'dialogue bridge is not configured'}
+            if switches.get('listening') is False and (switches.get('music') is True
+                                                       or switches.get('dialogue') is True):
+                return {'ok': False, 'error': 'music and dialogue require listening'}
+            if switches.get('dialogue') is True and switches.get('music') is True:
+                return {'ok': False, 'error': 'dialogue and music cannot run together'}
             if request.get('listening') is False:
+                if self.bridge is not None and getattr(self.audio, 'dialogue_mode', False):
+                    self.bridge.set_enabled(False)
                 self.audio.stop(play=False, announce=True)
             else:
-                if (request.get('listening') is True or request.get('music') is True) and not self.audio.active:
+                if (request.get('listening') is True or request.get('music') is True
+                        or request.get('dialogue') is True) and not self.audio.active:
                     self.audio.start()
+                if 'dialogue' in request:
+                    if request['dialogue'] and not self.audio.active:
+                        return {'ok': False, 'error': 'listening did not start; check the microphone'}
+                    self.audio.set_dialogue(request['dialogue'])
+                    if self.bridge is not None:
+                        self.bridge.set_enabled(request['dialogue'])
                 if 'music' in request:
+                    if request['music'] and getattr(self.audio, 'dialogue_mode', False):
+                        # 显式要听音乐：先把对话关掉（互斥，两个都开只拒绝同一条消息里的组合）
+                        self.audio.set_dialogue(False)
+                        if self.bridge is not None:
+                            self.bridge.set_enabled(False)
                     self.audio.set_music(request['music'])
             return {'ok': True, 'status': self.status()}
 

@@ -10,7 +10,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 ARK_URL = 'https://ark.cn-beijing.volces.com/api/v3'
-PROVIDERS = ('doubao_ark', 'openai_compatible')
+REALTIME_URL = 'wss://openspeech.bytedance.com/api/v3/duplex/realtime/dialogue'
+PROVIDERS = ('doubao_ark', 'openai_compatible', 'doubao_realtime')
 
 
 class AiError(ValueError):
@@ -114,9 +115,16 @@ class Connections:
         mode = value.get('auth_mode', 'bearer')
         if provider not in PROVIDERS or mode not in ('bearer', 'none'):
             raise AiError('validation', '提供商或认证方式不支持')
-        url = base_url(value.get('base_url', ARK_URL if provider == 'doubao_ark' else ''))
-        if mode == 'none' and (not url or not local_host(urlsplit(url).hostname)):
-            raise AiError('validation', '无需 API Key 仅适用于明确配置的本地服务')
+        if provider == 'doubao_realtime':
+            # 实时语音走固定 WebSocket 端点 + X-Api-Key；model 字段存音色 ID。
+            # 地址与鉴权方式不接受自定义，避免把文字接口地址填进来。
+            if mode != 'bearer':
+                raise AiError('validation', '实时语音连接必须使用 API Key')
+            url = REALTIME_URL
+        else:
+            url = base_url(value.get('base_url', ARK_URL if provider == 'doubao_ark' else ''))
+            if mode == 'none' and (not url or not local_host(urlsplit(url).hostname)):
+                raise AiError('validation', '无需 API Key 仅适用于明确配置的本地服务')
         if 'clear_key' in value and type(value['clear_key']) is not bool:
             raise AiError('validation', '清除 Key 参数不正确')
         key = text(value.get('api_key',''),4096,'API Key')
@@ -142,7 +150,11 @@ class Connections:
     def _public(self, item, state):
         result = {k:v for k,v in item.items() if k != 'api_key'}
         result['key_configured'] = bool(item['api_key'])
-        result['missing'] = [k for k in ('name','base_url','model') if not item[k]]
+        if item['provider'] == 'doubao_realtime':
+            # 音色留空走默认女声，不算缺项（web 端约定一致）
+            result['missing'] = [k for k in ('name',) if not item[k]]
+        else:
+            result['missing'] = [k for k in ('name','base_url','model') if not item[k]]
         if item['auth_mode'] == 'bearer' and not item['api_key']:
             result['missing'].append('api_key')
         result['ready'] = not result['missing']

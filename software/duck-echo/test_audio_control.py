@@ -18,19 +18,47 @@ class ProtocolTests(unittest.TestCase):
     def setUp(self):
         self.assertTrue(hasattr(control, 'AudioControl'), 'audio control protocol missing')
         class Audio:
-            active = music_mode = failed = False
+            active = music_mode = failed = dialogue_mode = False
             def start(self): self.active = True
-            def stop(self, play=False, announce=False): self.active = self.music_mode = False
+            def stop(self, play=False, announce=False):
+                self.active = self.music_mode = self.dialogue_mode = False
             def set_music(self, enabled): self.music_mode = enabled
+            def set_dialogue(self, enabled):
+                self.dialogue_mode = enabled
+                if enabled:
+                    self.music_mode = False
         self.audio = Audio()
         self.feel = SimpleNamespace(snapshot=lambda: {'bpm': None, 'confidence': 0, 'feel': 'unknown'})
-        self.hub = control.AudioControl(self.audio, self.feel)
+        self.bridge = SimpleNamespace(enabled=None, status=lambda: {'bridge_client': False},
+                                      set_enabled=lambda value: setattr(self.bridge, 'enabled', value))
+        self.hub = control.AudioControl(self.audio, self.feel, self.bridge)
 
     def test_starts_off_and_only_reports_bounded_public_state(self):
         status = self.hub.request({'method': 'status'})
-        self.assertEqual(set(status['status']), {'listening', 'music', 'rhythm', 'error','runtime_root','voice_ready'})
+        self.assertEqual(set(status['status']), {'listening', 'music', 'dialogue', 'rhythm', 'error','runtime_root','voice_ready'})
         self.assertFalse(status['status']['listening'])
         self.assertFalse(status['status']['voice_ready'])
+        self.assertFalse(status['status']['dialogue'])
+
+    def test_dialogue_requires_listening_and_excludes_music(self):
+        # 对话与音乐一样会带起监听；两者互斥，关监听会一并关掉对话
+        status = self.hub.request({'method': 'set', 'dialogue': True})['status']
+        self.assertTrue(status['dialogue'] and status['listening'])
+        self.assertFalse(self.hub.request({'method': 'set', 'dialogue': True, 'music': True})['ok'])
+        status = self.hub.request({'method': 'set', 'music': True})['status']
+        self.assertFalse(status['dialogue'])
+        self.assertTrue(status['music'])
+        self.hub.request({'method': 'set', 'dialogue': True})
+        self.assertTrue(self.audio.dialogue_mode and not self.audio.music_mode)
+        self.hub.request({'method': 'set', 'listening': False})
+        self.assertFalse(self.audio.active or self.audio.dialogue_mode)
+
+    def test_dialogue_without_bridge_refuses(self):
+        self.hub.request({'method': 'set', 'listening': True})
+        self.hub.bridge = None
+        result = self.hub.request({'method': 'set', 'dialogue': True})
+        self.assertFalse(result['ok'])
+        self.assertIn('bridge', result['error'])
 
     def test_voice_health_requires_loaded_recognizer(self):
         self.audio.voice=SimpleNamespace(ready=SimpleNamespace(is_set=lambda:True),recognizer=None)

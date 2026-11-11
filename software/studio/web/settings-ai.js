@@ -1,5 +1,5 @@
 import { html, useEffect, useRef, useState } from './vendor/preact-htm.module.js';
-import { ARK_URL, blankDraft, draftFrom, isDirty, missingFields, requestMessages } from './ai-ui-state.js';
+import { ARK_URL, REALTIME_URL, blankDraft, draftFrom, isDirty, isRealtime, missingFields, requestMessages } from './ai-ui-state.js';
 
 const CSS = `.ai-settings{padding:18px 20px;min-width:0}.ai-settings h2{margin:0 0 8px;font-size:20px}.ai-settings p{font-size:13px;line-height:1.65;color:var(--text-2);margin:8px 0}.ai-settings .ai-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.ai-settings label{display:flex;flex-direction:column;gap:5px;font-size:13px;min-width:0}.ai-settings input,.ai-settings select,.ai-settings textarea{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--line,#d2d2d7);border-radius:9px;background:var(--surface,#fff);color:inherit;padding:9px;font:inherit}.ai-settings .ai-wide{grid-column:1/-1}.ai-settings .ai-check{flex-direction:row;align-items:center}.ai-settings .ai-check input{width:auto}.ai-settings .btn{border:0;border-radius:999px;padding:9px 15px;min-height:38px;font:inherit;font-size:14px;background:#e9e9ee;color:#242428;cursor:pointer}.ai-settings .btn.primary{background:#007aff;color:white}.ai-settings .btn:disabled{opacity:.4;cursor:default}.ai-settings .btn:focus-visible{outline:2px solid #007aff;outline-offset:2px}.ai-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.ai-settings .ai-result{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}.ai-settings .ai-chat{border-top:1px solid var(--line,#ddd);margin-top:18px;padding-top:12px}.ai-settings .ai-message{white-space:pre-wrap;overflow-wrap:anywhere;border-radius:9px;padding:9px 11px;margin:7px 0;background:var(--surface-2,#f1f2f5);font-size:14px}.ai-settings .ai-message strong{font-size:12px;display:block;margin-bottom:3px}.ai-settings [role=alert]{color:var(--red,#b42318)}@media(max-width:480px){.ai-settings{padding:16px 12px}.ai-settings .ai-fields{grid-template-columns:1fr}.ai-settings .btn{max-width:100%;white-space:normal}}`;
 if (!document.getElementById('ai-settings-css')) {
@@ -63,7 +63,7 @@ export function AiSettings({ api }) {
   };
   return html`<section id="ai-settings" class="board ai-settings" data-ai-settings aria-label="AI 对话">
     <h2>AI 对话</h2>
-    <p>先保存提供商与模型配置，开通账号后再填写 Key。当前仅支持网页文字试聊；麦克风、扬声器和实时语音尚未接入，对话不会驱动机器人。</p>
+    <p>先保存提供商与模型配置，开通账号后再填写 Key。豆包·实时语音连接用于遥控页的语音对话；文字模型连接用于本页文字试聊，都不会自行驱动机器人。</p>
     ${error ? html`<p role="alert">${error}</p>` : null}
     ${!data ? html`<p>${busy ? '读取 AI 设置中…' : 'AI 设置暂不可用。请先设置网页密码后刷新页面。'}</p>` : html`
     <label>已保存连接<select aria-label="已保存连接" value=${selected} disabled=${busy} onChange=${e=>choose(e.target.value)}>
@@ -75,13 +75,15 @@ export function AiSettings({ api }) {
       <div class="ai-fields">
         <label>连接名称<input aria-label="连接名称" maxlength="80" value=${form.name} onInput=${e=>edit('name',e.target.value)} placeholder="例如：豆包文字模型" /></label>
         <label>提供商<select aria-label="提供商" value=${form.provider} onChange=${e=>{
-          const provider=e.target.value;setForm({...form,provider,base_url:provider === 'doubao_ark' ? ARK_URL : '',api_key:'',clear_key:false});setError('');clearConversation();
-        }}><option value="doubao_ark">豆包·方舟文字模型</option><option value="openai_compatible">其他 OpenAI 兼容接口</option></select></label>
-        <label class="ai-wide">Base URL<input aria-label="Base URL" maxlength="500" value=${form.base_url} onInput=${e=>edit('base_url',e.target.value)} placeholder="https://服务地址/v1" spellcheck="false" /></label>
-        <label class="ai-wide">Model ID<input aria-label="Model ID" maxlength="200" value=${form.model} onInput=${e=>edit('model',e.target.value)} placeholder="填写控制台提供的模型 ID 或接入点 ID" spellcheck="false" /></label>
-        <label class="ai-wide">API Key<input type="password" aria-label="API Key" value=${form.api_key} maxlength="4096" autocomplete="new-password" onInput=${e=>edit('api_key',e.target.value)} placeholder=${saved?.key_configured ? '已保存；留空保留同一提供商和地址的 Key' : '尚未配置，可先保存草稿'} /></label>
+          const provider=e.target.value;
+          const base_url = provider === 'doubao_ark' ? ARK_URL : (provider === 'doubao_realtime' ? REALTIME_URL : '');
+          setForm({...form,provider,base_url,model:provider === 'doubao_realtime' && form.model ? '' : form.model,api_key:'',clear_key:false});setError('');clearConversation();
+        }}><option value="doubao_ark">豆包·方舟文字模型</option><option value="doubao_realtime">豆包·实时语音（AI 对话）</option><option value="openai_compatible">其他 OpenAI 兼容接口</option></select></label>
+        <label class="ai-wide">Base URL${isRealtime(form) ? '（实时语音固定端点）' : ''}<input aria-label="Base URL" maxlength="500" value=${form.base_url} readOnly=${isRealtime(form)} onInput=${e=>edit('base_url',e.target.value)} placeholder="https://服务地址/v1" spellcheck="false" /></label>
+        <label class="ai-wide">${isRealtime(form) ? '音色 ID（留空用默认女声）' : 'Model ID'}<input aria-label=${isRealtime(form) ? '音色 ID' : 'Model ID'} maxlength="200" value=${form.model} onInput=${e=>edit('model',e.target.value)} placeholder=${isRealtime(form) ? '例如 zh_female_vv_jupiter_bigtts' : '填写控制台提供的模型 ID 或接入点 ID'} spellcheck="false" /></label>
+        <label class="ai-wide">API Key${isRealtime(form) ? '（控制台的 API Key，走 X-Api-Key）' : ''}<input type="password" aria-label="API Key" value=${form.api_key} maxlength="4096" autocomplete="new-password" onInput=${e=>edit('api_key',e.target.value)} placeholder=${saved?.key_configured ? '已保存；留空保留同一提供商和地址的 Key' : '尚未配置，可先保存草稿'} /></label>
         <label class="ai-check ai-wide"><input type="checkbox" checked=${form.clear_key} onChange=${e=>edit('clear_key',e.target.checked)} />清除已保存的 API Key</label>
-        <label class="ai-check ai-wide"><input aria-label="无需 API Key（仅本地服务）" type="checkbox" checked=${form.auth_mode === 'none'} onChange=${e=>edit('auth_mode',e.target.checked ? 'none' : 'bearer')} />无需 API Key（仅本地服务）</label>
+        ${!isRealtime(form) ? html`<label class="ai-check ai-wide"><input aria-label="无需 API Key（仅本地服务）" type="checkbox" checked=${form.auth_mode === 'none'} onChange=${e=>edit('auth_mode',e.target.checked ? 'none' : 'bearer')} />无需 API Key（仅本地服务）</label>` : null}
       </div>
     </fieldset>
     <p>Key 只保存在鸭子本机，网页不会回显，不进入浏览器存储、日志或诊断包。更换提供商或地址后须重新填写 Key，或明确选择本地无 Key 服务。</p>
@@ -90,16 +92,17 @@ export function AiSettings({ api }) {
       <button class="btn primary" type="button" data-ai="save" disabled=${busy || !dirty || (!saved && data.connections.length >= 10)} onClick=${save}>保存连接</button>
       <button class="btn" type="button" data-ai="select" disabled=${!ready || data.current_id === selected} onClick=${select}>设为当前</button>
       <button class="btn" type="button" data-ai="delete" disabled=${busy || !saved} onClick=${remove}>删除连接</button>
-      <button class="btn" type="button" data-ai="test" disabled=${!ready} onClick=${test}>测试连接</button>
+      ${!isRealtime(form) ? html`<button class="btn" type="button" data-ai="test" disabled=${!ready} onClick=${test}>测试连接</button>` : null}
     </div>
     <p>保存和选择不会请求云端；测试连接会发送一次简短文字请求，可能产生提供商费用。</p>
     ${busy ? html`<p role="status">正在处理…</p>` : null}
     ${notice ? html`<p class="ai-result" role="status" data-ai-tested=${tested}>${tested ? '测试成功：' : ''}${notice}</p>` : null}
-    <div class="ai-chat"><strong>文字试聊</strong><p>仅保留本页内存中的近期对话上下文（最多 5 轮、12000 字）；每条输入最多 2000 字。切换、修改连接或离开设置页会清空，不保存聊天记录。</p>
+    ${isRealtime(form) ? html`<p>实时语音连接不做文字测试 / 试聊：保存并设为当前后，到遥控页「AI 对话」按 R3 开始语音对话。</p>` : null}
+    ${!isRealtime(form) ? html`<div class="ai-chat"><strong>文字试聊</strong><p>仅保留本页内存中的近期对话上下文（最多 5 轮、12000 字）；每条输入最多 2000 字。切换、修改连接或离开设置页会清空，不保存聊天记录。</p>
       <div aria-live="polite" data-ai-history>${history.map(message=>html`<div class="ai-message"><strong>${message.role === 'user' ? '你' : '模型'}</strong>${message.content}</div>`)}</div>
       <label>试聊内容<textarea aria-label="试聊内容" rows="3" maxlength="2000" disabled=${busy} value=${input} onInput=${e=>setInput(e.target.value)} placeholder="开通服务并测试后，可以在这里试聊" /></label>
       <div class="ai-actions"><button class="btn primary" type="button" data-ai="send" disabled=${!ready || !input.trim()} onClick=${send}>发送</button><button class="btn" type="button" data-ai="clear" disabled=${busy || (!history.length && !input)} onClick=${()=>{setHistory([]);setInput('');}}>清空对话</button></div>
-    </div>
-    <p>豆包实时语音使用独立的 WebSocket 地址与协议，不能把语音地址填进这里作为文字接口。实时语音接入将在后续单独配置。</p>`}
+    </div>` : null}
+    <p>豆包实时语音是独立的 WebSocket 语音链路：选「豆包·实时语音」保存并设为当前后，在遥控页「AI 对话」用 R3 开始语音对话；文字模型连接只用于网页文字试聊。</p>`}
   </section>`;
 }

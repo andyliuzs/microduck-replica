@@ -32,6 +32,8 @@ class AiService:
             await asyncio.to_thread(getattr(self.store,op),ident)
             return await self.view()
         config, generation = await asyncio.to_thread(self.store.private,ident,body['revision'])
+        if config['provider'] == 'doubao_realtime':
+            raise AiError('validation', '豆包实时语音连接走独立的 WebSocket 语音链路，不支持文字测试 / 试聊；在遥控页的语音面板开对话验证')
         if (not all(config[k] for k in ('name','base_url','model'))
                 or config['auth_mode'] == 'bearer' and not config['api_key']):
             raise AiError('incomplete', '请先保存完整的名称、Base URL、Model ID 和认证设置')
