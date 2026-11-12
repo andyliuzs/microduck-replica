@@ -72,6 +72,10 @@ from .microduck_hd1910_env_cfg import (
     MicroduckHD1910RlCfg,
     make_microduck_hd1910_velocity_env_cfg,
 )
+from .microduck_hd1910_rollers_env_cfg import (
+    MicroduckHD1910RollersRlCfg,
+    make_microduck_hd1910_rollers_env_cfg,
+)
 from .microduck_balance_env_cfg import (
     MicroduckBalanceRlCfg,
     make_microduck_balance_env_cfg,
@@ -94,6 +98,16 @@ for _terrain, _rough in (("Flat", False), ("Rough", True)):
         rl_cfg=MicroduckHD1910RlCfg,
         runner_cls=MicroduckOnPolicyRunner,
     )
+
+# HD1910 roller skate velocity — Feetech replica baseline on rollers. The
+# XL330 rollers tasks above are preserved untouched.
+register_mjlab_task(
+    task_id="Mjlab-Velocity-Flat-MicroDuck-Rollers-HD1910",
+    env_cfg=make_microduck_hd1910_rollers_env_cfg(),
+    play_env_cfg=make_microduck_hd1910_rollers_env_cfg(play=True),
+    rl_cfg=MicroduckHD1910RollersRlCfg,
+    runner_cls=MicroduckOnPolicyRunner,
+)
 
 # Standard velocity task
 register_mjlab_task(
