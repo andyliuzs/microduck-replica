@@ -1,6 +1,10 @@
 import { html, useEffect, useRef, useState } from './vendor/preact-htm.module.js';
 import { audioLabel, rhythmLabel } from './audio-ui-state.js';
 
+const CMD_CN = { sit: '坐下', stand: '站起来', walk: '走一小步', stop: '停下',
+  roulade: '前滚翻', ground_pick: '低头捡东西', chirp: '叫一声', greet: '打招呼',
+  nod: '点头', shake: '摇头', tilt: '歪头' };
+
 export function AudioInteraction({ pad, link, activity, dialogue }) {
   const status = pad?.audio;
   const [active, setActive] = useState(activity.active);
@@ -43,6 +47,12 @@ export function AudioInteraction({ pad, link, activity, dialogue }) {
     </div>
     ${error || status?.error ? html`<p class="motion-error" role="alert">${error || status.error}</p>` : null}
     ${!status?.available ? html`<p class="pd-small-p">${status?.why || '等待语音服务连接'}</p>` : null}
+    ${status?.available && status?.voice_ready === false && !status?.error
+      ? html`<p class="motion-error" role="alert">语音识别还没准备好（模型加载中或没装好；稍等十几秒，一直这样就看一眼 duck-echo 日志）。</p>`
+      : null}
+    ${status?.last?.accepted === false
+      ? html`<p class="motion-error" role="alert">最近一次「${CMD_CN[status.last.command] || status.last.command}」没成功${status.last.reason ? `：${status.last.reason}` : ''}</p>`
+      : null}
     <div class="pd-sec-h" style="margin-top:14px">AI 对话（豆包实时语音）</div>
     <div class="motion-toolbar">
       <button type="button" class=${dlgOn ? 'motion-stop' : 'btn-primary'} data-audio="dialogue"
@@ -64,7 +74,12 @@ export function AudioInteraction({ pad, link, activity, dialogue }) {
       <p class="pd-small-p">手机或音箱在旁边放歌，可以问“感觉怎么样”“喜欢这种歌吗”。
       叫声按近期节奏感觉变化；低置信度时会用询问声回应。音乐模式暂不执行坐站口令或复读整首歌。</p>` : null}
     <p class="pd-small-p motion-note">R3 按一下开启并短叫一声，再按一下关闭；提示声后稍停再说话。
-      日常口令是“坐下”“站起来”，执行后用叫声确认，普通话语不会原样播放。录音复读单独保留，专门按键以后再设。
+      日常口令是“坐下”“站起来”“停”“点头”“摇头”“歪头”“前滚翻”“低头捡东西”“叫一声”“打招呼”，
+      执行后用叫声确认；普通话语不会原样播放。录音复读单独保留，专门按键以后再设。
       AI 对话开着时不执行本地坐站口令，由 AI 决定动作。</p>
+    <p class="pd-small-p motion-note">监听会持续到关闭。听音乐后，先关闭实体手柄、站稳并点“开始走”，
+      再保持网页在前台并停留在遥控区，点下面的“随乐律动”。头部会小幅跟拍；身体跟随效果取决于运动模型。
+      独立随乐律动开启后，失焦、切后台、滚出遥控区或切换站内页面仍会继续；关闭网页或连接断开会停止。
+      返回页面可停止律动。录制和录制中的随乐律动仍需保持前台和遥控区可见，离开后停止。</p>
   </section>`;
 }
