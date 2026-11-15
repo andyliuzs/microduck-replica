@@ -4,7 +4,14 @@
 
 基于 [Pollen Robotics Microduck](https://pollen-robotics.com/microduck/) 的第三方整机复刻项目，提供从采购、打印、装配到标定、控制和训练的资料。
 
-**20261104 正式镜像**。整合站姿 IMU 重标、ID 200 独立方向核验、热点恢复，以及手柄映射等此前软件功能。新卡启动、真实换网热点、行走和倒地起身待实机验收。固定安装方向预设留待后续。[下载镜像](https://github.com/fanhao375/microduck-replica/releases/tag/microduck-replica-image-20261104) · [配套测试软件](https://github.com/fanhao375/microduck-replica/releases/tag/microduck-software-v2026.11.4) · [完整更新清单](docs/更新说明-20261104.md)
+## 按主板下载镜像
+
+先看主板丝印。**Radxa ZERO 3W** 和 **Radxa Cubie A7Z** 用不同的镜像，烧卡前请核对下载页和主板上的完整型号。
+
+| 主板 | 镜像下载 | 首次使用 |
+|---|---|---|
+| **Radxa ZERO 3W** | [ZERO 3W · 20261112 RC4 测试镜像](https://github.com/fanhao375/microduck-replica/releases/tag/microduck-replica-image-zero3w-20261112-rc4) · [旧版正式镜像](https://github.com/fanhao375/microduck-replica/releases/tag/microduck-replica-image-20261027) | [ZERO 3W 烧录与配网](software/image/烧录和第一次使用.md) |
+| **Radxa Cubie A7Z** | [Cubie A7Z 预览镜像](https://github.com/Liangjin5437/microduck-replica/releases/tag/a7z-duck-image-20261109-preview1) | [A7Z 烧录与配网](radxa-cubie-a7z/image/README.md) |
 
 **飞特 HD-1910 版本已完成整机实机验证：站立、行走、前滚翻后起身均已跑通。** 主线使用 **15 颗飞特 HD-1910 舵机**，提供可烧录的**复刻镜像**和 **Microduck Studio 网页中控**，通过手机或电脑浏览器完成配网、标定和遥控。
 
@@ -31,13 +38,14 @@
 
 动图为无声预览，MP4 保留完整画面和声音。
 
-**[下载镜像](https://github.com/fanhao375/microduck-replica/releases/latest)** · **[首次使用指南（PDF / 网页）](docs/上手指南/README.md)** · **[CAD 与打印件](https://github.com/fanhao375/microduck-replica-cad)** · **[装配教程](#-装配视频教程)** · **[BOM 采购清单](BOM/README.md)** · **[硬件工程](hardware/README.md)**
+**[按主板下载镜像](#按主板下载镜像)** · **[首次使用指南（PDF / 网页）](docs/上手指南/README.md)** · **[CAD 与打印件](https://github.com/fanhao375/microduck-replica-cad)** · **[装配教程](#-装配视频教程)** · **[BOM 采购清单](BOM/README.md)** · **[硬件工程](hardware/README.md)**
 
 ---
 
 ### 适用版本
 
 - **飞特 HD-1910 + Radxa Zero 3W**：使用本仓复刻镜像和 Studio 网页中控。
+- **飞特 HD-1910 + Radxa Cubie A7Z（预览）**：[适配源码与说明](radxa-cubie-a7z/README.md) · [按主板下载镜像](#按主板下载镜像)。预览镜像的实机验收范围见发布页。
 - **Dynamixel XL330**：提供对应 CAD 与装配资料，需使用匹配的运行软件。
 
 [选择打印件与采购清单](#打印件与采购清单) · [查看舵机详细对比](docs/执行器选型.md)
@@ -48,12 +56,12 @@
 
 有人在做同样的事，凑了个微信群一起讨论复刻进度、踩过的坑、元件采购。
 
-下面是**鸭子复刻群 15**的二维码（微信群满 200 人后无法扫码加入）。
+下面是**鸭子复刻群 16**的二维码（微信群满 200 人后无法扫码加入）。
 
 <div align="center">
-  <img src="assets/wechat-group-15.png" alt="鸭子复刻群 15 微信二维码" width="280">
+  <img src="assets/wechat-group-16.png" alt="鸭子复刻群 16 微信二维码" width="280">
   <br>
-  <sub><b>鸭子复刻群 15 · 二维码在 2026-11-12 前有效</b>（微信群码 7 天自动失效）<br>
+  <sub><b>鸭子复刻群 16 · 二维码在 2026-11-20 前有效</b>（微信群码 7 天自动失效）<br>
   过期了请开个 <a href="https://github.com/fanhao375/microduck-replica/issues">issue</a> 说一声，我会换上新的</sub>
 </div>
 
@@ -122,7 +130,7 @@
 
 <p align="center"><a href="software/studio/README.md"><img src="assets/studio-overview-20261025-demo.jpg" alt="Microduck Studio 当前界面演示，设备读数为模拟数据" width="920"></a><br><sub>Studio 界面演示，设备读数为模拟数据</sub></p>
 
-**[下载镜像](https://github.com/fanhao375/microduck-replica/releases/latest)** · **[首次使用指南](docs/上手指南/README.md)** · **[Studio 说明](software/studio/README.md)**
+**[按主板下载镜像](#按主板下载镜像)** · **[首次使用指南](docs/上手指南/README.md)** · **[Studio 说明](software/studio/README.md)**
 
 镜像免费，仅供个人非商业复刻；各部分许可见发布页。摄像头默认测试源，真实摄像头和 ToF 的验证范围见本版说明。
 
@@ -216,6 +224,8 @@
 |---|---|
 | [@yoyojacky](https://github.com/yoyojacky) | **Rust 版飞特舵机测试工具**（[PR #27](https://github.com/fanhao375/microduck-replica/pull/27)，已合并）。自己实现的最小 STS/SCS 协议（帧打包、校验和、ping、读写寄存器、状态解析），命令行可以扫描总线（带进度条）、读状态、转到指定位置、单颗测试和批量测试，输出位置偏差、峰值电流、峰值负载、电压温度并判定 PASS/FAIL。台架验收一条命令出汇总表 → [`tools/sts3215Servo_testtool/`](tools/sts3215Servo_testtool/) |
 | [@Abo1ish](https://github.com/Abo1ish) | **IMU 小板固件 + 调试台姿态显示**（[PR #32](https://github.com/fanhao375/microduck-replica/pull/32)，已合并）。给官方没开源的那块 imu_to_dxl 写了 STM32G031 固件底子，在实板上验证过，带主机端测试和一份写清楚边界的 [`VALIDATION.md`](hardware/imu_to_dxl/firmware/VALIDATION.md) → [`hardware/imu_to_dxl/firmware/`](hardware/imu_to_dxl/firmware/)；再用 J-Link 把 IMU 姿态实时读出来并进了网页调试台，3D 鸭子的躯干跟着真板子转（`--imu-jlink`，没板子也能用 `--imu-demo` 先看效果）→ [`tools/servo-web/`](tools/servo-web/) |
+| [@yansis2026](https://github.com/yansis2026) | **手机版中控与离线语音**（[PR #52](https://github.com/fanhao375/microduck-replica/pull/52)，已合并）。在 `/m` 提供手机手柄、模型管理和摄像头画面。手机麦克风通过 HTTPS 把语音送到鸭子，由板载 Vosk 识别，连鸭子热点就能离线使用。贡献者在自己的鸭子上跑通了这套流程，合并版已通过软件回归，待实机复测。见[手机与离线使用指南](software/studio/deploy/OFFLINE.md)。 |
+| [@Liangjin5437](https://github.com/Liangjin5437) | **Radxa Cubie A7Z 适配与预览镜像**（[PR #54](https://github.com/fanhao375/microduck-replica/pull/54)，已合并）。为飞特 HD-1910 舵机和总线 IMU 提供 A7Z 的热点配网、UART 总线与分组读取、Studio 适配、温控和镜像构建工具。贡献者已在自己的 A7Z 鸭子上验证适配。现有预览镜像早于合并修复，更新版待重新打包和上板验收。见 [A7Z 适配与下载说明](radxa-cubie-a7z/README.md)。 |
 | 微信群的鸭友 | **Radxa Zero 3W V1.12J 的启动方案**。这批板子（WiFi 换成 AIC8800DS2）光换瑞莎引导还是起不来，他实测出设备树也得换成瑞莎 B1 的：**B1 引导 + B1 DTB + Armbian 6.1.115 内核 + Trixie 系统**，跑通了 → 写进了[踩坑记录](踩坑记录.md#软件)和[镜像使用说明](tools/radxa/镜像使用说明.md#6-如果你的板子不是这一批) |
 
 ---
