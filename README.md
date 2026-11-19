@@ -17,6 +17,8 @@
 
 **首次上手流程已在实机跑通：** 烧录镜像 → 热点配网 → 舵机与 IMU 标定 → 配手柄、测试急停 → 站立行走。[查看实机验证记录](docs/历史更新.md#最近更新)
 
+**接线图（3D，可旋转，逐步高亮）：** [在线查看](https://fanhao375.github.io/microduck-replica/wiring3d/)。电池 → 香蕉板 → HUB → 腿 / 头 / IMU，摄像头、ToF、扬声器、HAT 各接口，按步骤看清每根线接哪里。
+
 ## 鸭子现在的样子
 
 **2026-10-24 · 实机运动验证通过**：下方两段实拍视频分别展示前滚翻后起身和桌面行走。
@@ -103,6 +105,14 @@
 | **装配采购清单** | **飞特 HD-1910** | **[在线预览](BOM/README.md)** · **[下载 Excel](BOM/装配BOM-机械行者Robo-2026-10-23-带采购链接.xlsx)**：机械行者Robo整理，2026-10-23 版，含数量、材料和采购链接 |
 
 两种舵机的配合件不能混用。打印文件的具体版本和更新日期在 CAD 仓库对应专区维护；这份采购清单按飞特方案整理，XL330 的舵机及配套电控需另行核对。
+
+**接线怎么接：** **[3D 接线图在线预览](https://fanhao375.github.io/microduck-replica/wiring3d/)**（点下图也可以打开）。可旋转、缩放，按步骤高亮每一根线（电池 → 香蕉板 → HUB → 腿 / 头 / IMU，摄像头、ToF、扬声器、HAT 各接口）。
+
+预览地址：<https://fanhao375.github.io/microduck-replica/wiring3d/>
+
+<div align="center">
+  <a href="https://fanhao375.github.io/microduck-replica/wiring3d/"><img src="docs/wiring3d/preview.png" alt="Microduck 3D 接线图" width="420"></a>
+</div>
 
 ---
 

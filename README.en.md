@@ -17,6 +17,8 @@ Check the model printed on the board. **Radxa ZERO 3W** and **Radxa Cubie A7Z** 
 
 **The first-use workflow has also been completed on real hardware:** flash the image → hotspot and Wi-Fi setup → servo and IMU calibration → gamepad pairing and e-stop test → stand and walk. [Real hardware validation records](docs/update-history.en.md#latest)
 
+**Wiring diagram (3D, rotatable, step-by-step highlight):** [open online](https://fanhao375.github.io/microduck-replica/wiring3d/). Battery → banana board → HUB → legs / head / IMU, plus the camera, ToF, speaker and every HAT connector, so you can see exactly where each wire goes.
+
 ## The ducks in action
 
 **2026-10-24 · Motion validated on real hardware**: the two recordings below show a forward roll followed by standing back up, and walking on a tabletop.
@@ -103,6 +105,14 @@ Choose print resources for your servo version, then prepare the matching purchas
 | **Assembly shopping list** | **Feetech HD-1910** | **[Online preview](BOM/README.md)** · **[Download Excel](BOM/装配BOM-机械行者Robo-2026-10-23-带采购链接.xlsx)**: compiled by 机械行者Robo, dated 2026-10-23, with quantities, materials and purchase links |
 
 Mating parts from the two servo versions are not interchangeable. File versions and update dates are maintained in the respective CAD sections. This shopping list follows the Feetech build; XL330 servos and associated electronics need separate checks.
+
+**How it is wired:** **[3D wiring diagram, live preview](https://fanhao375.github.io/microduck-replica/wiring3d/)** (the picture below opens it too). Rotate and zoom it, and step through every wire (battery → banana board → HUB → legs / head / IMU, plus the camera, ToF, speaker and each HAT connector).
+
+Preview address: <https://fanhao375.github.io/microduck-replica/wiring3d/>
+
+<div align="center">
+  <a href="https://fanhao375.github.io/microduck-replica/wiring3d/"><img src="docs/wiring3d/preview.png" alt="Microduck 3D wiring diagram" width="420"></a>
+</div>
 
 ---
 
